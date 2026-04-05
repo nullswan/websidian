@@ -1798,7 +1798,7 @@ export function App() {
                 </div>
               )
             ) : leftPanel === "search" ? (
-              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} onClose={() => setLeftPanel("files")} />
+              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} onClose={() => setLeftPanel("files")} showToast={showToast} />
             ) : leftPanel === "starred" ? (
               <div style={{ padding: "8px" }}>
                 {starredNotes.length === 0 ? (

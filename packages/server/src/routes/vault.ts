@@ -389,6 +389,53 @@ export async function vaultRoutes(app: FastifyInstance) {
     },
   );
 
+  // POST /api/vault/search-replace — replace text across vault files
+  app.post<{ Body: { query: string; replace: string; regex?: boolean; caseSensitive?: boolean; paths?: string[] } }>(
+    "/search-replace",
+    async (request, reply) => {
+      const { query, replace, regex, caseSensitive, paths } = request.body;
+      if (!query) {
+        return reply.status(400).send({ error: "query required" });
+      }
+
+      let re: RegExp;
+      if (regex) {
+        try {
+          re = new RegExp(query, caseSensitive ? "g" : "gi");
+        } catch {
+          return reply.status(400).send({ error: "Invalid regex pattern" });
+        }
+      } else {
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        re = new RegExp(escaped, caseSensitive ? "g" : "gi");
+      }
+
+      const tree = await scanVault(vaultRoot);
+      const files = flattenFiles(tree);
+      let totalReplacements = 0;
+      const changedFiles: string[] = [];
+
+      for (const file of files) {
+        if (file.extension !== "md") continue;
+        if (paths && !paths.includes(file.path)) continue;
+        const fullPath = join(vaultRoot, file.path);
+        const content = await readFile(fullPath, "utf-8");
+        re.lastIndex = 0;
+        const newContent = content.replace(re, replace);
+        if (newContent !== content) {
+          await writeFile(fullPath, newContent, "utf-8");
+          // Count replacements
+          re.lastIndex = 0;
+          const matches = content.match(re);
+          totalReplacements += matches?.length ?? 0;
+          changedFiles.push(file.path);
+        }
+      }
+
+      return { totalReplacements, changedFiles };
+    },
+  );
+
   // GET /api/vault/switcher?q=... — quick switcher (filenames + aliases + headings)
   app.get<{ Querystring: { q: string } }>(
     "/switcher",

@@ -9,12 +9,16 @@ interface SearchPanelProps {
   onNavigate: (path: string, query?: string, line?: number) => void;
   initialQuery?: string;
   onClose?: () => void;
+  showToast?: (msg: string) => void;
 }
 
-export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelProps) {
+export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: SearchPanelProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
+  const [replaceText, setReplaceText] = useState("");
+  const [showReplace, setShowReplace] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [replacing, setReplacing] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [useRegex, setUseRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
@@ -92,6 +96,36 @@ export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelPr
     });
   };
 
+  const doReplace = async (paths?: string[]) => {
+    if (!query.trim()) return;
+    setReplacing(true);
+    try {
+      const res = await fetch("/api/vault/search-replace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query,
+          replace: replaceText,
+          regex: useRegex,
+          caseSensitive,
+          paths,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setRegexError(data.error);
+      } else {
+        showToast?.(`Replaced ${data.totalReplacements} occurrence${data.totalReplacements !== 1 ? "s" : ""} in ${data.changedFiles.length} file${data.changedFiles.length !== 1 ? "s" : ""}`);
+        // Re-run search to update results
+        doSearch(query, useRegex, caseSensitive);
+      }
+    } catch {
+      // ignore
+    }
+    setReplacing(false);
+  };
+
   const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? "rgba(127,109,242,0.2)" : "transparent",
     border: active ? "1px solid rgba(127,109,242,0.5)" : "1px solid #444",
@@ -106,65 +140,137 @@ export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelPr
     transition: "all 0.15s",
   });
 
+  const actionBtnStyle: React.CSSProperties = {
+    background: "transparent",
+    border: "1px solid #444",
+    borderRadius: 3,
+    color: "#999",
+    fontSize: 10,
+    padding: "2px 6px",
+    cursor: "pointer",
+    lineHeight: 1.4,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid #333" }}>
-        <div style={{ position: "relative" }}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                onClose?.();
-                return;
-              }
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setSelectedIdx((i) => Math.min(i + 1, results.length - 1));
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setSelectedIdx((i) => Math.max(i - 1, -1));
-              } else if (e.key === "Enter" && selectedIdx >= 0 && results[selectedIdx]) {
-                e.preventDefault();
-                onNavigate(results[selectedIdx].path, query);
-              }
-            }}
-            placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
+        <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
+          <span
+            onClick={() => setShowReplace((v) => !v)}
             style={{
-              width: "100%",
-              padding: "6px 28px 6px 8px",
-              border: regexError ? "1px solid #f44" : "1px solid #444",
-              borderRadius: 4,
-              background: "#2a2a2a",
-              color: "#ddd",
-              fontSize: 13,
-              outline: "none",
-              boxSizing: "border-box",
+              color: "#555", fontSize: 10, cursor: "pointer", userSelect: "none",
+              marginTop: 8, width: 12, textAlign: "center", flexShrink: 0,
+              transition: "transform 0.15s",
+              transform: showReplace ? "rotate(90deg)" : "rotate(0deg)",
             }}
-          />
-          {query && (
-            <span
-              onClick={() => { setQuery(""); setResults([]); setRegexError(null); inputRef.current?.focus(); }}
-              style={{
-                position: "absolute",
-                right: 6,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "#666",
-                cursor: "pointer",
-                fontSize: 14,
-                lineHeight: 1,
-                userSelect: "none",
-              }}
-            >
-              ×
-            </span>
-          )}
+          >
+            ▸
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ position: "relative" }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    onClose?.();
+                    return;
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedIdx((i) => Math.min(i + 1, results.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedIdx((i) => Math.max(i - 1, -1));
+                  } else if (e.key === "Enter" && selectedIdx >= 0 && results[selectedIdx]) {
+                    e.preventDefault();
+                    onNavigate(results[selectedIdx].path, query);
+                  }
+                }}
+                placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
+                style={{
+                  width: "100%",
+                  padding: "6px 28px 6px 8px",
+                  border: regexError ? "1px solid #f44" : "1px solid #444",
+                  borderRadius: 4,
+                  background: "#2a2a2a",
+                  color: "#ddd",
+                  fontSize: 13,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              {query && (
+                <span
+                  onClick={() => { setQuery(""); setResults([]); setRegexError(null); inputRef.current?.focus(); }}
+                  style={{
+                    position: "absolute",
+                    right: 6,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#666",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    userSelect: "none",
+                  }}
+                >
+                  ×
+                </span>
+              )}
+            </div>
+            {showReplace && (
+              <div style={{ position: "relative", marginTop: 4 }}>
+                <input
+                  type="text"
+                  value={replaceText}
+                  onChange={(e) => setReplaceText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      onClose?.();
+                    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      doReplace();
+                    }
+                  }}
+                  placeholder="Replace..."
+                  style={{
+                    width: "100%",
+                    padding: "6px 8px",
+                    border: "1px solid #444",
+                    borderRadius: 4,
+                    background: "#2a2a2a",
+                    color: "#ddd",
+                    fontSize: 13,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                  <button
+                    onClick={() => doReplace()}
+                    disabled={replacing || !query.trim()}
+                    style={{
+                      ...actionBtnStyle,
+                      color: replacing ? "#555" : "#7f6df2",
+                      border: "1px solid rgba(127,109,242,0.3)",
+                    }}
+                    title="Replace all (Ctrl+Enter)"
+                  >
+                    {replacing ? "Replacing..." : "Replace All"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 4, marginTop: 4, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 4, marginTop: 4, alignItems: "center", paddingLeft: 16 }}>
           <span
             title="Use regular expression"
             onClick={() => setUseRegex((v) => !v)}
@@ -186,7 +292,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelPr
           )}
         </div>
         {regexError && (
-          <div style={{ fontSize: 11, color: "#f44", marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: "#f44", marginTop: 2, paddingLeft: 16 }}>
             {regexError}
           </div>
         )}
@@ -221,6 +327,15 @@ export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelPr
                 >
                   {r.path.replace(/\.md$/, "")}
                 </span>
+                {showReplace && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); doReplace([r.path]); }}
+                    style={{ ...actionBtnStyle, fontSize: 9, padding: "1px 4px" }}
+                    title="Replace in this file"
+                  >
+                    Replace
+                  </button>
+                )}
                 <span style={{ color: "#555", fontSize: 11, flexShrink: 0 }}>
                   {r.matches.length}
                 </span>
