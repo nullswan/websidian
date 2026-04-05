@@ -13,6 +13,7 @@ import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
 import { Snippets } from "./components/Snippets.js";
 import { Tags } from "./components/Tags.js";
+import { LocalGraph } from "./components/LocalGraph.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
@@ -1937,6 +1938,25 @@ export function App() {
               return links.size;
             })()})`}>
               <OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} />
+            </SidebarSection>
+            <SidebarSection title="Local Graph">
+              <LocalGraph
+                currentPath={activeTab.path}
+                outgoingLinks={(() => {
+                  const re = /\[\[([^\]|#]+)/g;
+                  const links: string[] = [];
+                  let m;
+                  while ((m = re.exec(activeTab.content)) !== null) {
+                    const target = m[1].trim();
+                    const resolved = target.includes("/") ? target : target;
+                    const path = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
+                    links.push(path);
+                  }
+                  return [...new Set(links)];
+                })()}
+                backlinkPaths={activeTab.backlinks.map((bl) => bl.path)}
+                onNavigate={(path) => openTab(path)}
+              />
             </SidebarSection>
             <SidebarSection title="Outline">
               <Outline
