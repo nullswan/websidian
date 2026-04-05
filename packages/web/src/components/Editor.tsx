@@ -476,7 +476,7 @@ function buildInlineMarkerDecorations(state: EditorState): DecorationSet {
   const tree = syntaxTree(state);
   tree.iterate({
     enter: (node) => {
-      if (node.name === "EmphasisMark") {
+      if (node.name === "EmphasisMark" || node.name === "CodeMark") {
         const line = state.doc.lineAt(node.from);
         if (line.number !== cursorLine) {
           ranges.push({ from: node.from, to: node.to });
