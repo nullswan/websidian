@@ -394,6 +394,7 @@ export function App() {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [zenMode, setZenMode] = useState(false);
   const zenPrevState = useRef<{ left: boolean; right: boolean } | null>(null);
+  const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number } | null>(null);
@@ -714,6 +715,11 @@ export function App() {
       });
 
       setTabsMap((prev) => {
+        const tab = prev[tabId];
+        if (tab?.path) {
+          closedTabsStack.current.push(tab.path);
+          if (closedTabsStack.current.length > 20) closedTabsStack.current.shift();
+        }
         const next = { ...prev };
         delete next[tabId];
         return next;
@@ -956,6 +962,13 @@ export function App() {
         e.preventDefault();
         setShowSettings((s) => !s);
       }
+      // Ctrl+Shift+T: undo close tab
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "T" || e.key === "t")) {
+        e.preventDefault();
+        const path = closedTabsStack.current.pop();
+        if (path) openTab(path);
+        return;
+      }
       // Ctrl+Tab / Ctrl+Shift+Tab: cycle tabs
       if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
         e.preventDefault();
@@ -973,7 +986,7 @@ export function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, showShortcuts, toggleZenMode, zenMode]);
+  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, openTab, showShortcuts, toggleZenMode, zenMode]);
 
   // Sync document title with active note
   useEffect(() => {
@@ -1988,6 +2001,15 @@ export function App() {
               action: () => { if (activePane?.activeTabId) closeTab(activePane.activeTabId, activePaneIdx); },
             },
             {
+              id: "undo-close-tab",
+              name: "Undo Close Tab",
+              shortcut: "Ctrl+Shift+T",
+              action: () => {
+                const path = closedTabsStack.current.pop();
+                if (path) openTab(path);
+              },
+            },
+            {
               id: "toggle-graph",
               name: showGraph ? "Close Graph View" : "Open Graph View",
               shortcut: "Ctrl+G",
@@ -2221,6 +2243,7 @@ export function App() {
               ["Ctrl+P", "Command palette"],
               ["Ctrl+E", "Toggle read/edit mode"],
               ["Ctrl+W", "Close active tab"],
+              ["Ctrl+Shift+T", "Undo close tab"],
               ["Ctrl+Tab", "Next tab"],
               ["Ctrl+Shift+Tab", "Previous tab"],
               ["Ctrl+Shift+F", "Toggle search"],
