@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { FileTree } from "./components/FileTree.js";
 import { Editor } from "./components/Editor.js";
 import { Reader } from "./components/Reader.js";
@@ -173,6 +173,59 @@ function SidebarSection({ title, defaultOpen = true, children }: {
         {title}
       </div>
       {open && children}
+    </div>
+  );
+}
+
+function OutgoingLinks({ content, onNavigate }: { content: string; onNavigate: (path: string) => void }) {
+  const links = useMemo(() => {
+    const re = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g;
+    const seen = new Set<string>();
+    const result: string[] = [];
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      const target = m[1].trim();
+      if (!seen.has(target)) {
+        seen.add(target);
+        result.push(target);
+      }
+    }
+    return result;
+  }, [content]);
+
+  if (links.length === 0) {
+    return (
+      <div style={{ padding: "4px 12px", fontSize: 12, color: "#555" }}>
+        No outgoing links
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "4px 12px 8px" }}>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        {links.map((target) => {
+          const display = target.replace(/\.md$/, "").split("/").pop() ?? target;
+          return (
+            <li key={target} style={{ marginBottom: 4 }}>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(target);
+                }}
+                style={{
+                  color: "#7f6df2",
+                  textDecoration: "none",
+                  fontSize: 13,
+                }}
+              >
+                {display}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -1665,6 +1718,15 @@ export function App() {
                 backlinks={activeTab.backlinks}
                 onNavigate={openTab}
               />
+            </SidebarSection>
+            <SidebarSection title={`Outgoing Links (${(() => {
+              const re = /\[\[([^\]|#]+)/g;
+              const links = new Set<string>();
+              let m;
+              while ((m = re.exec(activeTab.content)) !== null) links.add(m[1].trim());
+              return links.size;
+            })()})`}>
+              <OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} />
             </SidebarSection>
             <SidebarSection title="Outline">
               <Outline content={activeTab.content} />
