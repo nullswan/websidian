@@ -1003,6 +1003,44 @@ export function App() {
 
         {/* Pane content */}
         <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab}>
+          {/* Inline title — matches Obsidian's "Show inline title" setting */}
+          {paneTab && paneIsMarkdown && (
+            <div
+              className="inline-title"
+              contentEditable
+              suppressContentEditableWarning
+              spellCheck={false}
+              onBlur={(e) => {
+                const newName = (e.currentTarget.textContent ?? "").trim();
+                if (!newName) return;
+                const oldPath = paneTab.path;
+                const parts = oldPath.split("/");
+                const ext = oldPath.endsWith(".md") ? ".md" : "";
+                const oldName = (parts[parts.length - 1] ?? "").replace(/\.md$/, "");
+                if (newName === oldName) return;
+                parts[parts.length - 1] = newName + ext;
+                const newPath = parts.join("/");
+                fetch("/api/vault/rename", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ from: oldPath, to: newPath }),
+                }).then(() => {
+                  updateTab(paneTab.id, { path: newPath });
+                  refreshTree();
+                  showToast(`Renamed to ${newName}${ext}`);
+                }).catch(() => {});
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLElement).blur();
+                }
+              }}
+            >
+              {paneTab.path.split("/").pop()?.replace(/\.md$/, "") ?? paneTab.path}
+            </div>
+          )}
           {paneTab ? (
             paneIsCanvas ? (
               <CanvasView
