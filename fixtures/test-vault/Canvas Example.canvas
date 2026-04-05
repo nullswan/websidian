@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "text",
+      "text": "Start here",
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "node-2",
+      "type": "text",
+      "text": "Then go here",
+      "x": 300,
+      "y": 0,
+      "width": 200,
+      "height": 100
+    },
+    {
+      "id": "node-3",
+      "type": "file",
+      "file": "Welcome.md",
+      "x": 0,
+      "y": 200,
+      "width": 200,
+      "height": 200
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "node-1",
+      "toNode": "node-2",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "edge-2",
+      "fromNode": "node-1",
+      "toNode": "node-3",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ]
+}

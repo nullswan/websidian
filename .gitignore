@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+.env
+.env.local
+# Screenshots from dev/testing
+/*.png
+/*.jpeg
+/*.jpg
+.playwright-mcp/
+
+# User data (credentials)
+data/
+
+# Dev screenshots
+screenshots/

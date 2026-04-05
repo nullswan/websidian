@@ -1,0 +1,9 @@
+{
+  "id": "sample-plugin",
+  "name": "Sample Plugin",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "A sample browser-safe plugin for testing",
+  "author": "Test Author",
+  "isDesktopOnly": false
+}

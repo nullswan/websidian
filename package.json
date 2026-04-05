@@ -1,0 +1,16 @@
+{
+  "name": "obsidian-web-loop",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "volta": {
+    "node": "22.22.2"
+  }
+}

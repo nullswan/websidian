@@ -1,0 +1,9 @@
+{
+  "id": "desktop-only-plugin",
+  "name": "Desktop Only Plugin",
+  "version": "2.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "A plugin that requires desktop APIs (filesystem, child_process)",
+  "author": "Test Author",
+  "isDesktopOnly": true
+}

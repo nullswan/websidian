@@ -1,0 +1,8 @@
+{
+  "attachmentFolderPath": "Attachments",
+  "newFileLocation": "root",
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "strictLineBreaks": false,
+  "showFrontmatter": true
+}
