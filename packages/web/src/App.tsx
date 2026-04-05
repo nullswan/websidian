@@ -729,6 +729,11 @@ export function App() {
           setLeftCollapsed((c) => !c);
         }
       }
+      // Ctrl+,: Open settings
+      if ((e.ctrlKey || e.metaKey) && e.key === ",") {
+        e.preventDefault();
+        setShowSettings((s) => !s);
+      }
       // Ctrl+Tab / Ctrl+Shift+Tab: cycle tabs
       if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
         e.preventDefault();
@@ -1628,6 +1633,12 @@ export function App() {
               shortcut: "Ctrl+Shift+\\",
               action: () => setRightCollapsed((c) => !c),
             },
+            {
+              id: "open-settings",
+              name: "Open Settings",
+              shortcut: "Ctrl+,",
+              action: () => setShowSettings(true),
+            },
             ...(panes.length < 2
               ? [{
                   id: "split-right",
@@ -1774,6 +1785,7 @@ export function App() {
               ["Ctrl+G", "Toggle graph view"],
               ["Ctrl+\\", "Toggle left sidebar"],
               ["Ctrl+Shift+\\", "Toggle right sidebar"],
+              ["Ctrl+,", "Open settings"],
               ["Ctrl+/", "Keyboard shortcuts"],
               ["Ctrl+F", "Find in editor"],
               ["Ctrl+B", "Bold"],
