@@ -18,6 +18,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
   const [useRegex, setUseRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [regexError, setRegexError] = useState<string | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +74,9 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
     }
   }, [initialQuery, doSearch, useRegex, caseSensitive]);
 
+  // Reset selection when results change
+  useEffect(() => { setSelectedIdx(-1); }, [results]);
+
   const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
 
   const toggleCollapse = (path: string) => {
@@ -107,6 +111,18 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSelectedIdx((i) => Math.min(i + 1, results.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSelectedIdx((i) => Math.max(i - 1, -1));
+              } else if (e.key === "Enter" && selectedIdx >= 0 && results[selectedIdx]) {
+                e.preventDefault();
+                onNavigate(results[selectedIdx].path, query);
+              }
+            }}
             placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
             style={{
               width: "100%",
@@ -170,17 +186,20 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
         {searching && (
           <div style={{ padding: 12, color: "#666" }}>Searching...</div>
         )}
-        {results.map((r) => {
+        {results.map((r, rIdx) => {
           const isCollapsed = collapsed.has(r.path);
+          const isSelected = rIdx === selectedIdx;
           return (
             <div key={r.path} style={{ borderBottom: "1px solid #2a2a2a" }}>
               <div
+                ref={(el) => { if (el && isSelected) el.scrollIntoView({ block: "nearest" }); }}
                 style={{
                   padding: "6px 12px",
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
                   cursor: "pointer",
+                  background: isSelected ? "rgba(127,109,242,0.12)" : "transparent",
                 }}
                 onClick={() => toggleCollapse(r.path)}
               >
