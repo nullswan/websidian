@@ -514,6 +514,7 @@ export function App() {
                     mode: t.mode ?? "read",
                     noteMeta: null,
                     backlinks: [],
+                    scrollTop: 0,
                   };
                   newTabsMap[t.id] = tab;
 
@@ -1372,7 +1373,7 @@ export function App() {
                   Create file
                 </button>
                 <button
-                  onClick={() => closeTab(paneTab.id)}
+                  onClick={() => closeTab(paneTab.id, paneIdx)}
                   style={{
                     padding: "6px 14px", border: "1px solid #444", borderRadius: 4,
                     background: "#2a2a2a", color: "#999", cursor: "pointer", fontSize: 12,
@@ -1788,7 +1789,7 @@ export function App() {
                 </div>
               )
             ) : leftPanel === "search" ? (
-              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} />
+              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} onClose={() => setLeftPanel("files")} />
             ) : leftPanel === "starred" ? (
               <div style={{ padding: "8px" }}>
                 {starredNotes.length === 0 ? (

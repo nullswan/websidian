@@ -15,8 +15,8 @@ function loadSortMode(): SortMode {
 
 function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry[] {
   return [...entries].sort((a, b) => {
-    const aDir = a.type === "directory" ? 0 : 1;
-    const bDir = b.type === "directory" ? 0 : 1;
+    const aDir = a.kind === "folder" ? 0 : 1;
+    const bDir = b.kind === "folder" ? 0 : 1;
     if (aDir !== bDir) return aDir - bDir;
     if (mode === "mtime" && a.kind === "file" && b.kind === "file") {
       return (b.mtime ?? 0) - (a.mtime ?? 0);
@@ -84,7 +84,7 @@ function filterTree(entries: VaultEntry[], query: string): VaultEntry[] {
   const q = query.toLowerCase();
   return entries.reduce<VaultEntry[]>((acc, entry) => {
     const name = (entry.path.split("/").pop() ?? "").toLowerCase();
-    if (entry.type === "directory") {
+    if (entry.kind === "folder") {
       const filtered = filterTree(entry.children, query);
       if (filtered.length > 0 || name.includes(q)) {
         acc.push({ ...entry, children: filtered.length > 0 ? filtered : entry.children });
@@ -101,9 +101,9 @@ const EXPANDED_KEY = "filetree-expanded";
 function collectFolderPaths(entries: VaultEntry[]): string[] {
   const paths: string[] = [];
   for (const entry of entries) {
-    if (entry.kind === "folder" || entry.type === "directory") {
+    if (entry.kind === "folder") {
       paths.push(entry.path);
-      if (entry.children) paths.push(...collectFolderPaths(entry.children));
+      paths.push(...collectFolderPaths(entry.children));
     }
   }
   return paths;

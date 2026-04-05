@@ -8,9 +8,10 @@ interface SearchResult {
 interface SearchPanelProps {
   onNavigate: (path: string, query?: string, line?: number) => void;
   initialQuery?: string;
+  onClose?: () => void;
 }
 
-export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
+export function SearchPanel({ onNavigate, initialQuery, onClose }: SearchPanelProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -22,6 +23,9 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-focus input on mount
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const doSearch = useCallback(
     (q: string, regex: boolean, cs: boolean) => {
@@ -112,6 +116,11 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                onClose?.();
+                return;
+              }
               if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setSelectedIdx((i) => Math.min(i + 1, results.length - 1));
