@@ -197,6 +197,84 @@ const frontmatterField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Inline image preview widget for Live Preview (![[image]] and ![alt](url))
+class ImagePreviewWidget extends WidgetType {
+  src: string;
+  constructor(src: string) {
+    super();
+    this.src = src;
+  }
+  toDOM() {
+    const wrapper = document.createElement("div");
+    wrapper.className = "cm-image-preview";
+    wrapper.style.cssText = "padding: 4px 0; max-width: 600px;";
+    const img = document.createElement("img");
+    img.src = this.src;
+    img.style.cssText = "max-width: 100%; border-radius: 6px; display: block;";
+    img.loading = "lazy";
+    img.onerror = () => { wrapper.style.display = "none"; };
+    wrapper.appendChild(img);
+    return wrapper;
+  }
+  eq(other: ImagePreviewWidget) {
+    return this.src === other.src;
+  }
+  ignoreEvent() { return true; }
+}
+
+function resolveImageSrc(raw: string): string {
+  // External URL
+  if (/^https?:\/\//.test(raw)) return raw;
+  // Vault image: use /api/vault/raw
+  return `/api/vault/raw?path=${encodeURIComponent(raw)}`;
+}
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i;
+
+function buildImageDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue; // hide preview when editing that line
+    const line = state.doc.line(i);
+    const text = line.text;
+
+    // ![[image.png]] — wikilink embed
+    const wikiMatch = text.match(/^!\[\[([^\]|#]+?)(?:\|[^\]]*?)?\]\]\s*$/);
+    if (wikiMatch && IMAGE_EXTENSIONS.test(wikiMatch[1])) {
+      builder.add(
+        line.to,
+        line.to,
+        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(wikiMatch[1].trim())), block: true, side: 1 }),
+      );
+      continue;
+    }
+
+    // ![alt](url) — standard markdown image
+    const mdMatch = text.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/);
+    if (mdMatch) {
+      builder.add(
+        line.to,
+        line.to,
+        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(mdMatch[2].trim())), block: true, side: 1 }),
+      );
+    }
+  }
+  return builder.finish();
+}
+
+const imagePreviewField = StateField.define<DecorationSet>({
+  create(state) { return buildImageDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildImageDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -413,6 +491,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         syntaxHighlighting(classHighlighter),
         headingPlugin,
         frontmatterField,
+        imagePreviewField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
