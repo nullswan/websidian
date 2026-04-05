@@ -391,11 +391,29 @@ export function App() {
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [zenMode, setZenMode] = useState(false);
+  const zenPrevState = useRef<{ left: boolean; right: boolean } | null>(null);
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toggleZenMode = useCallback(() => {
+    setZenMode((prev) => {
+      if (!prev) {
+        zenPrevState.current = { left: leftCollapsed, right: rightCollapsed };
+        setLeftCollapsed(true);
+        setRightCollapsed(true);
+      } else {
+        if (zenPrevState.current) {
+          setLeftCollapsed(zenPrevState.current.left);
+          setRightCollapsed(zenPrevState.current.right);
+          zenPrevState.current = null;
+        }
+      }
+      return !prev;
+    });
+  }, [leftCollapsed, rightCollapsed]);
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -909,6 +927,7 @@ export function App() {
       // Escape: close overlays
       if (e.key === "Escape") {
         if (showShortcuts) { setShowShortcuts(false); e.preventDefault(); return; }
+        if (zenMode) { toggleZenMode(); e.preventDefault(); return; }
       }
       // Ctrl+/: Show keyboard shortcuts
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
@@ -923,6 +942,12 @@ export function App() {
         } else {
           setLeftCollapsed((c) => !c);
         }
+      }
+      // Ctrl+Shift+Z: Toggle zen mode
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "Z" || e.key === "z")) {
+        e.preventDefault();
+        toggleZenMode();
+        return;
       }
       // Ctrl+,: Open settings
       if ((e.ctrlKey || e.metaKey) && e.key === ",") {
@@ -946,7 +971,7 @@ export function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, showShortcuts]);
+  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, showShortcuts, toggleZenMode, zenMode]);
 
   // Sync document title with active note
   useEffect(() => {
@@ -1056,7 +1081,7 @@ export function App() {
         onClick={() => setActivePaneIdx(paneIdx)}
       >
         {/* Pane tab bar */}
-        {pane.tabIds.length > 0 && (
+        {!zenMode && pane.tabIds.length > 0 && (
           <div
             className="tab-bar"
             onWheel={(e) => {
@@ -1452,7 +1477,7 @@ export function App() {
             width: 44,
             background: "#1a1a1a",
             borderRight: "1px solid #2a2a2a",
-            display: "flex",
+            display: zenMode ? "none" : "flex",
             flexDirection: "column",
             alignItems: "center",
             paddingTop: 8,
@@ -1850,7 +1875,7 @@ export function App() {
         </div>
 
         {/* Status bar */}
-        {activeTab && (
+        {!zenMode && activeTab && (
           <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} />
         )}
         </div>
@@ -1987,6 +2012,12 @@ export function App() {
               name: rightCollapsed ? "Expand Right Sidebar" : "Collapse Right Sidebar",
               shortcut: "Ctrl+Shift+\\",
               action: () => setRightCollapsed((c) => !c),
+            },
+            {
+              id: "toggle-zen-mode",
+              name: zenMode ? "Exit Zen Mode" : "Enter Zen Mode",
+              shortcut: "Ctrl+Shift+Z",
+              action: toggleZenMode,
             },
             {
               id: "open-settings",
@@ -2190,6 +2221,7 @@ export function App() {
               ["Ctrl+G", "Toggle graph view"],
               ["Ctrl+\\", "Toggle left sidebar"],
               ["Ctrl+Shift+\\", "Toggle right sidebar"],
+              ["Ctrl+Shift+Z", "Toggle zen mode"],
               ["Ctrl+,", "Open settings"],
               ["Ctrl+/", "Keyboard shortcuts"],
               ["Ctrl+F", "Find in editor"],
