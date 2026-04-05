@@ -275,6 +275,70 @@ const imagePreviewField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Clickable checkbox widget for Live Preview (replaces [ ] and [x] inline)
+class CheckboxWidget extends WidgetType {
+  checked: boolean;
+  constructor(checked: boolean) {
+    super();
+    this.checked = checked;
+  }
+  toDOM(view: EditorView) {
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = this.checked;
+    input.style.cssText = "cursor: pointer; accent-color: #7f6df2; vertical-align: middle; margin-right: 4px;";
+    input.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      // Find this widget's position and toggle
+      const pos = view.posAtDOM(input);
+      const line = view.state.doc.lineAt(pos);
+      const match = line.text.match(/^(\s*- \[)([ x])(\])/);
+      if (match) {
+        const bracketStart = line.from + match[1].length;
+        const newChar = match[2] === "x" ? " " : "x";
+        view.dispatch({ changes: { from: bracketStart, to: bracketStart + 1, insert: newChar } });
+      }
+    });
+    return input;
+  }
+  eq(other: CheckboxWidget) {
+    return this.checked === other.checked;
+  }
+  ignoreEvent() { return false; } // allow click events to reach the widget
+}
+
+function buildCheckboxDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue; // show raw syntax on active line
+    const line = state.doc.line(i);
+    const match = line.text.match(/^(\s*- \[)([ x])(\])/);
+    if (match) {
+      const checkStart = line.from + match[1].length - 1; // start of [
+      const checkEnd = line.from + match[1].length + match[2].length + match[3].length; // end of ]
+      builder.add(
+        checkStart,
+        checkEnd,
+        Decoration.replace({ widget: new CheckboxWidget(match[2] === "x") }),
+      );
+    }
+  }
+  return builder.finish();
+}
+
+const checkboxField = StateField.define<DecorationSet>({
+  create(state) { return buildCheckboxDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildCheckboxDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -492,6 +556,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         headingPlugin,
         frontmatterField,
         imagePreviewField,
+        checkboxField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
