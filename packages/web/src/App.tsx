@@ -422,6 +422,7 @@ export function App() {
   }, []);
   const splitDivRef = useRef<HTMLDivElement>(null);
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
+  const scrollToHeadingRef = useRef<((heading: string, level: number) => void) | null>(null);
 
   const activePane = panes[activePaneIdx];
   const activeTab = activePane?.activeTabId ? tabsMap[activePane.activeTabId] ?? null : null;
@@ -1398,6 +1399,7 @@ export function App() {
                 spellCheck={appSettings.spellCheck}
                 showLineNumbers={appSettings.showLineNumbers}
                 tabSize={appSettings.tabSize}
+                scrollToHeadingRef={scrollToHeadingRef}
               />
             )
           ) : (
@@ -1921,7 +1923,10 @@ export function App() {
               <OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} />
             </SidebarSection>
             <SidebarSection title="Outline">
-              <Outline content={activeTab.content} />
+              <Outline
+                content={activeTab.content}
+                onScrollToHeading={(heading, level) => scrollToHeadingRef.current?.(heading, level)}
+              />
             </SidebarSection>
             <SidebarSection title="Tags">
               <Tags onNavigate={openTab} />

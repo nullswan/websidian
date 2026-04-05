@@ -20,6 +20,7 @@ interface EditorProps {
   spellCheck?: boolean;
   showLineNumbers?: boolean;
   tabSize?: number;
+  scrollToHeadingRef?: React.MutableRefObject<((heading: string, level: number) => void) | null>;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -657,7 +658,7 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   }
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4 }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -898,6 +899,25 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       state,
       parent: containerRef.current,
     });
+
+    // Expose scroll-to-heading function for outline sidebar
+    if (scrollToHeadingRef) {
+      scrollToHeadingRef.current = (heading: string, level: number) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const doc = view.state.doc;
+        const re = new RegExp(`^#{${level}}\\s+${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`);
+        for (let i = 1; i <= doc.lines; i++) {
+          const line = doc.line(i);
+          if (re.test(line.text)) {
+            view.dispatch({
+              effects: EditorView.scrollIntoView(line.from, { y: "start" }),
+            });
+            return;
+          }
+        }
+      };
+    }
 
     // Attach hover preview listeners directly on the content DOM
     const contentDOM = viewRef.current.contentDOM;

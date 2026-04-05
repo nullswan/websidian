@@ -8,9 +8,10 @@ interface Heading {
 
 interface OutlineProps {
   content: string;
+  onScrollToHeading?: (heading: string, level: number) => void;
 }
 
-export function Outline({ content }: OutlineProps) {
+export function Outline({ content, onScrollToHeading }: OutlineProps) {
   const headings = useMemo(() => extractHeadings(content), [content]);
   const [activeIdx, setActiveIdx] = useState(-1);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -83,7 +84,7 @@ export function Outline({ content }: OutlineProps) {
                 marginLeft: -2,
               }}
               onClick={() => {
-                // Find by text content for accurate scrolling
+                // Try reader view first
                 const allHeadings = document.querySelectorAll(
                   ".reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6",
                 );
@@ -92,8 +93,13 @@ export function Outline({ content }: OutlineProps) {
                   if (text === h.text) {
                     heading.scrollIntoView({ behavior: "smooth", block: "start" });
                     setActiveIdx(i);
-                    break;
+                    return;
                   }
+                }
+                // Fallback: editor mode — use callback to scroll CM6 view
+                if (onScrollToHeading) {
+                  onScrollToHeading(h.text, h.level);
+                  setActiveIdx(i);
                 }
               }}
             >
