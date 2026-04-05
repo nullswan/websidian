@@ -116,6 +116,28 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
     return saved ?? new Set(collectFolderPaths(entries));
   });
 
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
+  const handleDrop = async (sourcePath: string, targetFolder: string) => {
+    setDropTarget(null);
+    const name = sourcePath.split("/").pop()!;
+    const newPath = targetFolder ? `${targetFolder}/${name}` : name;
+    if (newPath === sourcePath) return;
+    // Don't allow dropping a folder into itself or a descendant
+    if (sourcePath === targetFolder || targetFolder.startsWith(sourcePath + "/")) return;
+    const res = await fetch("/api/vault/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ from: sourcePath, to: newPath }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      onFileRenamed?.(sourcePath, newPath, data.updatedFiles ?? []);
+    }
+    onMutate?.();
+  };
+
   const toggleExpanded = (path: string) => {
     setExpandedPaths((prev) => {
       const next = new Set(prev);
@@ -257,6 +279,13 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
       <ul
         style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13 }}
         onContextMenu={(e) => handleContextMenu(e, null, "")}
+        onDragOver={(e) => { e.preventDefault(); setDropTarget("__root__"); }}
+        onDragLeave={() => setDropTarget(null)}
+        onDrop={(e) => {
+          e.preventDefault();
+          const src = e.dataTransfer.getData("text/plain");
+          if (src) handleDrop(src, "");
+        }}
       >
         {sortEntries(filteredEntries).map((entry) => (
           <FileTreeNode
@@ -272,6 +301,9 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
             onCreateSubmit={handleCreateSubmit}
             expandedPaths={expandedPaths}
             toggleExpanded={toggleExpanded}
+            dropTarget={dropTarget}
+            setDropTarget={setDropTarget}
+            onDrop={handleDrop}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -313,6 +345,9 @@ function FileTreeNode({
   onCreateSubmit,
   expandedPaths,
   toggleExpanded,
+  dropTarget,
+  setDropTarget,
+  onDrop,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -325,12 +360,36 @@ function FileTreeNode({
   onCreateSubmit: (name: string) => void;
   expandedPaths: Set<string>;
   toggleExpanded: (path: string) => void;
+  dropTarget: string | null;
+  setDropTarget: (path: string | null) => void;
+  onDrop: (sourcePath: string, targetFolder: string) => void;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
+    const isDragOver = dropTarget === entry.path;
     return (
       <li>
         <div
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData("text/plain", entry.path);
+            e.dataTransfer.effectAllowed = "move";
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropTarget(entry.path);
+          }}
+          onDragLeave={(e) => {
+            e.stopPropagation();
+            if (dropTarget === entry.path) setDropTarget(null);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const src = e.dataTransfer.getData("text/plain");
+            if (src) onDrop(src, entry.path);
+          }}
           style={{
             paddingLeft: depth * 16 + 4,
             padding: "3px 8px 3px " + (depth * 16 + 4) + "px",
@@ -343,11 +402,13 @@ function FileTreeNode({
             borderRadius: 3,
             margin: "0 4px",
             transition: "background 0.1s",
+            background: isDragOver ? "rgba(127,109,242,0.15)" : "transparent",
+            outline: isDragOver ? "1px solid rgba(127,109,242,0.4)" : "none",
           }}
           onClick={() => toggleExpanded(entry.path)}
           onContextMenu={(e) => onContextMenu(e, entry, entry.path)}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          onMouseEnter={(e) => { if (!isDragOver) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+          onMouseLeave={(e) => { if (!isDragOver) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
           <span style={{ display: "flex", alignItems: "center", width: 10 }}>
             {expanded ? <ChevronDown /> : <ChevronRight />}
@@ -371,6 +432,9 @@ function FileTreeNode({
                 onCreateSubmit={onCreateSubmit}
                 expandedPaths={expandedPaths}
                 toggleExpanded={toggleExpanded}
+                dropTarget={dropTarget}
+                setDropTarget={setDropTarget}
+                onDrop={onDrop}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -408,6 +472,11 @@ function FileTreeNode({
             if (el && isSelected) {
               el.scrollIntoView({ block: "nearest", inline: "nearest" });
             }
+          }}
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData("text/plain", entry.path);
+            e.dataTransfer.effectAllowed = "move";
           }}
           style={{
             paddingLeft: depth * 16 + 18,
