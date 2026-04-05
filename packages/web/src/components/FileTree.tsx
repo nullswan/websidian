@@ -1,11 +1,26 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import type { VaultEntry } from "../types.js";
 
-function sortEntries(entries: VaultEntry[]): VaultEntry[] {
+type SortMode = "name" | "mtime";
+
+const SORT_KEY = "filetree-sort";
+
+function loadSortMode(): SortMode {
+  try {
+    const v = localStorage.getItem(SORT_KEY);
+    if (v === "name" || v === "mtime") return v;
+  } catch {}
+  return "name";
+}
+
+function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry[] {
   return [...entries].sort((a, b) => {
     const aDir = a.type === "directory" ? 0 : 1;
     const bDir = b.type === "directory" ? 0 : 1;
     if (aDir !== bDir) return aDir - bDir;
+    if (mode === "mtime" && a.kind === "file" && b.kind === "file") {
+      return (b.mtime ?? 0) - (a.mtime ?? 0);
+    }
     const aName = (a.path.split("/").pop() ?? a.path).toLowerCase();
     const bName = (b.path.split("/").pop() ?? b.path).toLowerCase();
     return aName.localeCompare(bName);
@@ -116,6 +131,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
     return saved ?? new Set(collectFolderPaths(entries));
   });
 
+  const [sortMode, setSortMode] = useState<SortMode>(loadSortMode);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const handleDrop = async (sourcePath: string, targetFolder: string) => {
@@ -255,14 +271,15 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
 
   return (
     <>
-      <div style={{ padding: "4px 8px 4px" }}>
+      <div style={{ padding: "4px 8px 4px", display: "flex", gap: 4, alignItems: "center" }}>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter files..."
           style={{
-            width: "100%",
+            flex: 1,
+            minWidth: 0,
             padding: "4px 8px",
             border: "1px solid transparent",
             borderRadius: 4,
@@ -275,6 +292,37 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
           onFocus={(e) => { e.currentTarget.style.borderColor = "#7f6df2"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
         />
+        <button
+          title={sortMode === "name" ? "Sort by name (click for modified)" : "Sort by modified (click for name)"}
+          onClick={() => {
+            const next: SortMode = sortMode === "name" ? "mtime" : "name";
+            setSortMode(next);
+            localStorage.setItem(SORT_KEY, next);
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            color: sortMode === "mtime" ? "#7f6df2" : "#666",
+            cursor: "pointer",
+            padding: "2px 4px",
+            borderRadius: 3,
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            {sortMode === "name" ? (
+              <>
+                <path d="M2 4h12M2 8h8M2 12h4" />
+              </>
+            ) : (
+              <>
+                <path d="M2 4h4M2 8h8M2 12h12" />
+              </>
+            )}
+          </svg>
+        </button>
       </div>
       <ul
         style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13 }}
@@ -287,7 +335,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
           if (src) handleDrop(src, "");
         }}
       >
-        {sortEntries(filteredEntries).map((entry) => (
+        {sortEntries(filteredEntries, sortMode).map((entry) => (
           <FileTreeNode
             key={entry.path}
             entry={entry}
@@ -304,6 +352,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
             dropTarget={dropTarget}
             setDropTarget={setDropTarget}
             onDrop={handleDrop}
+            sortMode={sortMode}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -348,6 +397,7 @@ function FileTreeNode({
   dropTarget,
   setDropTarget,
   onDrop,
+  sortMode,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -363,6 +413,7 @@ function FileTreeNode({
   dropTarget: string | null;
   setDropTarget: (path: string | null) => void;
   onDrop: (sourcePath: string, targetFolder: string) => void;
+  sortMode: SortMode;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -418,7 +469,7 @@ function FileTreeNode({
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {sortEntries(entry.children).map((child) => (
+            {sortEntries(entry.children, sortMode).map((child) => (
               <FileTreeNode
                 key={child.path}
                 entry={child}
@@ -435,6 +486,7 @@ function FileTreeNode({
                 dropTarget={dropTarget}
                 setDropTarget={setDropTarget}
                 onDrop={onDrop}
+                sortMode={sortMode}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
