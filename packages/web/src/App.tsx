@@ -187,7 +187,20 @@ export function App() {
   const [vaultName, setVaultName] = useState("Vault");
   const [error, setError] = useState<string | null>(null);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins">("files");
+  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred">("files");
+  const [starredNotes, setStarredNotes] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("obsidian-web-starred");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const toggleStar = useCallback((path: string) => {
+    setStarredNotes((prev) => {
+      const next = prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path];
+      localStorage.setItem("obsidian-web-starred", JSON.stringify(next));
+      return next;
+    });
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [readerHighlight, setReaderHighlight] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -1264,6 +1277,15 @@ export function App() {
               ),
             },
             {
+              id: "starred" as const,
+              title: "Starred notes",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              ),
+            },
+            {
               id: "plugins" as const,
               title: "Plugins",
               icon: (
@@ -1429,7 +1451,7 @@ export function App() {
               letterSpacing: "0.05em",
               color: "#888",
             }}>
-              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : "Plugins"}
+              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : "Plugins"}
             </span>
             {leftPanel === "files" && (
               <div style={{ display: "flex", gap: 2 }}>
@@ -1486,7 +1508,7 @@ export function App() {
               </div>
             )}
           </div>
-          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" ? "4px 4px" : 0 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" || leftPanel === "starred" ? "4px 4px" : 0 }}>
             {leftPanel === "files" ? (
               tree.length > 0 ? (
                 <FileTree
@@ -1503,6 +1525,52 @@ export function App() {
               )
             ) : leftPanel === "search" ? (
               <SearchPanel onNavigate={(path, q) => { openTab(path); if (q) setReaderHighlight(q); }} initialQuery={searchQuery} />
+            ) : leftPanel === "starred" ? (
+              <div style={{ padding: "8px" }}>
+                {starredNotes.length === 0 ? (
+                  <div style={{ padding: 12, fontSize: 13, color: "#666" }}>
+                    No starred notes yet. Right-click a tab to star a note.
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {starredNotes.map((path) => {
+                      const name = path.replace(/\.md$/, "").split("/").pop() ?? path;
+                      const isActive = activeTab?.path === path;
+                      return (
+                        <li key={path}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "4px 8px",
+                              borderRadius: 3,
+                              cursor: "pointer",
+                              background: isActive ? "#37373d" : "transparent",
+                              color: isActive ? "#fff" : "#bbb",
+                              fontSize: 13,
+                              transition: "background 0.1s",
+                            }}
+                            onClick={() => openTab(path)}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              toggleStar(path);
+                            }}
+                            onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+                            onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                            title={`${path}\nRight-click to unstar`}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#e6994a" stroke="#e6994a" strokeWidth="1.5">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            <span>{name}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             ) : (
               <Plugins />
             )}
@@ -1783,6 +1851,13 @@ export function App() {
               {
                 label: "Reveal in File Tree",
                 action: () => setLeftPanel("files"),
+              },
+              {
+                label: starredNotes.includes(tabsMap[tabCtxMenu.tabId]?.path) ? "Unstar" : "Star",
+                action: () => {
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (tab) toggleStar(tab.path);
+                },
               },
             ].map((item, i) =>
               "type" in item && item.type === "separator" ? (
