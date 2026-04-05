@@ -378,6 +378,25 @@ class BulletWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
+// Numbered list widget — renders styled number
+class NumberedListWidget extends WidgetType {
+  indent: string;
+  num: string;
+  constructor(indent: string, num: string) {
+    super();
+    this.indent = indent;
+    this.num = num;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.indent + this.num + ". ";
+    span.style.color = "#7f6df2";
+    return span;
+  }
+  eq(other: NumberedListWidget) { return this.indent === other.indent && this.num === other.num; }
+  ignoreEvent() { return true; }
+}
+
 function buildLivePreviewDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const cursorLine = state.doc.lineAt(state.selection.main.head).number;
@@ -410,6 +429,13 @@ function buildLivePreviewDecorations(state: EditorState): DecorationSet {
     const bulletMatch = text.match(/^(\s*)- (?!\[[ x]\])/);
     if (bulletMatch) {
       builder.add(line.from, line.from + bulletMatch[0].length, Decoration.replace({ widget: new BulletWidget(bulletMatch[1]) }));
+      continue;
+    }
+
+    // Ordered list: 1. 2. etc. — render styled number
+    const olMatch = text.match(/^(\s*)(\d+)\.\s/);
+    if (olMatch) {
+      builder.add(line.from, line.from + olMatch[0].length, Decoration.replace({ widget: new NumberedListWidget(olMatch[1], olMatch[2]) }));
       continue;
     }
 
