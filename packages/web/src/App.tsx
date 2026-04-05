@@ -1295,17 +1295,18 @@ export function App() {
         </div>
 
         {/* Sidebar panel */}
-        {!leftCollapsed && (
         <aside
           style={{
-            width: leftWidth,
-            minWidth: 140,
-            borderRight: "1px solid #333",
+            width: leftCollapsed ? 0 : leftWidth,
+            minWidth: leftCollapsed ? 0 : 140,
+            borderRight: leftCollapsed ? "none" : "1px solid #333",
             background: "#252526",
             color: "#ccc",
             display: "flex",
             flexDirection: "column",
             position: "relative",
+            overflow: "hidden",
+            transition: "width 0.2s ease, min-width 0.2s ease",
           }}
         >
           <ResizeHandle side="left" onResize={handleLeftResize} />
@@ -1403,7 +1404,6 @@ export function App() {
             )}
           </div>
         </aside>
-        )}
       </div>
 
       {/* Main content area */}
@@ -1466,43 +1466,46 @@ export function App() {
       </div>
 
       {/* Right Sidebar */}
-      {activeTab && isMarkdown && !rightCollapsed && (
-        <aside
-          style={{
-            width: rightWidth,
-            minWidth: 140,
-            borderLeft: "1px solid #333",
-            background: "#252526",
-            color: "#ccc",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "auto",
-            position: "relative",
-          }}
-        >
-          <ResizeHandle side="right" onResize={handleRightResize} />
-          {activeTab.noteMeta && (
-            <SidebarSection title="Properties">
-              <Properties frontmatter={activeTab.noteMeta.frontmatter} />
+      <aside
+        style={{
+          width: rightCollapsed || !activeTab || !isMarkdown ? 0 : rightWidth,
+          minWidth: rightCollapsed || !activeTab || !isMarkdown ? 0 : 140,
+          borderLeft: rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid #333",
+          background: "#252526",
+          color: "#ccc",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: "relative",
+          transition: "width 0.2s ease, min-width 0.2s ease",
+        }}
+      >
+        {activeTab && isMarkdown && (
+          <>
+            <ResizeHandle side="right" onResize={handleRightResize} />
+            {activeTab.noteMeta && (
+              <SidebarSection title="Properties">
+                <Properties frontmatter={activeTab.noteMeta.frontmatter} />
+              </SidebarSection>
+            )}
+            <SidebarSection title={`Backlinks (${activeTab.backlinks.length})`}>
+              <Backlinks
+                backlinks={activeTab.backlinks}
+                onNavigate={openTab}
+              />
             </SidebarSection>
-          )}
-          <SidebarSection title={`Backlinks (${activeTab.backlinks.length})`}>
-            <Backlinks
-              backlinks={activeTab.backlinks}
-              onNavigate={openTab}
-            />
-          </SidebarSection>
-          <SidebarSection title="Outline">
-            <Outline content={activeTab.content} />
-          </SidebarSection>
-          <SidebarSection title="Tags">
-            <Tags onNavigate={openTab} />
-          </SidebarSection>
-          <SidebarSection title="CSS Snippets">
-            <Snippets />
-          </SidebarSection>
-        </aside>
-      )}
+            <SidebarSection title="Outline">
+              <Outline content={activeTab.content} />
+            </SidebarSection>
+            <SidebarSection title="Tags">
+              <Tags onNavigate={openTab} />
+            </SidebarSection>
+            <SidebarSection title="CSS Snippets">
+              <Snippets />
+            </SidebarSection>
+          </>
+        )}
+      </aside>
 
       {/* Quick Switcher modal */}
       {showSwitcher && (
