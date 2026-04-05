@@ -339,6 +339,73 @@ const checkboxField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Horizontal rule widget — renders --- as a visual line
+class HRWidget extends WidgetType {
+  toDOM() {
+    const hr = document.createElement("hr");
+    hr.style.cssText = "border: none; border-top: 1px solid #333; margin: 8px 0;";
+    return hr;
+  }
+  eq() { return true; }
+  ignoreEvent() { return true; }
+}
+
+// Bullet widget — renders list marker as a dot
+class BulletWidget extends WidgetType {
+  indent: string;
+  constructor(indent: string) {
+    super();
+    this.indent = indent;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.indent + "• ";
+    span.style.color = "#7f6df2";
+    return span;
+  }
+  eq(other: BulletWidget) { return this.indent === other.indent; }
+  ignoreEvent() { return true; }
+}
+
+function buildLivePreviewDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  // Skip frontmatter region
+  const fm = parseFrontmatterRange(state.doc);
+  const fmEndLine = fm ? state.doc.lineAt(Math.min(fm.to, state.doc.length)).number : 0;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    if (i <= fmEndLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+
+    // Horizontal rule: ---, ***, ___ (with optional spaces)
+    if (/^(\s*[-*_]){3,}\s*$/.test(text) && !/^\s*-\s/.test(text)) {
+      builder.add(line.from, line.to, Decoration.replace({ widget: new HRWidget() }));
+      continue;
+    }
+
+    // Unordered list bullet (but not checkboxes — those are handled separately)
+    const bulletMatch = text.match(/^(\s*)- (?!\[[ x]\])/);
+    if (bulletMatch) {
+      builder.add(line.from, line.from + bulletMatch[0].length, Decoration.replace({ widget: new BulletWidget(bulletMatch[1]) }));
+    }
+  }
+  return builder.finish();
+}
+
+const livePreviewWidgetsField = StateField.define<DecorationSet>({
+  create(state) { return buildLivePreviewDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildLivePreviewDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -557,6 +624,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         frontmatterField,
         imagePreviewField,
         checkboxField,
+        livePreviewWidgetsField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
