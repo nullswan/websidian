@@ -1,0 +1,189 @@
+import { useState, useEffect } from "react";
+
+interface TagInfo {
+  name: string;
+  count: number;
+  paths: string[];
+}
+
+interface TagsProps {
+  onNavigate: (path: string) => void;
+}
+
+export function Tags({ onNavigate }: TagsProps) {
+  const [tags, setTags] = useState<TagInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedTag, setExpandedTag] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/vault/tags", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        setTags(data.tags ?? []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 12, color: "#666", fontSize: 13 }}>
+        Loading tags...
+      </div>
+    );
+  }
+
+  if (tags.length === 0) {
+    return (
+      <div style={{ padding: 12, color: "#555", fontSize: 13 }}>
+        No tags found
+      </div>
+    );
+  }
+
+  // Build nested tag tree
+  const tree = buildTagTree(tags);
+
+  return (
+    <div style={{ fontSize: 13, paddingBottom: 4 }}>
+      {tree.map((node) => (
+        <TagNode
+          key={node.fullName}
+          node={node}
+          expandedTag={expandedTag}
+          onToggle={setExpandedTag}
+          onNavigate={onNavigate}
+          depth={0}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface TagTreeNode {
+  name: string;
+  fullName: string;
+  count: number;
+  paths: string[];
+  children: TagTreeNode[];
+}
+
+function buildTagTree(tags: TagInfo[]): TagTreeNode[] {
+  const root: TagTreeNode[] = [];
+
+  for (const tag of tags) {
+    const parts = tag.name.split("/");
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const partName = parts[i];
+      const fullName = parts.slice(0, i + 1).join("/");
+      let existing = current.find((n) => n.name === partName);
+
+      if (!existing) {
+        existing = {
+          name: partName,
+          fullName,
+          count: 0,
+          paths: [],
+          children: [],
+        };
+        current.push(existing);
+      }
+
+      if (i === parts.length - 1) {
+        existing.count = tag.count;
+        existing.paths = tag.paths;
+      }
+
+      current = existing.children;
+    }
+  }
+
+  return root;
+}
+
+function TagNode({
+  node,
+  expandedTag,
+  onToggle,
+  onNavigate,
+  depth,
+}: {
+  node: TagTreeNode;
+  expandedTag: string | null;
+  onToggle: (tag: string | null) => void;
+  onNavigate: (path: string) => void;
+  depth: number;
+}) {
+  const isExpanded = expandedTag === node.fullName;
+  const hasNotes = node.count > 0;
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "4px 8px 4px " + (8 + depth * 14) + "px",
+          cursor: hasNotes ? "pointer" : "default",
+          color: hasNotes ? "#7f6df2" : "#888",
+        }}
+        onClick={() => {
+          if (hasNotes) {
+            onToggle(isExpanded ? null : node.fullName);
+          }
+        }}
+      >
+        {(hasNotes || node.children.length > 0) && (
+          <span style={{ fontSize: 10, width: 10 }}>
+            {isExpanded ? "▼" : "▶"}
+          </span>
+        )}
+        <span>#{node.name}</span>
+        {hasNotes && (
+          <span style={{ fontSize: 11, color: "#666", marginLeft: "auto" }}>
+            {node.count}
+          </span>
+        )}
+      </div>
+
+      {isExpanded && hasNotes && (
+        <div style={{ paddingLeft: 8 + depth * 14 + 14 }}>
+          {node.paths.map((path) => (
+            <div
+              key={path}
+              style={{
+                padding: "2px 8px",
+                fontSize: 12,
+                color: "#aaa",
+                cursor: "pointer",
+              }}
+              onClick={() => onNavigate(path)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.color = "#ddd";
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.color = "#aaa";
+              }}
+            >
+              {path.replace(/\.md$/, "")}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {node.children.map((child) => (
+        <TagNode
+          key={child.fullName}
+          node={child}
+          expandedTag={expandedTag}
+          onToggle={onToggle}
+          onNavigate={onNavigate}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
+  );
+}
