@@ -1,0 +1,16 @@
+{
+  "name": "@obsidian-web/evals",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "vitest run",
+    "eval:watch": "vitest"
+  },
+  "devDependencies": {
+    "@obsidian-web/vault-core": "workspace:*",
+    "@types/node": "^25.5.2",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0"
+  }
+}
