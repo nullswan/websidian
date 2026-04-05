@@ -125,6 +125,26 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
     });
   };
 
+  // Auto-reveal: expand parent folders when selected path changes
+  useEffect(() => {
+    if (!selectedPath || !selectedPath.includes("/")) return;
+    const parts = selectedPath.split("/");
+    let changed = false;
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      for (let i = 1; i < parts.length; i++) {
+        const parentPath = parts.slice(0, i).join("/");
+        if (!next.has(parentPath)) {
+          next.add(parentPath);
+          changed = true;
+        }
+      }
+      if (!changed) return prev;
+      saveExpandedPaths(next);
+      return next;
+    });
+  }, [selectedPath]);
+
   const filteredEntries = useMemo(
     () => filter.trim() ? filterTree(entries, filter.trim()) : entries,
     [entries, filter],
@@ -379,6 +399,11 @@ function FileTreeNode({
         />
       ) : (
         <div
+          ref={(el) => {
+            if (el && isSelected) {
+              el.scrollIntoView({ block: "nearest", inline: "nearest" });
+            }
+          }}
           style={{
             paddingLeft: depth * 16 + 18,
             padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
