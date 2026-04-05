@@ -112,14 +112,25 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         });
       }
 
-      // Add copy buttons to code blocks
+      // Add language labels and copy buttons to code blocks
       containerRef.current.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
         pre.style.position = "relative";
+        const code = pre.querySelector("code");
+
+        // Language label
+        const langClass = code?.className.match(/language-(\w+)/);
+        if (langClass) {
+          const label = document.createElement("span");
+          label.textContent = langClass[1];
+          label.style.cssText = "position: absolute; top: 6px; left: 8px; font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; user-select: none;";
+          pre.appendChild(label);
+        }
+
+        // Copy button
         const btn = document.createElement("button");
         btn.textContent = "Copy";
         btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
         btn.addEventListener("click", () => {
-          const code = pre.querySelector("code");
           if (code) {
             navigator.clipboard.writeText(code.textContent || "");
             btn.textContent = "Copied!";
