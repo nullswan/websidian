@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, highlightActiveLine, Decoration, ViewPlugin, DecorationSet } from "@codemirror/view";
-import { EditorState, RangeSetBuilder } from "@codemirror/state";
+import { EditorView, keymap, highlightActiveLine, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
+import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching } from "@codemirror/language";
@@ -79,6 +79,119 @@ const headingPlugin = ViewPlugin.fromClass(
   },
   { decorations: (v) => v.decorations },
 );
+
+// Frontmatter Properties widget — replaces raw YAML with a structured panel
+class FrontmatterWidget extends WidgetType {
+  properties: Array<{ key: string; value: string }>;
+  constructor(properties: Array<{ key: string; value: string }>) {
+    super();
+    this.properties = properties;
+  }
+  toDOM() {
+    const container = document.createElement("div");
+    container.className = "cm-frontmatter-widget";
+
+    const header = document.createElement("div");
+    header.className = "cm-frontmatter-header";
+    header.textContent = "Properties";
+    header.style.cursor = "pointer";
+    container.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "cm-frontmatter-body";
+    for (const { key, value } of this.properties) {
+      const row = document.createElement("div");
+      row.className = "cm-frontmatter-row";
+      const keyEl = document.createElement("span");
+      keyEl.className = "cm-frontmatter-key";
+      keyEl.textContent = key;
+      const valEl = document.createElement("span");
+      valEl.className = "cm-frontmatter-value";
+      valEl.textContent = value;
+      row.appendChild(keyEl);
+      row.appendChild(valEl);
+      body.appendChild(row);
+    }
+    container.appendChild(body);
+    return container;
+  }
+  eq(other: FrontmatterWidget) {
+    return JSON.stringify(this.properties) === JSON.stringify(other.properties);
+  }
+  ignoreEvent() { return true; }
+}
+
+function parseFrontmatterRange(doc: { toString: () => string }): { from: number; to: number; properties: Array<{ key: string; value: string }> } | null {
+  const text = doc.toString();
+  if (!text.startsWith("---")) return null;
+  const endIdx = text.indexOf("\n---", 3);
+  if (endIdx === -1) return null;
+  const to = endIdx + 4; // include closing ---
+  // Find end of closing --- line
+  const lineEnd = text.indexOf("\n", to);
+  const realTo = lineEnd === -1 ? to : lineEnd;
+
+  const yaml = text.slice(4, endIdx);
+  const properties: Array<{ key: string; value: string }> = [];
+  let currentKey = "";
+  let currentValues: string[] = [];
+
+  const flushKey = () => {
+    if (currentKey) {
+      properties.push({ key: currentKey, value: currentValues.join(", ") });
+    }
+    currentKey = "";
+    currentValues = [];
+  };
+
+  for (const line of yaml.split("\n")) {
+    const kvMatch = line.match(/^(\w[\w-]*):\s*(.*)/);
+    if (kvMatch) {
+      flushKey();
+      currentKey = kvMatch[1];
+      if (kvMatch[2].trim()) {
+        currentValues.push(kvMatch[2].trim());
+      }
+    } else {
+      // Array item or continuation
+      const itemMatch = line.match(/^\s*-\s+(.*)/);
+      if (itemMatch && currentKey) {
+        currentValues.push(itemMatch[1].trim());
+      }
+    }
+  }
+  flushKey();
+
+  return { from: 0, to: realTo, properties };
+}
+
+function buildFrontmatterDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const fm = parseFrontmatterRange(state.doc);
+  if (!fm) return builder.finish();
+
+  // Show raw YAML when cursor is inside frontmatter
+  const cursor = state.selection.main.head;
+  if (cursor >= fm.from && cursor <= fm.to) {
+    return builder.finish();
+  }
+
+  builder.add(fm.from, fm.to, Decoration.replace({
+    widget: new FrontmatterWidget(fm.properties),
+  }));
+  return builder.finish();
+}
+
+const frontmatterField = StateField.define<DecorationSet>({
+  create(state) { return buildFrontmatterDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildFrontmatterDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
 
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
@@ -265,8 +378,13 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }
       },
     });
 
+    // Place cursor after frontmatter so the Properties widget shows immediately
+    const fm = parseFrontmatterRange({ toString: () => content });
+    const initialCursor = fm ? Math.min(fm.to + 1, content.length) : 0;
+
     const state = EditorState.create({
       doc: content,
+      selection: { anchor: initialCursor },
       extensions: [
         highlightActiveLine(),
         bracketMatching(),
@@ -279,6 +397,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }
         oneDarkTheme,
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         headingPlugin,
+        frontmatterField,
         livePreviewTheme,
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({ spellcheck: "true" }),
