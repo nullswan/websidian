@@ -194,6 +194,8 @@ export function App() {
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [showGraph, setShowGraph] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number } | null>(null);
@@ -227,6 +229,8 @@ export function App() {
       leftWidth,
       rightWidth,
       splitRatio,
+      leftCollapsed,
+      rightCollapsed,
     };
     const timeout = setTimeout(() => {
       try {
@@ -234,7 +238,7 @@ export function App() {
       } catch {}
     }, 500);
     return () => clearTimeout(timeout);
-  }, [tabsMap, panes, activePaneIdx, leftPanel, leftWidth, rightWidth, splitRatio]);
+  }, [tabsMap, panes, activePaneIdx, leftPanel, leftWidth, rightWidth, splitRatio, leftCollapsed, rightCollapsed]);
 
   // Check auth on mount
   useEffect(() => {
@@ -278,6 +282,8 @@ export function App() {
               if (snap.leftWidth) setLeftWidth(snap.leftWidth);
               if (snap.rightWidth) setRightWidth(snap.rightWidth);
               if (snap.splitRatio) setSplitRatio(snap.splitRatio);
+              if (snap.leftCollapsed) setLeftCollapsed(snap.leftCollapsed);
+              if (snap.rightCollapsed) setRightCollapsed(snap.rightCollapsed);
 
               // Rebuild tabs and panes
               if (snap.tabs?.length > 0) {
@@ -676,6 +682,15 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
         e.preventDefault();
         setShowShortcuts((s) => !s);
+      }
+      // Ctrl+\: Toggle left sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          setRightCollapsed((c) => !c);
+        } else {
+          setLeftCollapsed((c) => !c);
+        }
       }
       // Ctrl+Tab / Ctrl+Shift+Tab: cycle tabs
       if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
@@ -1152,7 +1167,7 @@ export function App() {
       }}
     >
       {/* Ribbon + Left Sidebar */}
-      <div style={{ display: "flex", height: "100%" }}>
+      <div style={{ display: "flex", height: "100%", flexShrink: 0 }}>
         {/* Obsidian-style icon ribbon */}
         <div
           style={{
@@ -1220,8 +1235,11 @@ export function App() {
               onClick={() => {
                 if (item.id === "graph") {
                   setShowGraph((g) => !g);
+                } else if (leftPanel === item.id && !leftCollapsed) {
+                  setLeftCollapsed(true);
                 } else {
                   setLeftPanel(item.id);
+                  setLeftCollapsed(false);
                 }
               }}
               style={{
@@ -1277,6 +1295,7 @@ export function App() {
         </div>
 
         {/* Sidebar panel */}
+        {!leftCollapsed && (
         <aside
           style={{
             width: leftWidth,
@@ -1384,6 +1403,7 @@ export function App() {
             )}
           </div>
         </aside>
+        )}
       </div>
 
       {/* Main content area */}
@@ -1446,7 +1466,7 @@ export function App() {
       </div>
 
       {/* Right Sidebar */}
-      {activeTab && isMarkdown && (
+      {activeTab && isMarkdown && !rightCollapsed && (
         <aside
           style={{
             width: rightWidth,
@@ -1552,6 +1572,18 @@ export function App() {
                     localStorage.removeItem("obsidian-web-workspace");
                   });
               },
+            },
+            {
+              id: "toggle-left-sidebar",
+              name: leftCollapsed ? "Expand Left Sidebar" : "Collapse Left Sidebar",
+              shortcut: "Ctrl+\\",
+              action: () => setLeftCollapsed((c) => !c),
+            },
+            {
+              id: "toggle-right-sidebar",
+              name: rightCollapsed ? "Expand Right Sidebar" : "Collapse Right Sidebar",
+              shortcut: "Ctrl+Shift+\\",
+              action: () => setRightCollapsed((c) => !c),
             },
             ...(panes.length < 2
               ? [{
@@ -1697,6 +1729,8 @@ export function App() {
               ["Ctrl+Shift+Tab", "Previous tab"],
               ["Ctrl+Shift+F", "Toggle search"],
               ["Ctrl+G", "Toggle graph view"],
+              ["Ctrl+\\", "Toggle left sidebar"],
+              ["Ctrl+Shift+\\", "Toggle right sidebar"],
               ["Ctrl+/", "Keyboard shortcuts"],
               ["Ctrl+F", "Find in editor"],
               ["Ctrl+B", "Bold"],
