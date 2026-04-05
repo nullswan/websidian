@@ -7,6 +7,7 @@ export interface AppSettings {
   spellCheck: boolean;
   showInlineTitle: boolean;
   tabSize: number;
+  templatesFolder: string;
 }
 
 const DEFAULTS: AppSettings = {
@@ -16,6 +17,7 @@ const DEFAULTS: AppSettings = {
   spellCheck: false,
   showInlineTitle: true,
   tabSize: 4,
+  templatesFolder: "Templates",
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -236,6 +238,26 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                   <option value={4}>4</option>
                   <option value={8}>8</option>
                 </select>
+              </SettingItem>
+
+              <SettingItem
+                title="Templates folder"
+                description="Folder containing note templates"
+              >
+                <input
+                  type="text"
+                  value={settings.templatesFolder}
+                  onChange={(e) => update("templatesFolder", e.target.value)}
+                  style={{
+                    width: 120,
+                    padding: "4px 8px",
+                    background: "#2a2a2a",
+                    border: "1px solid #444",
+                    borderRadius: 4,
+                    color: "#ddd",
+                    fontSize: 13,
+                  }}
+                />
               </SettingItem>
             </div>
           )}

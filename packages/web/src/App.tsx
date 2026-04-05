@@ -177,6 +177,129 @@ function SidebarSection({ title, defaultOpen = true, children }: {
   );
 }
 
+function TemplatePicker({ templatesFolder, onSelect, onClose }: {
+  templatesFolder: string;
+  onSelect: (path: string) => void;
+  onClose: () => void;
+}) {
+  const [templates, setTemplates] = useState<string[]>([]);
+  const [filter, setFilter] = useState("");
+  const [selected, setSelected] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/vault/tree", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        const paths: string[] = [];
+        const walk = (entries: VaultEntry[], prefix: string) => {
+          for (const e of entries) {
+            if (e.kind === "folder" && e.children) {
+              walk(e.children, e.path);
+            } else if (e.path.startsWith(templatesFolder + "/") && e.path.endsWith(".md")) {
+              paths.push(e.path);
+            }
+          }
+        };
+        walk(data.tree ?? data, "");
+        setTemplates(paths);
+      });
+    inputRef.current?.focus();
+  }, [templatesFolder]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const filtered = filter
+    ? templates.filter((p) => p.toLowerCase().includes(filter.toLowerCase()))
+    : templates;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 10000,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        paddingTop: "15vh",
+        background: "rgba(0,0,0,0.5)",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        width: 500,
+        maxWidth: "90vw",
+        background: "#252526",
+        border: "1px solid #444",
+        borderRadius: 8,
+        overflow: "hidden",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+      }}>
+        <input
+          ref={inputRef}
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); setSelected(0); }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") { e.preventDefault(); setSelected((s) => Math.min(s + 1, filtered.length - 1)); }
+            if (e.key === "ArrowUp") { e.preventDefault(); setSelected((s) => Math.max(s - 1, 0)); }
+            if (e.key === "Enter" && filtered[selected]) { onSelect(filtered[selected]); }
+          }}
+          placeholder="Choose a template..."
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            background: "transparent",
+            border: "none",
+            borderBottom: "1px solid #333",
+            color: "#ddd",
+            fontSize: 15,
+            outline: "none",
+          }}
+        />
+        <div style={{ maxHeight: 300, overflow: "auto" }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: 16, fontSize: 13, color: "#666" }}>
+              {templates.length === 0
+                ? `No templates found in "${templatesFolder}/" folder`
+                : "No matching templates"}
+            </div>
+          ) : (
+            filtered.map((path, i) => {
+              const name = path.replace(/\.md$/, "").split("/").pop() ?? path;
+              return (
+                <div
+                  key={path}
+                  onClick={() => onSelect(path)}
+                  style={{
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    background: i === selected ? "#37373d" : "transparent",
+                    color: i === selected ? "#fff" : "#bbb",
+                    fontSize: 14,
+                  }}
+                  onMouseEnter={() => setSelected(i)}
+                >
+                  {name}
+                  <span style={{ fontSize: 11, color: "#666", marginLeft: 8 }}>
+                    {path}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OutgoingLinks({ content, onNavigate }: { content: string; onNavigate: (path: string) => void }) {
   const links = useMemo(() => {
     const re = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g;
@@ -263,6 +386,7 @@ export function App() {
   const [showGraph, setShowGraph] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -1837,6 +1961,11 @@ export function App() {
                 btn?.click();
               },
             },
+            {
+              id: "insert-template",
+              name: "Insert template",
+              action: () => setShowTemplatePicker(true),
+            },
             ...(panes.length < 2
               ? [{
                   id: "split-right",
@@ -1945,6 +2074,35 @@ export function App() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Template Picker */}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templatesFolder={appSettings.templatesFolder}
+          onSelect={async (templatePath) => {
+            setShowTemplatePicker(false);
+            if (!activeTab) return;
+            const res = await fetch(`/api/vault/file?path=${encodeURIComponent(templatePath)}`, { credentials: "include" });
+            const data = await res.json();
+            if (data.error || !data.content) return;
+            // Process template variables
+            const now = new Date();
+            const title = activeTab.path.replace(/\.md$/, "").split("/").pop() ?? "";
+            const content = data.content
+              .replace(/\{\{date\}\}/g, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`)
+              .replace(/\{\{time\}\}/g, `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`)
+              .replace(/\{\{title\}\}/g, title);
+            // Append to current note content
+            const updated = activeTab.content ? activeTab.content + "\n" + content : content;
+            const tabId = panes[activePaneIdx].activeTabId;
+            if (tabId) {
+              updateTab(tabId, { content: updated });
+              handleSave(updated);
+            }
+          }}
+          onClose={() => setShowTemplatePicker(false)}
+        />
       )}
 
       {/* Keyboard Shortcuts overlay */}
