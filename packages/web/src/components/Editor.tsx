@@ -339,6 +339,17 @@ const checkboxField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Heading marker widget — zero-width replacement to hide # markers
+class HeadingMarkerWidget extends WidgetType {
+  toDOM() {
+    const span = document.createElement("span");
+    span.style.cssText = "width: 0; display: inline-block; overflow: hidden;";
+    return span;
+  }
+  eq() { return true; }
+  ignoreEvent() { return true; }
+}
+
 // Horizontal rule widget — renders --- as a visual line
 class HRWidget extends WidgetType {
   toDOM() {
@@ -379,6 +390,15 @@ function buildLivePreviewDecorations(state: EditorState): DecorationSet {
     if (i <= fmEndLine) continue;
     const line = state.doc.line(i);
     const text = line.text;
+
+    // Heading: hide # markers on non-active lines
+    const headingMatch = text.match(/^(#{1,6})\s/);
+    if (headingMatch) {
+      builder.add(line.from, line.from + headingMatch[1].length + 1, Decoration.replace({
+        widget: new HeadingMarkerWidget(),
+      }));
+      continue;
+    }
 
     // Horizontal rule: ---, ***, ___ (with optional spaces)
     if (/^(\s*[-*_]){3,}\s*$/.test(text) && !/^\s*-\s/.test(text)) {
