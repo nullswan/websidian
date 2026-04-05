@@ -1,0 +1,21 @@
+# Session Note
+
+- Timestamp: 2026-04-04 21:14 UTC
+- Milestone: M0/M1 overlap — Foundation + Vault Kernel
+- Task chosen: Scaffold monorepo, create fixture vault, implement vault-core domain models with tests
+- Why this task: The project was docs-only. The plan explicitly says the first task should be "turn this prompt pack into a real codebase scaffold." This is the highest-leverage foundational work.
+- Changes made:
+  - Created pnpm workspace monorepo with 3 packages: vault-core, web, server
+  - TypeScript config with project references, Vite 6 for web, Fastify 5 for server
+  - Created fixture vault (5 markdown notes, 1 canvas, 1 attachment, .obsidian config)
+  - Implemented vault-core: types, frontmatter parsing (YAML), link/embed/tag extraction, shortest-path link resolver, vault scanner and indexer
+  - 36 passing tests: frontmatter parsing, link extraction, embed extraction, inline tags, resolver (exact path, basename, alias, heading fragment, case-insensitive), full fixture vault integration
+- Verification:
+  - `pnpm build` passes for all 3 packages
+  - `pnpm --filter @obsidian-web/vault-core test` — 36/36 pass
+  - Fixture vault loads, indexes, and resolves links correctly
+- Risks or blockers:
+  - Volta pins pnpm to Node 20.11.0, blocking Vite 8 and Vitest 4. Using Vite 6 + Vitest 3 as workaround. Can upgrade when pnpm is reinstalled under Node 22.
+  - Resolver does not yet handle block references (`#^block-id`)
+  - No rename propagation yet
+- Next recommended task: Build the API server with vault file CRUD endpoints, then wire the web shell to display the file tree and open notes with CodeMirror.

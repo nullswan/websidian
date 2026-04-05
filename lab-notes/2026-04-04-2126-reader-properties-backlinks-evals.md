@@ -1,0 +1,27 @@
+# Session Note
+
+- Timestamp: 2026-04-04 21:26 UTC
+- Milestone: M2 partially complete — Reader/Editor parity advancing
+- Task chosen: Markdown reader with wikilink navigation, properties panel, backlinks panel, eval scorecard
+- Why this task: These are the core Obsidian interaction patterns — reading rendered markdown, clicking between notes via wikilinks, seeing metadata and backlinks. Without these, the product doesn't feel like Obsidian.
+- Changes made:
+  - **Reader view**: markdown-it renderer with custom plugins for wikilinks, embeds, inline tags, and task lists. Frontmatter stripped from display. Dark theme CSS with Obsidian-like colors.
+  - **Wikilink navigation**: clicking wikilinks in reader view resolves via API and loads the target note. Handles aliases, heading fragments, and display text.
+  - **Read/Edit toggle**: tab bar shows toggle button, defaults to Read mode for markdown files.
+  - **Properties panel**: right sidebar shows parsed frontmatter (aliases, tags, custom fields) in key-value format.
+  - **Backlinks panel**: right sidebar shows notes that link to the current note, clickable to navigate.
+  - **Backlinks API**: new `/api/vault/backlinks?path=...` endpoint that resolves all links across the vault to find incoming references.
+  - **Eval scorecard**: 19 tests across 5 eval areas (vault loading, frontmatter parsing, link resolution, note parsing, backlink detection). All pass.
+- Verification:
+  - Playwright screenshots confirm three-pane layout with file tree, rendered markdown, and properties+backlinks sidebar
+  - Wikilink click navigation verified (Welcome.md -> Concepts.md)
+  - All 19 eval tests pass
+  - Full build passes (`pnpm build`)
+  - 36 vault-core unit tests still pass
+- Risks or blockers:
+  - Vault rescanned on every API call (no cache)
+  - No search/quick switcher yet
+  - No command palette
+  - Task list checkboxes are read-only
+  - Canvas files not rendered
+- Next recommended task: Add search with quick switcher, implement command palette, or add outline view. These complete M3 (Navigation and Search).

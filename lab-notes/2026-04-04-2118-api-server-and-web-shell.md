@@ -1,0 +1,21 @@
+# Session Note
+
+- Timestamp: 2026-04-04 21:18 UTC
+- Milestone: M0 complete, M1 near-complete, M2 started
+- Task chosen: Build API server with vault CRUD endpoints + web shell with file tree and CodeMirror editor
+- Why this task: The API server and web shell are the first end-to-end artifacts. They connect vault-core to a usable browser experience and validate the architecture.
+- Changes made:
+  - **Server**: Fastify routes for vault config, file tree, flat file list, file read/write, note metadata, and link resolution. Path traversal protection. Default to fixture vault.
+  - **Web client**: React app with sidebar file tree (collapsible folders), CodeMirror 6 editor with markdown syntax highlighting, one-dark theme, line numbers, Ctrl+S save, error banner. Proxies /api to server.
+  - Shared types extracted to `packages/web/src/types.ts`
+- Verification:
+  - All API endpoints tested via curl: health, config, tree, files, file read, link resolution all return correct data
+  - Web UI verified via Playwright screenshot: file tree renders, clicking files loads content in CodeMirror, syntax highlighting works (headings, wikilinks, YAML frontmatter)
+  - `pnpm build` passes for all 3 packages
+  - 36 vault-core tests still pass
+- Risks or blockers:
+  - Vault is re-scanned on every API call (no caching/indexing layer yet)
+  - No file watcher for live updates
+  - Editor content not synced back to state on navigation (stale editor ref)
+  - Large CodeMirror bundle (705KB) — needs code splitting
+- Next recommended task: Add markdown preview/reader mode, implement wikilink click navigation in the editor, add search/quick switcher, or start eval scorecard for vault compatibility.
