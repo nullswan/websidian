@@ -709,6 +709,54 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   }
 }
 
+// Slash commands: type / at start of line for quick markdown insertion
+function slashCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  const match = /^\/([\w]*)$/.exec(textBefore);
+  if (!match) return null;
+
+  const query = match[1].toLowerCase();
+  const from = line.from; // Replace from start of line (including the /)
+
+  const commands: Array<{ label: string; detail: string; insert: string }> = [
+    { label: "Heading 1", detail: "# ", insert: "# " },
+    { label: "Heading 2", detail: "## ", insert: "## " },
+    { label: "Heading 3", detail: "### ", insert: "### " },
+    { label: "Heading 4", detail: "#### ", insert: "#### " },
+    { label: "Bullet list", detail: "- ", insert: "- " },
+    { label: "Numbered list", detail: "1. ", insert: "1. " },
+    { label: "Task list", detail: "- [ ] ", insert: "- [ ] " },
+    { label: "Quote", detail: "> ", insert: "> " },
+    { label: "Code block", detail: "```", insert: "```\n\n```" },
+    { label: "Callout", detail: "> [!note]", insert: "> [!note]\n> " },
+    { label: "Table", detail: "| |", insert: "| Column 1 | Column 2 |\n| --- | --- |\n| | |" },
+    { label: "Horizontal rule", detail: "---", insert: "---" },
+    { label: "Math block", detail: "$$", insert: "$$\n\n$$" },
+    { label: "Link", detail: "[]()", insert: "[](url)" },
+    { label: "Image", detail: "![]()", insert: "![](url)" },
+    { label: "Embed", detail: "![[]]", insert: "![[]]" },
+  ];
+
+  const filtered = commands.filter((c) =>
+    !query || c.label.toLowerCase().includes(query)
+  );
+
+  const options: Completion[] = filtered.map((c) => ({
+    label: c.label,
+    detail: c.detail,
+    type: "keyword",
+    apply: (view: EditorView, _: Completion, _from: number, to: number) => {
+      view.dispatch({
+        changes: { from, to, insert: c.insert },
+        selection: { anchor: from + c.insert.length },
+      });
+    },
+  }));
+
+  return { from: ctx.pos - match[1].length - 1, options, filter: false };
+}
+
 // Markdown heading fold: fold content under a heading until next heading of equal/higher level
 const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   const line = state.doc.lineAt(lineStart);
@@ -969,7 +1017,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         EditorView.lineWrapping,
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         autocompletion({
-          override: [wikilinkCompletion, tagCompletion],
+          override: [wikilinkCompletion, tagCompletion, slashCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
