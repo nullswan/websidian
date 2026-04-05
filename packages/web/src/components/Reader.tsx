@@ -84,7 +84,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         cb.style.cursor = "pointer";
       });
 
-      // Add fold toggles to headings
+      // Add fold toggles and anchor links to headings
+      const noteName = filePath.replace(/\.md$/, "").split("/").pop() || "";
       const headings = containerRef.current.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
       for (const heading of headings) {
         const level = parseInt(heading.tagName[1], 10);
@@ -98,10 +99,29 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         arrow.dataset.folded = "false";
         heading.prepend(arrow);
 
-        // Show arrow on heading hover
-        heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; });
+        // Anchor copy link — appears on right side on hover
+        const headingText = heading.textContent?.replace(/^▶\s*/, "").trim() || "";
+        const anchor = document.createElement("span");
+        anchor.className = "heading-anchor";
+        anchor.textContent = "#";
+        anchor.title = `Copy link to ${headingText}`;
+        anchor.style.cssText = "position: absolute; right: -24px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #555; opacity: 0; transition: opacity 0.15s; cursor: pointer; user-select: none; font-weight: normal;";
+        heading.appendChild(anchor);
+
+        anchor.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const link = `[[${noteName}#${headingText}]]`;
+          navigator.clipboard.writeText(link);
+          anchor.textContent = "✓";
+          anchor.style.color = "#7f6df2";
+          setTimeout(() => { anchor.textContent = "#"; anchor.style.color = "#555"; }, 1500);
+        });
+
+        // Show arrow and anchor on heading hover
+        heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; anchor.style.opacity = "1"; });
         heading.addEventListener("mouseleave", () => {
           if (arrow.dataset.folded === "false") arrow.style.opacity = "0";
+          anchor.style.opacity = "0";
         });
 
         // Click to fold/unfold
@@ -160,7 +180,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         pre.appendChild(btn);
       });
     }
-  }, [html]);
+  }, [html, filePath]);
 
   // Hydrate note embeds after html is set
   useEffect(() => {
