@@ -500,6 +500,15 @@ body {
   color: #555;
 }
 
+/* Wide mode — no readable line length constraint */
+.wide-mode .reader-view {
+  max-width: none;
+}
+
+.wide-mode .inline-title {
+  max-width: none;
+}
+
 /* ── CM6 Frontmatter Properties widget ── */
 .cm-frontmatter-widget {
   background: rgba(255,255,255,0.03);

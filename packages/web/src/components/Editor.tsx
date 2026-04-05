@@ -15,6 +15,8 @@ interface EditorProps {
   onSave: (content: string) => void;
   onNavigate?: (target: string) => void;
   onCursorChange?: (info: { line: number; col: number; selectedChars: number }) => void;
+  fontSize?: number;
+  spellCheck?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -280,7 +282,7 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   }
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -400,8 +402,9 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }
         headingPlugin,
         frontmatterField,
         livePreviewTheme,
+        EditorView.theme({ "&": { fontSize: `${fontSize}px` } }),
         EditorView.lineWrapping,
-        EditorView.contentAttributes.of({ spellcheck: "true" }),
+        EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" }),
         autocompletion({
           override: [wikilinkCompletion],
           activateOnTyping: true,

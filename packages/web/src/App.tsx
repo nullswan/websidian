@@ -16,6 +16,7 @@ import { Tags } from "./components/Tags.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
+import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import type { VaultEntry } from "./types.js";
 import "./styles.css";
 import "katex/dist/katex.min.css";
@@ -57,11 +58,12 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
@@ -111,7 +113,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children }: {
           }} />
         </div>
       )}
-      <div ref={ref} style={{ flex: 1, overflow: "auto" }}>{children}</div>
+      <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>{children}</div>
     </div>
   );
 }
@@ -194,6 +196,8 @@ export function App() {
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [showGraph, setShowGraph] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
@@ -1060,9 +1064,9 @@ export function App() {
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
-          {paneTab && paneIsMarkdown && (
+          {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
               className="inline-title"
               contentEditable
@@ -1127,6 +1131,8 @@ export function App() {
                 onSave={handleSave}
                 onNavigate={handleNavigate}
                 onCursorChange={(info) => setCursorPos(info)}
+                fontSize={appSettings.editorFontSize}
+                spellCheck={appSettings.spellCheck}
               />
             )
           ) : (
@@ -1303,7 +1309,7 @@ export function App() {
           {/* Bottom ribbon actions */}
           <button
             title="Settings"
-            onClick={() => setShowCommandPalette(true)}
+            onClick={() => setShowSettings(true)}
             style={{
               width: 36,
               height: 36,
@@ -1807,6 +1813,15 @@ export function App() {
           </div>
         </div>
       )}
+      {/* Settings modal */}
+      {showSettings && (
+        <Settings
+          settings={appSettings}
+          onUpdate={setAppSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       {/* Toast notification */}
       {toast && (
         <div style={{
