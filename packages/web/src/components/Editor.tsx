@@ -3,7 +3,7 @@ import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewP
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
@@ -18,6 +18,7 @@ interface EditorProps {
   fontSize?: number;
   spellCheck?: boolean;
   showLineNumbers?: boolean;
+  tabSize?: number;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -285,7 +286,7 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   }
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -407,6 +408,8 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         frontmatterField,
         livePreviewTheme,
         EditorView.theme({ "&": { fontSize: `${fontSize}px` } }),
+        EditorState.tabSize.of(tabSize),
+        indentUnit.of(" ".repeat(tabSize)),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" }),
         autocompletion({
@@ -443,7 +446,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [filePath, fontSize, spellCheck, showLineNumbers]); // Re-create editor when file or settings change
+  }, [filePath, fontSize, spellCheck, showLineNumbers, tabSize]); // Re-create editor when file or settings change
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

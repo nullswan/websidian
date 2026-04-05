@@ -1139,6 +1139,7 @@ export function App() {
                 fontSize={appSettings.editorFontSize}
                 spellCheck={appSettings.spellCheck}
                 showLineNumbers={appSettings.showLineNumbers}
+                tabSize={appSettings.tabSize}
               />
             )
           ) : (
