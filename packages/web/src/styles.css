@@ -642,3 +642,27 @@ body {
 .cm-editor.cm-focused {
   outline: none !important;
 }
+
+/* Vim mode status bar & command line */
+.cm-vim-panel {
+  background: #1e1e1e !important;
+  color: #ddd !important;
+  border-top: 1px solid #333 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  padding: 2px 8px !important;
+}
+.cm-vim-panel input {
+  background: #1e1e1e !important;
+  color: #ddd !important;
+  border: none !important;
+  outline: none !important;
+  font-family: inherit;
+  font-size: 13px;
+}
+.cm-fat-cursor {
+  background: rgba(127, 109, 242, 0.6) !important;
+}
+.cm-cursor-overlay .cm-fat-cursor {
+  background: rgba(127, 109, 242, 0.6) !important;
+}

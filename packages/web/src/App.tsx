@@ -1497,6 +1497,7 @@ export function App() {
                 tabSize={appSettings.tabSize}
                 typewriterMode={appSettings.typewriterMode}
                 focusMode={appSettings.focusMode}
+                vimMode={appSettings.vimMode}
                 scrollToHeadingRef={scrollToHeadingRef}
               />
             )

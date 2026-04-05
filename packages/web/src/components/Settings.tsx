@@ -10,6 +10,7 @@ export interface AppSettings {
   templatesFolder: string;
   typewriterMode: boolean;
   focusMode: boolean;
+  vimMode: boolean;
   accentColor: string;
 }
 
@@ -23,6 +24,7 @@ const DEFAULTS: AppSettings = {
   templatesFolder: "Templates",
   typewriterMode: false,
   focusMode: false,
+  vimMode: false,
   accentColor: "#7f6df2",
 };
 
@@ -297,6 +299,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Dim inactive lines to focus on the current line"
               >
                 <Toggle checked={settings.focusMode} onChange={(v) => update("focusMode", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Vim key bindings"
+                description="Enable Vim modal editing (hjkl navigation, insert/normal mode)"
+              >
+                <Toggle checked={settings.vimMode} onChange={(v) => update("vimMode", v)} />
               </SettingItem>
 
               <SettingItem

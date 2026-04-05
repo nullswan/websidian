@@ -8,6 +8,7 @@ import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap } from "@codemirror/search";
+import { vim } from "@replit/codemirror-vim";
 import { createMarkdownRenderer } from "../lib/markdown.js";
 
 interface EditorProps {
@@ -25,6 +26,7 @@ interface EditorProps {
   scrollToHeadingRef?: React.MutableRefObject<((heading: string, level: number) => void) | null>;
   typewriterMode?: boolean;
   focusMode?: boolean;
+  vimMode?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -781,7 +783,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -794,6 +796,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
   const indentUnitComp = useRef(new Compartment());
   const typewriterComp = useRef(new Compartment());
   const focusModeComp = useRef(new Compartment());
+  const vimComp = useRef(new Compartment());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1019,6 +1022,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
         indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
+        vimComp.current.of(vimMode ? vim() : []),
         EditorView.lineWrapping,
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         focusModeComp.current.of(focusMode ? EditorView.theme({
@@ -1184,6 +1188,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
           ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
           ".cm-line.cm-activeLine": { opacity: "1" },
         }) : []),
+        vimComp.current.reconfigure(vimMode ? vim() : []),
         typewriterComp.current.reconfigure(typewriterMode ? EditorView.updateListener.of((update) => {
           if (update.docChanged || update.selectionSet) {
             const head = update.state.selection.main.head;
@@ -1203,7 +1208,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         }) : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
