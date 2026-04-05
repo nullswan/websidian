@@ -111,6 +111,26 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           arrow.style.color = isFolded ? "#555" : "#7f6df2";
         });
       }
+
+      // Add copy buttons to code blocks
+      containerRef.current.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
+        pre.style.position = "relative";
+        const btn = document.createElement("button");
+        btn.textContent = "Copy";
+        btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
+        btn.addEventListener("click", () => {
+          const code = pre.querySelector("code");
+          if (code) {
+            navigator.clipboard.writeText(code.textContent || "");
+            btn.textContent = "Copied!";
+            btn.style.color = "#7f6df2";
+            setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "#aaa"; }, 1500);
+          }
+        });
+        pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; });
+        pre.addEventListener("mouseleave", () => { btn.style.opacity = "0"; });
+        pre.appendChild(btn);
+      });
     }
   }, [html]);
 
