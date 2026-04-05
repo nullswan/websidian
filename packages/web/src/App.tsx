@@ -35,6 +35,7 @@ interface NoteMeta {
 interface BacklinkEntry {
   path: string;
   context: string;
+  lineContext?: string;
 }
 
 interface Tab {

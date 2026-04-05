@@ -258,18 +258,36 @@ export async function vaultRoutes(app: FastifyInstance) {
       const files = flattenFiles(tree);
       const { notes, index } = await indexVault(vaultRoot, files);
 
-      const backlinks: Array<{ path: string; context: string }> = [];
+      const backlinks: Array<{ path: string; context: string; lineContext?: string }> = [];
+
+      // Read source file contents lazily (cache per note)
+      const contentCache = new Map<string, string[]>();
+      const getLines = async (notePath: string): Promise<string[]> => {
+        if (contentCache.has(notePath)) return contentCache.get(notePath)!;
+        try {
+          const raw = await readFile(join(vaultRoot, notePath), "utf-8");
+          const lines = raw.split("\n");
+          contentCache.set(notePath, lines);
+          return lines;
+        } catch {
+          return [];
+        }
+      };
 
       for (const note of notes) {
         if (note.path === filePath) continue;
         for (const link of note.links) {
           const resolved = resolveLink(link.target, note.path, index);
           if (resolved === filePath) {
+            const lines = await getLines(note.path);
+            const lineText = link.line > 0 && link.line <= lines.length
+              ? lines[link.line - 1].trim()
+              : undefined;
             backlinks.push({
               path: note.path,
               context: link.display ?? link.target,
+              lineContext: lineText,
             });
-            break; // one entry per source note
           }
         }
       }
