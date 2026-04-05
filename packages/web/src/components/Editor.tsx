@@ -630,6 +630,35 @@ const livePreviewTheme = EditorView.theme({
 });
 
 // Wikilink autocomplete: triggers after [[
+async function tagCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  // Match #tag pattern (not inside wikilinks or code)
+  const match = /#([\w\-/]*)$/.exec(textBefore);
+  if (!match) return null;
+  // Don't trigger inside markdown headings (## etc)
+  if (/^#{1,6}\s/.test(line.text)) return null;
+
+  const query = match[1].toLowerCase();
+  const from = ctx.pos - match[1].length;
+
+  try {
+    const res = await fetch("/api/vault/tags", { credentials: "include" });
+    const data = await res.json();
+    const options: Completion[] = (data.tags ?? [])
+      .filter((t: { name: string }) => t.name.toLowerCase().includes(query))
+      .slice(0, 20)
+      .map((t: { name: string; count: number }) => ({
+        label: t.name,
+        detail: `${t.count}`,
+        type: "keyword",
+      }));
+    return { from, options, filter: false };
+  } catch {
+    return null;
+  }
+}
+
 async function wikilinkCompletion(ctx: CompletionContext) {
   // Look backwards for [[ to find the trigger
   const line = ctx.state.doc.lineAt(ctx.pos);
@@ -871,7 +900,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         EditorView.lineWrapping,
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         autocompletion({
-          override: [wikilinkCompletion],
+          override: [wikilinkCompletion, tagCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
