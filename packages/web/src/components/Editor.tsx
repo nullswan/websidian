@@ -455,6 +455,75 @@ const livePreviewWidgetsField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Zero-width widget for hiding inline markers (**, *, ~~)
+class InlineMarkerWidget extends WidgetType {
+  toDOM() {
+    const span = document.createElement("span");
+    span.style.cssText = "width: 0; display: inline-block; overflow: hidden;";
+    return span;
+  }
+  eq() { return true; }
+  ignoreEvent() { return true; }
+}
+
+const inlineMarkerWidget = new InlineMarkerWidget();
+
+function buildInlineMarkerDecorations(state: EditorState): DecorationSet {
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  const ranges: Array<{ from: number; to: number }> = [];
+
+  // Syntax tree: EmphasisMark covers ** and * delimiters
+  const tree = syntaxTree(state);
+  tree.iterate({
+    enter: (node) => {
+      if (node.name === "EmphasisMark") {
+        const line = state.doc.lineAt(node.from);
+        if (line.number !== cursorLine) {
+          ranges.push({ from: node.from, to: node.to });
+        }
+      }
+    },
+  });
+
+  // Regex: ~~ strikethrough and == highlight markers (not in Lezer tree)
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+    // ~~text~~ strikethrough — hide all ~~ pairs
+    let m;
+    const stRegex = /~~/g;
+    while ((m = stRegex.exec(text)) !== null) {
+      ranges.push({ from: line.from + m.index, to: line.from + m.index + 2 });
+    }
+    // ==text== highlight — hide all == pairs
+    const hlRegex = /==/g;
+    while ((m = hlRegex.exec(text)) !== null) {
+      ranges.push({ from: line.from + m.index, to: line.from + m.index + 2 });
+    }
+  }
+
+  // Sort by position for RangeSetBuilder
+  ranges.sort((a, b) => a.from - b.from || a.to - b.to);
+
+  const builder = new RangeSetBuilder<Decoration>();
+  for (const r of ranges) {
+    builder.add(r.from, r.to, Decoration.replace({ widget: inlineMarkerWidget }));
+  }
+  return builder.finish();
+}
+
+const inlineMarkerField = StateField.define<DecorationSet>({
+  create(state) { return buildInlineMarkerDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildInlineMarkerDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -691,6 +760,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         imagePreviewField,
         checkboxField,
         livePreviewWidgetsField,
+        inlineMarkerField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
