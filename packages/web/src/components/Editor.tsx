@@ -444,8 +444,11 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }
     if (!view) return;
     const currentDoc = view.state.doc.toString();
     if (content && content !== currentDoc) {
+      const fm = parseFrontmatterRange({ toString: () => content });
+      const cursorPos = fm ? Math.min(fm.to + 1, content.length) : 0;
       view.dispatch({
         changes: { from: 0, to: currentDoc.length, insert: content },
+        selection: { anchor: cursorPos },
       });
     }
   }, [content]);
