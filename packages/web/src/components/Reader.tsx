@@ -11,6 +11,8 @@ interface ReaderProps {
   onSave?: (content: string) => void;
   onTagClick?: (tag: string) => void;
   searchHighlight?: string;
+  scrollToLine?: number | null;
+  onScrollToLineDone?: () => void;
 }
 
 /** Extract a section from markdown content by heading name */
@@ -39,7 +41,7 @@ function extractSection(content: string, heading: string): string {
   return content;
 }
 
-export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight }: ReaderProps) {
+export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone }: ReaderProps) {
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -518,6 +520,49 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         className="reader-view"
         onClick={handleClick}
       />
+      {scrollToLine != null && (
+        <ScrollToLineEffect
+          containerRef={containerRef}
+          line={scrollToLine}
+          totalLines={content.split("\n").length}
+          onDone={onScrollToLineDone}
+        />
+      )}
     </>
   );
+}
+
+/** Scrolls the reader to approximately the given source line */
+function ScrollToLineEffect({
+  containerRef,
+  line,
+  totalLines,
+  onDone,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  line: number;
+  totalLines: number;
+  onDone?: () => void;
+}) {
+  useEffect(() => {
+    if (!containerRef.current || !line) return;
+    const el = containerRef.current;
+    // Walk up to find the scrollable ancestor
+    let scroller: Element | null = el.parentElement;
+    while (scroller && scroller.scrollHeight <= scroller.clientHeight) {
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+
+    // Ratio-based scroll: approximate source line position in rendered content
+    const ratio = Math.max(0, (line - 1)) / Math.max(1, totalLines);
+    const scrollTarget = ratio * scroller.scrollHeight;
+
+    requestAnimationFrame(() => {
+      scroller.scrollTo({ top: scrollTarget, behavior: "smooth" });
+      onDone?.();
+    });
+  }, [containerRef, line, totalLines, onDone]);
+
+  return null;
 }

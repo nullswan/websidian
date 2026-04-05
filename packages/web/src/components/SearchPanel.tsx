@@ -6,7 +6,7 @@ interface SearchResult {
 }
 
 interface SearchPanelProps {
-  onNavigate: (path: string, query?: string) => void;
+  onNavigate: (path: string, query?: string, line?: number) => void;
   initialQuery?: string;
 }
 
@@ -225,7 +225,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
                     fontSize: 12,
                     cursor: "pointer",
                   }}
-                  onClick={() => onNavigate(r.path, query)}
+                  onClick={() => onNavigate(r.path, query, m.line)}
                 >
                   <span style={{ color: "#555", marginRight: 6 }}>
                     {m.line}:
@@ -241,7 +241,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
                     fontSize: 11,
                     cursor: "pointer",
                   }}
-                  onClick={() => onNavigate(r.path, query)}
+                  onClick={() => onNavigate(r.path, query, r.matches[0].line)}
                 >
                   +{r.matches.length - 5} more
                 </div>

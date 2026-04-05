@@ -381,6 +381,7 @@ export function App() {
   }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [readerHighlight, setReaderHighlight] = useState("");
+  const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [leftWidth, setLeftWidth] = useState(260);
   const [rightWidth, setRightWidth] = useState(240);
@@ -1396,6 +1397,8 @@ export function App() {
                 onNavigate={handleNavigate}
                 onSave={handleSave}
                 searchHighlight={paneIdx === activePaneIdx ? readerHighlight : ""}
+                scrollToLine={paneIdx === activePaneIdx && paneTab.id === activePane?.activeTabId ? scrollToLine : null}
+                onScrollToLineDone={() => setScrollToLine(null)}
                 onTagClick={(tag) => {
                   setSearchQuery(`#${tag}`);
                   setLeftPanel("search");
@@ -1784,7 +1787,7 @@ export function App() {
                 </div>
               )
             ) : leftPanel === "search" ? (
-              <SearchPanel onNavigate={(path, q) => { openTab(path); if (q) setReaderHighlight(q); }} initialQuery={searchQuery} />
+              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} />
             ) : leftPanel === "starred" ? (
               <div style={{ padding: "8px" }}>
                 {starredNotes.length === 0 ? (
