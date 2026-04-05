@@ -296,8 +296,8 @@ export async function vaultRoutes(app: FastifyInstance) {
     },
   );
 
-  // GET /api/vault/search?q=... — full-text search across vault
-  app.get<{ Querystring: { q: string } }>(
+  // GET /api/vault/search?q=...&regex=true — full-text search across vault
+  app.get<{ Querystring: { q: string; regex?: string; caseSensitive?: string } }>(
     "/search",
     async (request, reply) => {
       const query = request.query.q?.trim();
@@ -305,10 +305,20 @@ export async function vaultRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "q query param required" });
       }
 
+      const isRegex = request.query.regex === "true";
+      const caseSensitive = request.query.caseSensitive === "true";
+
+      let re: RegExp | null = null;
+      if (isRegex) {
+        try {
+          re = new RegExp(query, caseSensitive ? "g" : "gi");
+        } catch {
+          return reply.status(400).send({ error: "Invalid regex pattern" });
+        }
+      }
+
       const tree = await scanVault(vaultRoot);
       const files = flattenFiles(tree);
-      const { notes } = await indexVault(vaultRoot, files);
-      const queryLower = query.toLowerCase();
 
       const results: Array<{
         path: string;
@@ -322,7 +332,16 @@ export async function vaultRoutes(app: FastifyInstance) {
         const matches: Array<{ line: number; text: string }> = [];
 
         for (let i = 0; i < lines.length; i++) {
-          if (lines[i].toLowerCase().includes(queryLower)) {
+          let isMatch = false;
+          if (re) {
+            re.lastIndex = 0;
+            isMatch = re.test(lines[i]);
+          } else if (caseSensitive) {
+            isMatch = lines[i].includes(query);
+          } else {
+            isMatch = lines[i].toLowerCase().includes(query.toLowerCase());
+          }
+          if (isMatch) {
             matches.push({
               line: i + 1,
               text: lines[i].trim().slice(0, 200),

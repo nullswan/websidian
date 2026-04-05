@@ -15,21 +15,34 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [useRegex, setUseRegex] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [regexError, setRegexError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doSearch = useCallback(
-    (q: string) => {
+    (q: string, regex: boolean, cs: boolean) => {
       if (!q.trim()) {
         setResults([]);
+        setRegexError(null);
         return;
       }
       setSearching(true);
-      fetch(`/api/vault/search?q=${encodeURIComponent(q)}`)
+      setRegexError(null);
+      const params = new URLSearchParams({ q });
+      if (regex) params.set("regex", "true");
+      if (cs) params.set("caseSensitive", "true");
+      fetch(`/api/vault/search?${params}`)
         .then((r) => r.json())
         .then((data) => {
-          setResults(data.results ?? []);
+          if (data.error) {
+            setRegexError(data.error);
+            setResults([]);
+          } else {
+            setResults(data.results ?? []);
+          }
           setSearching(false);
         })
         .catch(() => setSearching(false));
@@ -42,22 +55,23 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!query.trim()) {
       setResults([]);
+      setRegexError(null);
       return;
     }
-    debounceRef.current = setTimeout(() => doSearch(query), 300);
+    debounceRef.current = setTimeout(() => doSearch(query, useRegex, caseSensitive), 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, doSearch]);
+  }, [query, useRegex, caseSensitive, doSearch]);
 
   // Handle external query changes (e.g. tag click)
   useEffect(() => {
     if (initialQuery && initialQuery !== lastInitialQuery.current) {
       lastInitialQuery.current = initialQuery;
       setQuery(initialQuery);
-      doSearch(initialQuery);
+      doSearch(initialQuery, useRegex, caseSensitive);
     }
-  }, [initialQuery, doSearch]);
+  }, [initialQuery, doSearch, useRegex, caseSensitive]);
 
   const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
 
@@ -70,6 +84,20 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
     });
   };
 
+  const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? "rgba(127,109,242,0.2)" : "transparent",
+    border: active ? "1px solid rgba(127,109,242,0.5)" : "1px solid #444",
+    color: active ? "#7f6df2" : "#666",
+    borderRadius: 3,
+    padding: "2px 5px",
+    fontSize: 11,
+    cursor: "pointer",
+    fontWeight: active ? 600 : 400,
+    lineHeight: 1,
+    userSelect: "none" as const,
+    transition: "all 0.15s",
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid #333" }}>
@@ -79,11 +107,11 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search vault..."
+            placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
             style={{
               width: "100%",
               padding: "6px 28px 6px 8px",
-              border: "1px solid #444",
+              border: regexError ? "1px solid #f44" : "1px solid #444",
               borderRadius: 4,
               background: "#2a2a2a",
               color: "#ddd",
@@ -94,7 +122,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
           />
           {query && (
             <span
-              onClick={() => { setQuery(""); setResults([]); inputRef.current?.focus(); }}
+              onClick={() => { setQuery(""); setResults([]); setRegexError(null); inputRef.current?.focus(); }}
               style={{
                 position: "absolute",
                 right: 6,
@@ -111,9 +139,30 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
             </span>
           )}
         </div>
-        {results.length > 0 && (
-          <div style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
-            {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
+        <div style={{ display: "flex", gap: 4, marginTop: 4, alignItems: "center" }}>
+          <span
+            title="Use regular expression"
+            onClick={() => setUseRegex((v) => !v)}
+            style={toggleBtnStyle(useRegex)}
+          >
+            .*
+          </span>
+          <span
+            title="Match case"
+            onClick={() => setCaseSensitive((v) => !v)}
+            style={toggleBtnStyle(caseSensitive)}
+          >
+            Aa
+          </span>
+          {results.length > 0 && (
+            <span style={{ fontSize: 11, color: "#666", marginLeft: "auto" }}>
+              {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        {regexError && (
+          <div style={{ fontSize: 11, color: "#f44", marginTop: 2 }}>
+            {regexError}
           </div>
         )}
       </div>
@@ -162,7 +211,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
                   <span style={{ color: "#555", marginRight: 6 }}>
                     {m.line}:
                   </span>
-                  {highlightMatch(m.text, query)}
+                  {highlightMatch(m.text, query, useRegex, caseSensitive)}
                 </div>
               ))}
               {!isCollapsed && r.matches.length > 5 && (
@@ -181,7 +230,7 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
             </div>
           );
         })}
-        {!searching && results.length === 0 && query && (
+        {!searching && results.length === 0 && query && !regexError && (
           <div style={{ padding: 12, color: "#555" }}>No results found</div>
         )}
       </div>
@@ -189,9 +238,31 @@ export function SearchPanel({ onNavigate, initialQuery }: SearchPanelProps) {
   );
 }
 
-function highlightMatch(text: string, query: string): React.ReactNode {
+function highlightMatch(text: string, query: string, isRegex: boolean, caseSensitive: boolean): React.ReactNode {
   if (!query) return <>{text}</>;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  try {
+    if (isRegex) {
+      const re = new RegExp(`(${query})`, caseSensitive ? "g" : "gi");
+      const parts = text.split(re);
+      if (parts.length <= 1) return <>{text}</>;
+      return (
+        <>
+          {parts.map((part, i) =>
+            re.test(part) ? (
+              <span key={i} style={{ color: "#e6994a", fontWeight: 600 }}>{part}</span>
+            ) : (
+              <React.Fragment key={i}>{part}</React.Fragment>
+            )
+          )}
+        </>
+      );
+    }
+  } catch {
+    // Fall through to plain highlight
+  }
+  const searchStr = caseSensitive ? query : query.toLowerCase();
+  const textToSearch = caseSensitive ? text : text.toLowerCase();
+  const idx = textToSearch.indexOf(searchStr);
   if (idx === -1) return <>{text}</>;
   return (
     <>
