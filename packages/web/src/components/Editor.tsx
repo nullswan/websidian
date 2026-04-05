@@ -3,7 +3,7 @@ import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewP
 import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
@@ -589,6 +589,27 @@ const livePreviewTheme = EditorView.theme({
     borderRight: "1px solid #2a2a2a",
     color: "#555",
   },
+  ".cm-foldGutter": {
+    width: "16px",
+  },
+  ".cm-foldGutter .cm-gutterElement": {
+    padding: "0 2px",
+    transition: "color 0.15s",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ".cm-foldGutter .cm-gutterElement:hover span": {
+    color: "#bbb !important",
+  },
+  ".cm-foldPlaceholder": {
+    background: "rgba(127, 109, 242, 0.1)",
+    border: "1px solid rgba(127, 109, 242, 0.3)",
+    borderRadius: "3px",
+    color: "#7f6df2",
+    padding: "0 6px",
+    margin: "0 4px",
+  },
   ".cm-cursor": {
     borderLeftColor: "#7f6df2",
     borderLeftWidth: "2px",
@@ -686,6 +707,27 @@ async function wikilinkCompletion(ctx: CompletionContext) {
     return null;
   }
 }
+
+// Markdown heading fold: fold content under a heading until next heading of equal/higher level
+const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
+  const line = state.doc.lineAt(lineStart);
+  const match = /^(#{1,6})\s/.exec(line.text);
+  if (!match) return null;
+  const level = match[1].length;
+  // Find the end: next heading of same or higher level, or end of doc
+  let endLine = line.number;
+  for (let i = line.number + 1; i <= state.doc.lines; i++) {
+    const nextLine = state.doc.line(i);
+    const nextMatch = /^(#{1,6})\s/.exec(nextLine.text);
+    if (nextMatch && nextMatch[1].length <= level) {
+      break;
+    }
+    endLine = i;
+  }
+  if (endLine === line.number) return null; // nothing to fold
+  const endPos = state.doc.line(endLine).to;
+  return { from: line.to, to: endPos };
+});
 
 export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -879,9 +921,21 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         highlightActiveLine(),
         bracketMatching(),
         history(),
-        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, indentWithTab]),
+        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         search(),
+        codeFolding(),
+        markdownHeadingFold,
+        foldGutter({
+          markerDOM(open) {
+            const span = document.createElement("span");
+            span.textContent = open ? "▾" : "▸";
+            span.style.cssText = "color: #555; cursor: pointer; font-size: 11px; user-select: none; opacity: 0.6; transition: opacity 0.15s;";
+            span.addEventListener("mouseenter", () => { span.style.opacity = "1"; span.style.color = "#aaa"; });
+            span.addEventListener("mouseleave", () => { span.style.opacity = "0.6"; span.style.color = "#555"; });
+            return span;
+          },
+        }),
         saveKeymap,
         markdown(),
         oneDarkTheme,
