@@ -19,6 +19,7 @@ import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
+import { createMarkdownRenderer } from "./lib/markdown.js";
 import type { VaultEntry } from "./types.js";
 import "./styles.css";
 import "katex/dist/katex.min.css";
@@ -909,6 +910,56 @@ export function App() {
     openTab(randomPath);
     showToast(`Random: ${randomPath.replace(/\.md$/, "").split("/").pop()}`);
   }, [tree, openTab, showToast]);
+
+  const exportAsHtml = useCallback(() => {
+    if (!activeTab?.content) {
+      showToast("No active note to export");
+      return;
+    }
+    const md = createMarkdownRenderer();
+    const rendered = md.render(activeTab.content);
+    const title = activeTab.path.replace(/\.md$/, "").split("/").pop() || "Untitled";
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>
+body { margin: 0; padding: 40px; background: #1e1e1e; color: #dcddde; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; line-height: 1.65; font-size: 16px; max-width: 750px; margin: 0 auto; padding: 40px 48px; }
+h1 { font-size: 2em; font-weight: 700; color: #e0e0e0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; }
+h2 { font-size: 1.5em; font-weight: 600; color: #e0e0e0; }
+h3 { font-size: 1.25em; font-weight: 600; color: #e0e0e0; }
+a { color: #7f6df2; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; background: #2a2a2a; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: #2a2a2a; padding: 12px 16px; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 3px solid #7f6df2; margin: 8px 0; padding: 4px 16px; color: #aaa; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+th, td { border: 1px solid #444; padding: 6px 12px; text-align: left; }
+th { background: #2a2a2a; font-weight: 600; color: #e0e0e0; }
+hr { border: none; border-top: 1px solid #333; margin: 24px 0; }
+img { max-width: 100%; border-radius: 6px; }
+mark { background: rgba(255, 208, 0, 0.25); color: inherit; padding: 1px 2px; border-radius: 2px; }
+s { color: #888; }
+.tag { color: #e6994a; background: rgba(230, 153, 74, 0.1); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>${title}</h1>
+${rendered}
+</body>
+</html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${title}.html`);
+  }, [activeTab, showToast]);
 
   const openDailyNote = useCallback(() => {
     const today = new Date();
@@ -2308,6 +2359,11 @@ export function App() {
               id: "random-note",
               name: "Open random note",
               action: openRandomNote,
+            },
+            {
+              id: "export-html",
+              name: "Export current note as HTML",
+              action: exportAsHtml,
             },
             {
               id: "extract-selection",
