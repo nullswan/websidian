@@ -10,6 +10,7 @@ export interface AppSettings {
   templatesFolder: string;
   typewriterMode: boolean;
   focusMode: boolean;
+  accentColor: string;
 }
 
 const DEFAULTS: AppSettings = {
@@ -22,6 +23,7 @@ const DEFAULTS: AppSettings = {
   templatesFolder: "Templates",
   typewriterMode: false,
   focusMode: false,
+  accentColor: "#7f6df2",
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -179,6 +181,45 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Limit the maximum line width for comfortable reading"
               >
                 <Toggle checked={settings.readableLineLength} onChange={(v) => update("readableLineLength", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Accent color"
+                description="Primary accent color used throughout the interface"
+              >
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="color"
+                    value={settings.accentColor}
+                    onChange={(e) => update("accentColor", e.target.value)}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      border: "1px solid #444",
+                      borderRadius: 4,
+                      background: "transparent",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "#888" }}>{settings.accentColor}</span>
+                  {settings.accentColor !== "#7f6df2" && (
+                    <button
+                      onClick={() => update("accentColor", "#7f6df2")}
+                      style={{
+                        fontSize: 11,
+                        color: "#888",
+                        background: "transparent",
+                        border: "1px solid #444",
+                        borderRadius: 3,
+                        padding: "2px 6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </SettingItem>
             </div>
           )}

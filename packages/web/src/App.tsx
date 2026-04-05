@@ -443,6 +443,11 @@ export function App() {
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
   const scrollToHeadingRef = useRef<((heading: string, level: number) => void) | null>(null);
 
+  // Set CSS accent color variable
+  useEffect(() => {
+    document.documentElement.style.setProperty("--accent-color", appSettings.accentColor);
+  }, [appSettings.accentColor]);
+
   const activePane = panes[activePaneIdx];
   const activeTab = activePane?.activeTabId ? tabsMap[activePane.activeTabId] ?? null : null;
   const workspaceRestored = useRef(false);
