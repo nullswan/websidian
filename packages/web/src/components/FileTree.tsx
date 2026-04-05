@@ -98,6 +98,11 @@ function filterTree(entries: VaultEntry[], query: string): VaultEntry[] {
 
 const EXPANDED_KEY = "filetree-expanded";
 
+function countFiles(entry: VaultEntry): number {
+  if (entry.kind === "file") return 1;
+  return entry.children.reduce((sum, child) => sum + countFiles(child), 0);
+}
+
 function collectFolderPaths(entries: VaultEntry[]): string[] {
   const paths: string[] = [];
   for (const entry of entries) {
@@ -546,7 +551,8 @@ function FileTreeNode({
             {expanded ? <ChevronDown /> : <ChevronRight />}
           </span>
           <FolderIcon open={expanded} />
-          <span style={{ fontSize: 13 }}>{entry.path.split("/").pop()}</span>
+          <span style={{ fontSize: 13, flex: 1 }}>{entry.path.split("/").pop()}</span>
+          <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{countFiles(entry)}</span>
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
