@@ -1196,6 +1196,33 @@ ${rendered}
             onWheel={(e) => {
               e.currentTarget.scrollLeft += e.deltaY;
             }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const src = dragTabRef.current;
+              if (!src || src.paneIdx === paneIdx) return;
+              // Cross-pane: append to end of this pane
+              setPanes((prev) => {
+                const next = prev.map((p) => ({ ...p, tabIds: [...p.tabIds] }));
+                const srcPane = next[src.paneIdx];
+                const dstPane = next[paneIdx];
+                const srcIdx = srcPane.tabIds.indexOf(src.tabId);
+                if (srcIdx === -1) return prev;
+                if (dstPane.tabIds.includes(src.tabId)) return prev;
+                srcPane.tabIds.splice(srcIdx, 1);
+                if (srcPane.activeTabId === src.tabId) {
+                  srcPane.activeTabId = srcPane.tabIds[Math.min(srcIdx, srcPane.tabIds.length - 1)] ?? null;
+                }
+                dstPane.tabIds.push(src.tabId);
+                dstPane.activeTabId = src.tabId;
+                return next;
+              });
+              setActivePaneIdx(paneIdx);
+              dragTabRef.current = null;
+            }}
           >
             {isMobile && (
               <button
@@ -1244,20 +1271,43 @@ ${rendered}
                   onDrop={(e) => {
                     e.preventDefault();
                     const src = dragTabRef.current;
-                    if (!src || src.paneIdx !== paneIdx || src.tabId === tab.id) return;
-                    setPanes((prev) => {
-                      const next = [...prev];
-                      const p = { ...next[paneIdx] };
-                      const ids = [...p.tabIds];
-                      const fromIdx = ids.indexOf(src.tabId);
-                      const toIdx = ids.indexOf(tab.id);
-                      if (fromIdx === -1 || toIdx === -1) return prev;
-                      ids.splice(fromIdx, 1);
-                      ids.splice(toIdx, 0, src.tabId);
-                      p.tabIds = ids;
-                      next[paneIdx] = p;
-                      return next;
-                    });
+                    if (!src || src.tabId === tab.id) return;
+                    if (src.paneIdx === paneIdx) {
+                      // Within-pane reorder
+                      setPanes((prev) => {
+                        const next = [...prev];
+                        const p = { ...next[paneIdx] };
+                        const ids = [...p.tabIds];
+                        const fromIdx = ids.indexOf(src.tabId);
+                        const toIdx = ids.indexOf(tab.id);
+                        if (fromIdx === -1 || toIdx === -1) return prev;
+                        ids.splice(fromIdx, 1);
+                        ids.splice(toIdx, 0, src.tabId);
+                        p.tabIds = ids;
+                        next[paneIdx] = p;
+                        return next;
+                      });
+                    } else {
+                      // Cross-pane move
+                      setPanes((prev) => {
+                        const next = prev.map((p) => ({ ...p, tabIds: [...p.tabIds] }));
+                        const srcPane = next[src.paneIdx];
+                        const dstPane = next[paneIdx];
+                        // Remove from source pane
+                        const srcIdx = srcPane.tabIds.indexOf(src.tabId);
+                        if (srcIdx === -1) return prev;
+                        srcPane.tabIds.splice(srcIdx, 1);
+                        if (srcPane.activeTabId === src.tabId) {
+                          srcPane.activeTabId = srcPane.tabIds[Math.min(srcIdx, srcPane.tabIds.length - 1)] ?? null;
+                        }
+                        // Insert into target pane at drop position
+                        const toIdx = dstPane.tabIds.indexOf(tab.id);
+                        dstPane.tabIds.splice(toIdx >= 0 ? toIdx : dstPane.tabIds.length, 0, src.tabId);
+                        dstPane.activeTabId = src.tabId;
+                        return next;
+                      });
+                      setActivePaneIdx(paneIdx);
+                    }
                     dragTabRef.current = null;
                   }}
                   onDragEnd={() => { dragTabRef.current = null; }}
