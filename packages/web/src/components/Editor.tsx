@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
-import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
+import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit } from "@codemirror/language";
@@ -291,6 +291,13 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Compartments for hot-swappable settings (no editor recreation needed)
+  const fontSizeComp = useRef(new Compartment());
+  const spellCheckComp = useRef(new Compartment());
+  const lineNumbersComp = useRef(new Compartment());
+  const tabSizeComp = useRef(new Compartment());
+  const indentUnitComp = useRef(new Compartment());
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -392,7 +399,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       doc: content,
       selection: { anchor: initialCursor },
       extensions: [
-        ...(showLineNumbers ? [lineNumbers()] : []),
+        lineNumbersComp.current.of(showLineNumbers ? lineNumbers() : []),
         highlightActiveLine(),
         bracketMatching(),
         history(),
@@ -407,11 +414,11 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         headingPlugin,
         frontmatterField,
         livePreviewTheme,
-        EditorView.theme({ "&": { fontSize: `${fontSize}px` } }),
-        EditorState.tabSize.of(tabSize),
-        indentUnit.of(" ".repeat(tabSize)),
+        fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
+        tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
+        indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
         EditorView.lineWrapping,
-        EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" }),
+        spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         autocompletion({
           override: [wikilinkCompletion],
           activateOnTyping: true,
@@ -446,7 +453,22 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [filePath, fontSize, spellCheck, showLineNumbers, tabSize]); // Re-create editor when file or settings change
+  }, [filePath]); // Only re-create editor when file changes; settings use Compartments
+
+  // Hot-swap settings via Compartments (no editor recreation)
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: [
+        fontSizeComp.current.reconfigure(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
+        spellCheckComp.current.reconfigure(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
+        lineNumbersComp.current.reconfigure(showLineNumbers ? lineNumbers() : []),
+        tabSizeComp.current.reconfigure(EditorState.tabSize.of(tabSize)),
+        indentUnitComp.current.reconfigure(indentUnit.of(" ".repeat(tabSize))),
+      ],
+    });
+  }, [fontSize, spellCheck, showLineNumbers, tabSize]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
