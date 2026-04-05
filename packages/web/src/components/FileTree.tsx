@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { VaultEntry } from "../types.js";
 
 type SortMode = "name" | "mtime";
@@ -120,6 +120,17 @@ function saveExpandedPaths(paths: Set<string>) {
   try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...paths])); } catch {}
 }
 
+function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortMode: SortMode): string[] {
+  const result: string[] = [];
+  for (const entry of sortEntries(entries, sortMode)) {
+    result.push(entry.path);
+    if (entry.kind === "folder" && expandedPaths.has(entry.path)) {
+      result.push(...flattenVisible(entry.children, expandedPaths, sortMode));
+    }
+  }
+  return result;
+}
+
 export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFileRenamed }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -133,6 +144,8 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
 
   const [sortMode, setSortMode] = useState<SortMode>(loadSortMode);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [focusedPath, setFocusedPath] = useState<string | null>(null);
+  const treeRef = useRef<HTMLUListElement>(null);
 
   const handleDrop = async (sourcePath: string, targetFolder: string) => {
     setDropTarget(null);
@@ -188,6 +201,66 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
     () => filter.trim() ? filterTree(entries, filter.trim()) : entries,
     [entries, filter],
   );
+
+  const flatPaths = useMemo(
+    () => flattenVisible(filteredEntries, expandedPaths, sortMode),
+    [filteredEntries, expandedPaths, sortMode],
+  );
+
+  // Find entry by path in the tree
+  const findEntry = useCallback((path: string, entries: VaultEntry[]): VaultEntry | null => {
+    for (const e of entries) {
+      if (e.path === path) return e;
+      if (e.kind === "folder" && e.children) {
+        const found = findEntry(path, e.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }, []);
+
+  const handleTreeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!flatPaths.length) return;
+    const currentIdx = focusedPath ? flatPaths.indexOf(focusedPath) : -1;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const nextIdx = Math.min(currentIdx + 1, flatPaths.length - 1);
+      setFocusedPath(flatPaths[nextIdx]);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const nextIdx = Math.max(currentIdx - 1, 0);
+      setFocusedPath(flatPaths[nextIdx]);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (!focusedPath) return;
+      const entry = findEntry(focusedPath, entries);
+      if (!entry) return;
+      if (entry.kind === "folder") {
+        toggleExpanded(entry.path);
+      } else {
+        onFileSelect(entry.path);
+      }
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (!focusedPath) return;
+      const entry = findEntry(focusedPath, entries);
+      if (entry?.kind === "folder" && !expandedPaths.has(entry.path)) {
+        toggleExpanded(entry.path);
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (!focusedPath) return;
+      const entry = findEntry(focusedPath, entries);
+      if (entry?.kind === "folder" && expandedPaths.has(entry.path)) {
+        toggleExpanded(entry.path);
+      } else if (focusedPath.includes("/")) {
+        // Move to parent folder
+        const parentPath = focusedPath.split("/").slice(0, -1).join("/");
+        setFocusedPath(parentPath);
+      }
+    }
+  }, [flatPaths, focusedPath, entries, expandedPaths, toggleExpanded, onFileSelect, findEntry]);
 
   const closeMenu = () => setContextMenu(null);
 
@@ -325,7 +398,10 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
         </button>
       </div>
       <ul
-        style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13 }}
+        ref={treeRef}
+        tabIndex={0}
+        style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13, outline: "none" }}
+        onKeyDown={handleTreeKeyDown}
         onContextMenu={(e) => handleContextMenu(e, null, "")}
         onDragOver={(e) => { e.preventDefault(); setDropTarget("__root__"); }}
         onDragLeave={() => setDropTarget(null)}
@@ -341,6 +417,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
             entry={entry}
             onFileSelect={onFileSelect}
             selectedPath={selectedPath}
+            focusedPath={focusedPath}
             depth={0}
             onContextMenu={handleContextMenu}
             renaming={renaming}
@@ -386,6 +463,7 @@ function FileTreeNode({
   entry,
   onFileSelect,
   selectedPath,
+  focusedPath,
   depth,
   onContextMenu,
   renaming,
@@ -402,6 +480,7 @@ function FileTreeNode({
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
   selectedPath: string | null;
+  focusedPath: string | null;
   depth: number;
   onContextMenu: (e: React.MouseEvent, entry: VaultEntry | null, parentPath: string) => void;
   renaming: string | null;
@@ -418,9 +497,11 @@ function FileTreeNode({
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
     const isDragOver = dropTarget === entry.path;
+    const isFocused = focusedPath === entry.path;
     return (
       <li>
         <div
+          ref={(el) => { if (el && isFocused) el.scrollIntoView({ block: "nearest" }); }}
           draggable
           onDragStart={(e) => {
             e.dataTransfer.setData("text/plain", entry.path);
@@ -445,7 +526,7 @@ function FileTreeNode({
             paddingLeft: depth * 16 + 4,
             padding: "3px 8px 3px " + (depth * 16 + 4) + "px",
             cursor: "pointer",
-            color: "#999",
+            color: isFocused ? "#ddd" : "#999",
             userSelect: "none",
             display: "flex",
             alignItems: "center",
@@ -453,8 +534,8 @@ function FileTreeNode({
             borderRadius: 3,
             margin: "0 4px",
             transition: "background 0.1s",
-            background: isDragOver ? "rgba(127,109,242,0.15)" : "transparent",
-            outline: isDragOver ? "1px solid rgba(127,109,242,0.4)" : "none",
+            background: isDragOver ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            outline: isDragOver ? "1px solid rgba(127,109,242,0.4)" : isFocused ? "1px solid rgba(127,109,242,0.3)" : "none",
           }}
           onClick={() => toggleExpanded(entry.path)}
           onContextMenu={(e) => onContextMenu(e, entry, entry.path)}
@@ -475,6 +556,7 @@ function FileTreeNode({
                 entry={child}
                 onFileSelect={onFileSelect}
                 selectedPath={selectedPath}
+                focusedPath={focusedPath}
                 depth={depth + 1}
                 onContextMenu={onContextMenu}
                 renaming={renaming}
@@ -506,6 +588,7 @@ function FileTreeNode({
   }
 
   const isSelected = entry.path === selectedPath;
+  const isFocused = focusedPath === entry.path;
   const name = entry.path.split("/").pop() ?? entry.path;
   const isRenaming = renaming === entry.path;
 
@@ -521,7 +604,7 @@ function FileTreeNode({
       ) : (
         <div
           ref={(el) => {
-            if (el && isSelected) {
+            if (el && (isSelected || isFocused)) {
               el.scrollIntoView({ block: "nearest", inline: "nearest" });
             }
           }}
@@ -534,8 +617,8 @@ function FileTreeNode({
             paddingLeft: depth * 16 + 18,
             padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
             cursor: "pointer",
-            background: isSelected ? "#37373d" : "transparent",
-            color: isSelected ? "#fff" : "#bbb",
+            background: isSelected ? "#37373d" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            color: isSelected ? "#fff" : isFocused ? "#ddd" : "#bbb",
             borderRadius: 3,
             display: "flex",
             alignItems: "center",
@@ -543,6 +626,7 @@ function FileTreeNode({
             margin: "0 4px",
             transition: "background 0.1s",
             fontSize: 13,
+            outline: isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
           }}
           onClick={() => onFileSelect(entry.path)}
           onContextMenu={(e) => {
