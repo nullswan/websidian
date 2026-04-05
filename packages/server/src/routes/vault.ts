@@ -134,11 +134,11 @@ export async function vaultRoutes(app: FastifyInstance) {
     },
   );
 
-  // POST /api/vault/rename — rename/move a file
-  app.post<{ Body: { from: string; to: string } }>(
+  // POST /api/vault/rename — rename/move a file (with link auto-update)
+  app.post<{ Body: { from: string; to: string; updateLinks?: boolean } }>(
     "/rename",
     async (request, reply) => {
-      const { from, to } = request.body ?? {};
+      const { from, to, updateLinks = true } = request.body ?? {};
       if (!from || !to) {
         return reply.status(400).send({ error: "from and to required in body" });
       }
@@ -152,10 +152,53 @@ export async function vaultRoutes(app: FastifyInstance) {
 
       try {
         await rename(fromPath, toPath);
-        return { from, to, renamed: true };
       } catch {
         return reply.status(404).send({ error: "source file not found" });
       }
+
+      // Auto-update wikilinks across the vault
+      const updatedFiles: string[] = [];
+      if (updateLinks && from.endsWith(".md")) {
+        const oldBasename = from.split("/").pop()!.replace(/\.md$/, "");
+        const newBasename = to.split("/").pop()!.replace(/\.md$/, "");
+        if (oldBasename !== newBasename) {
+          const tree = await scanVault(vaultRoot);
+          const files = flattenFiles(tree);
+          const mdFiles = files.filter((f) => f.extension === "md");
+
+          // Regex matches [[oldBasename]], [[oldBasename|display]], [[oldBasename#heading]]
+          // Also matches the full old path without extension
+          const oldPathNoExt = from.replace(/\.md$/, "");
+          const escOld = oldBasename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const escOldPath = oldPathNoExt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const linkPattern = new RegExp(
+            `\\[\\[(${escOldPath}|${escOld})(#[^\\]|]*)?(?:\\|([^\\]]*?))?\\]\\]`,
+            "g",
+          );
+
+          for (const file of mdFiles) {
+            const filePath = join(vaultRoot, file.path);
+            const content = await readFile(filePath, "utf-8");
+            const newContent = content.replace(linkPattern, (_match, target, fragment, display) => {
+              // Replace target with new basename (or new full path if original used full path)
+              const newTarget = target === oldPathNoExt
+                ? to.replace(/\.md$/, "")
+                : newBasename;
+              const parts = [`[[${newTarget}`];
+              if (fragment) parts.push(fragment);
+              if (display) parts.push(`|${display}`);
+              parts.push("]]");
+              return parts.join("");
+            });
+            if (newContent !== content) {
+              await writeFile(filePath, newContent, "utf-8");
+              updatedFiles.push(file.path);
+            }
+          }
+        }
+      }
+
+      return { from, to, renamed: true, updatedFiles };
     },
   );
 

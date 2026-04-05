@@ -361,6 +361,39 @@ export function App() {
     });
   }, []);
 
+  // Handle file rename: update tab paths and re-fetch content for affected files
+  const handleFileRenamed = useCallback((from: string, to: string, updatedFiles: string[]) => {
+    // Update the renamed file's tab path
+    setTabsMap((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const [id, tab] of Object.entries(next)) {
+        if (tab.path === from) {
+          next[id] = { ...tab, path: to };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // Re-fetch content for tabs whose links were updated
+    if (updatedFiles.length > 0) {
+      setTabsMap((prev) => {
+        for (const filePath of updatedFiles) {
+          const entry = Object.entries(prev).find(([, t]) => t.path === filePath);
+          if (entry) {
+            const [tabId] = entry;
+            fetch(`/api/vault/file?path=${encodeURIComponent(filePath)}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((data) => {
+                if (!data.error) updateTab(tabId, { content: data.content });
+              });
+          }
+        }
+        return prev;
+      });
+    }
+  }, [updateTab]);
+
   // Open a file in the active pane
   const openTab = useCallback(
     (path: string, targetPaneIdx?: number) => {
@@ -1391,6 +1424,7 @@ export function App() {
                   onFileSelect={openTab}
                   selectedPath={activeTab?.path ?? null}
                   onMutate={refreshTree}
+                  onFileRenamed={handleFileRenamed}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>

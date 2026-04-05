@@ -55,6 +55,7 @@ interface FileTreeProps {
   onFileSelect: (path: string) => void;
   selectedPath: string | null;
   onMutate?: () => void;
+  onFileRenamed?: (from: string, to: string, updatedFiles: string[]) => void;
 }
 
 interface ContextMenuState {
@@ -104,7 +105,7 @@ function saveExpandedPaths(paths: Set<string>) {
   try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...paths])); } catch {}
 }
 
-export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFileRenamed }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -180,12 +181,16 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
     parts[parts.length - 1] = newName;
     const newPath = parts.join("/");
     if (newPath === oldPath) return;
-    await fetch("/api/vault/rename", {
+    const res = await fetch("/api/vault/rename", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ from: oldPath, to: newPath }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      onFileRenamed?.(oldPath, newPath, data.updatedFiles ?? []);
+    }
     onMutate?.();
   };
 
