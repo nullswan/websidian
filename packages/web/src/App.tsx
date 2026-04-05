@@ -401,8 +401,14 @@ export function App() {
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < 768);
+  const [rightCollapsed, setRightCollapsed] = useState(() => window.innerWidth < 768);
   const [zenMode, setZenMode] = useState(false);
   const zenPrevState = useRef<{ left: boolean; right: boolean } | null>(null);
   const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
@@ -1113,10 +1119,29 @@ export function App() {
         {!zenMode && pane.tabIds.length > 0 && (
           <div
             className="tab-bar"
+            style={isMobile ? { paddingLeft: 0 } : undefined}
             onWheel={(e) => {
               e.currentTarget.scrollLeft += e.deltaY;
             }}
           >
+            {isMobile && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLeftCollapsed((c) => !c); }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#888",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  flexShrink: 0,
+                  lineHeight: 1,
+                }}
+                title="Toggle sidebar"
+              >
+                ☰
+              </button>
+            )}
             {[...pane.tabIds].sort((a, b) => {
               const ap = tabsMap[a]?.pinned ? 0 : 1;
               const bp = tabsMap[b]?.pinned ? 0 : 1;
@@ -1527,7 +1552,7 @@ export function App() {
             width: 44,
             background: "#1a1a1a",
             borderRight: "1px solid #2a2a2a",
-            display: zenMode ? "none" : "flex",
+            display: (zenMode || isMobile) ? "none" : "flex",
             flexDirection: "column",
             alignItems: "center",
             paddingTop: 8,
@@ -1713,19 +1738,41 @@ export function App() {
           </button>
         </div>
 
+        {/* Mobile sidebar backdrop */}
+        {isMobile && !leftCollapsed && (
+          <div
+            onClick={() => setLeftCollapsed(true)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 799,
+            }}
+          />
+        )}
+
         {/* Sidebar panel */}
         <aside
           style={{
-            width: leftCollapsed ? 0 : leftWidth,
-            minWidth: leftCollapsed ? 0 : 140,
+            width: leftCollapsed ? 0 : (isMobile ? "80vw" : leftWidth),
+            minWidth: leftCollapsed ? 0 : (isMobile ? 200 : 140),
             borderRight: leftCollapsed ? "none" : "1px solid #333",
             background: "#252526",
             color: "#ccc",
             display: "flex",
             flexDirection: "column",
-            position: "relative",
             overflow: "hidden",
             transition: "width 0.2s ease, min-width 0.2s ease",
+            ...(isMobile && !leftCollapsed ? {
+              position: "fixed" as const,
+              left: 0,
+              top: 0,
+              bottom: 0,
+              zIndex: 800,
+              boxShadow: "4px 0 16px rgba(0,0,0,0.5)",
+            } : {
+              position: "relative" as const,
+            }),
           }}
         >
           <ResizeHandle side="left" onResize={handleLeftResize} />
@@ -1934,9 +1981,9 @@ export function App() {
       {/* Right Sidebar */}
       <aside
         style={{
-          width: rightCollapsed || !activeTab || !isMarkdown ? 0 : rightWidth,
-          minWidth: rightCollapsed || !activeTab || !isMarkdown ? 0 : 140,
-          borderLeft: rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid #333",
+          width: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : rightWidth,
+          minWidth: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : 140,
+          borderLeft: isMobile || rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid #333",
           background: "#252526",
           color: "#ccc",
           display: "flex",
