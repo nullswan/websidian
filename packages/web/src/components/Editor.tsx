@@ -17,6 +17,7 @@ interface EditorProps {
   onNavigate?: (target: string) => void;
   onCursorChange?: (info: { line: number; col: number; selectedChars: number }) => void;
   onExtractSelection?: (selectedText: string, replaceWith: (text: string) => void) => void;
+  onDirty?: () => void;
   fontSize?: number;
   spellCheck?: boolean;
   showLineNumbers?: boolean;
@@ -779,7 +780,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1044,6 +1045,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         // Auto-save on change with debounce, and track cursor position
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
+            onDirty?.();
             if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
             autoSaveTimer.current = setTimeout(() => {
               onSave(update.state.doc.toString());

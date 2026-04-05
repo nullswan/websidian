@@ -57,6 +57,7 @@ interface Tab {
   scrollTop: number;
   pinned?: boolean;
   missing?: boolean;
+  dirty?: boolean;
 }
 
 interface Pane {
@@ -801,7 +802,7 @@ export function App() {
           if (data.error) setError(data.error);
           else {
             setError(null);
-            updateTab(activeTab.id, { content });
+            updateTab(activeTab.id, { content, dirty: false });
           }
         })
         .catch((e) => setError("Failed to save: " + e.message));
@@ -1255,6 +1256,7 @@ export function App() {
                           setRenamingTabId(tab.id);
                         }}
                       >
+                        {tab.dirty && <span style={{ color: "#7f6df2", marginRight: 2 }}>●</span>}
                         {tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path}
                       </span>
                       <button
@@ -1449,6 +1451,7 @@ export function App() {
                 onSave={handleSave}
                 onNavigate={handleNavigate}
                 onCursorChange={(info) => setCursorPos(info)}
+                onDirty={() => { if (paneTab && !paneTab.dirty) updateTab(paneTab.id, { dirty: true }); }}
                 onExtractSelection={(selectedText, replaceWith) => {
                   const name = window.prompt("New note name:");
                   if (!name?.trim()) return;
