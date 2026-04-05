@@ -80,11 +80,50 @@ function filterTree(entries: VaultEntry[], query: string): VaultEntry[] {
   }, []);
 }
 
+const EXPANDED_KEY = "filetree-expanded";
+
+function collectFolderPaths(entries: VaultEntry[]): string[] {
+  const paths: string[] = [];
+  for (const entry of entries) {
+    if (entry.kind === "folder" || entry.type === "directory") {
+      paths.push(entry.path);
+      if (entry.children) paths.push(...collectFolderPaths(entry.children));
+    }
+  }
+  return paths;
+}
+
+function loadExpandedPaths(): Set<string> | null {
+  try {
+    const raw = localStorage.getItem(EXPANDED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : null;
+  } catch { return null; }
+}
+
+function saveExpandedPaths(paths: Set<string>) {
+  try { localStorage.setItem(EXPANDED_KEY, JSON.stringify([...paths])); } catch {}
+}
+
 export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
   const [filter, setFilter] = useState("");
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
+    const saved = loadExpandedPaths();
+    // Default: all folders expanded on first visit
+    return saved ?? new Set(collectFolderPaths(entries));
+  });
+
+  const toggleExpanded = (path: string) => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      saveExpandedPaths(next);
+      return next;
+    });
+  };
 
   const filteredEntries = useMemo(
     () => filter.trim() ? filterTree(entries, filter.trim()) : entries,
@@ -206,6 +245,8 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
             onRenameSubmit={handleRenameSubmit}
             creating={creating}
             onCreateSubmit={handleCreateSubmit}
+            expandedPaths={expandedPaths}
+            toggleExpanded={toggleExpanded}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -245,6 +286,8 @@ function FileTreeNode({
   onRenameSubmit,
   creating,
   onCreateSubmit,
+  expandedPaths,
+  toggleExpanded,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -255,10 +298,11 @@ function FileTreeNode({
   onRenameSubmit: (oldPath: string, newName: string) => void;
   creating: { parentPath: string; kind: "file" | "folder" } | null;
   onCreateSubmit: (name: string) => void;
+  expandedPaths: Set<string>;
+  toggleExpanded: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-
   if (entry.kind === "folder") {
+    const expanded = expandedPaths.has(entry.path);
     return (
       <li>
         <div
@@ -275,7 +319,7 @@ function FileTreeNode({
             margin: "0 4px",
             transition: "background 0.1s",
           }}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => toggleExpanded(entry.path)}
           onContextMenu={(e) => onContextMenu(e, entry, entry.path)}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
@@ -300,6 +344,8 @@ function FileTreeNode({
                 onRenameSubmit={onRenameSubmit}
                 creating={creating}
                 onCreateSubmit={onCreateSubmit}
+                expandedPaths={expandedPaths}
+                toggleExpanded={toggleExpanded}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
