@@ -16,7 +16,14 @@ const DATA_DIR =
 
 const AUTH_ENABLED = process.env.AUTH_ENABLED !== "false";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 });
+
+// Parse binary content types as raw Buffer
+app.addContentTypeParser(
+  ["application/octet-stream", "image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"],
+  { parseAs: "buffer" },
+  (_req, body, done) => done(null, body),
+);
 
 await app.register(cors, {
   origin: true,

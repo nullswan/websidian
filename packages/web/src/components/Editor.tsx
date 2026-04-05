@@ -761,6 +761,70 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       },
     });
 
+    // Upload an image file and insert embed link at cursor
+    const uploadAndInsert = (file: File, view: EditorView) => {
+      const ext = file.name.includes(".")
+        ? file.name.slice(file.name.lastIndexOf("."))
+        : `.${file.type.split("/")[1]?.replace("jpeg", "jpg") || "png"}`;
+      const baseName = file.name.includes(".")
+        ? file.name.slice(0, file.name.lastIndexOf("."))
+        : `Pasted image ${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}`;
+      const filename = `${baseName}${ext}`;
+      file.arrayBuffer().then((buf) => {
+        fetch(`/api/vault/upload?filename=${encodeURIComponent(filename)}`, {
+          method: "POST",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: buf,
+          credentials: "include",
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.filename) {
+              const insert = `![[${data.filename}]]`;
+              const pos = view.state.selection.main.head;
+              view.dispatch({
+                changes: { from: pos, insert },
+                selection: { anchor: pos + insert.length },
+              });
+            }
+          });
+      });
+    };
+
+    // Paste images from clipboard + drag-and-drop images
+    const pasteHandler = EditorView.domEventHandlers({
+      paste: (event, view) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (!file) return true;
+            uploadAndInsert(file, view);
+            return true;
+          }
+        }
+        return false;
+      },
+      drop: (event, view) => {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
+        if (imageFiles.length === 0) return false;
+        event.preventDefault();
+        // Move cursor to drop position
+        const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+        if (pos !== null) {
+          view.dispatch({ selection: { anchor: pos } });
+        }
+        for (const file of imageFiles) {
+          uploadAndInsert(file, view);
+        }
+        return true;
+      },
+    });
+
     // Place cursor after frontmatter so the Properties widget shows immediately
     const fm = parseFrontmatterRange({ toString: () => content });
     const initialCursor = fm ? Math.min(fm.to + 1, content.length) : 0;
@@ -798,6 +862,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
           activateOnTyping: true,
         }),
         clickHandler,
+        pasteHandler,
         // Auto-save on change with debounce, and track cursor position
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {

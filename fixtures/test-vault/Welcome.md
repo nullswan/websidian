@@ -7,7 +7,6 @@ tags:
   - welcome
 created: 2026-01-01
 ---
-
 # Welcome to the Test Vault
 
 This is the root note. It links to several other ntes to test resolution.

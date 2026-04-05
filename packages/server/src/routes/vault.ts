@@ -579,4 +579,38 @@ export async function vaultRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  // POST /api/vault/upload — upload a file (image) to the vault
+  app.post<{ Querystring: { filename: string } }>(
+    "/upload",
+    async (request, reply) => {
+      const filename = request.query.filename;
+      if (!filename || filename.includes("..")) {
+        return reply.status(400).send({ error: "invalid filename" });
+      }
+
+      const attachDir = join(vaultRoot, "Attachments");
+      await mkdir(attachDir, { recursive: true });
+
+      // Deduplicate: if file exists, add numeric suffix
+      const ext = filename.lastIndexOf(".") >= 0 ? filename.slice(filename.lastIndexOf(".")) : "";
+      const base = filename.slice(0, filename.length - ext.length);
+      let finalName = filename;
+      let counter = 1;
+      try {
+        while (true) {
+          await readFile(join(attachDir, finalName));
+          finalName = `${base} ${counter}${ext}`;
+          counter++;
+        }
+      } catch {
+        // File doesn't exist — good, use finalName
+      }
+
+      const body = request.body as Buffer;
+      await writeFile(join(attachDir, finalName), body);
+
+      return { path: `Attachments/${finalName}`, filename: finalName };
+    },
+  );
 }
