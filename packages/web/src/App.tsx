@@ -8,6 +8,7 @@ import { QuickSwitcher } from "./components/QuickSwitcher.js";
 import { SearchPanel } from "./components/SearchPanel.js";
 import { Outline } from "./components/Outline.js";
 import { CommandPalette } from "./components/CommandPalette.js";
+import { WorkspaceManager } from "./components/WorkspaceManager.js";
 import { ResizeHandle } from "./components/ResizeHandle.js";
 import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
@@ -397,6 +398,7 @@ export function App() {
   const [showGraph, setShowGraph] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -2196,6 +2198,11 @@ export function App() {
               action: () => setShowTemplatePicker(true),
             },
             {
+              id: "manage-workspaces",
+              name: "Manage workspaces",
+              action: () => setShowWorkspaces(true),
+            },
+            {
               id: "extract-selection",
               name: "Extract current selection to new note",
               shortcut: "Ctrl+Shift+N",
@@ -2439,6 +2446,64 @@ export function App() {
           settings={appSettings}
           onUpdate={setAppSettings}
           onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showWorkspaces && (
+        <WorkspaceManager
+          onClose={() => setShowWorkspaces(false)}
+          getCurrentSnapshot={() => ({
+            tabs: Object.values(tabsMap).map((t) => ({ id: t.id, path: t.path, mode: t.mode })),
+            panes: panes.map((p) => ({ tabIds: p.tabIds, activeTabId: p.activeTabId })),
+            activePaneIdx,
+            leftPanel,
+            leftWidth,
+            rightWidth,
+            splitRatio,
+            leftCollapsed,
+            rightCollapsed,
+          })}
+          onLoad={(snapshot) => {
+            // Restore workspace from snapshot
+            const newTabsMap: Record<string, typeof tabsMap[string]> = {};
+            for (const t of snapshot.tabs) {
+              newTabsMap[t.id] = {
+                id: t.id,
+                path: t.path,
+                content: "",
+                mode: t.mode as "read" | "edit",
+                noteMeta: null,
+                backlinks: [],
+                unlinkedMentions: [],
+                scrollTop: 0,
+              };
+              // Fetch content
+              fetch(`/api/vault/file?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
+                .then((r) => r.json())
+                .then((d) => { if (!d.error) updateTab(t.id, { content: d.content }); })
+                .catch(() => {});
+              if (t.path.endsWith(".md")) {
+                fetch(`/api/vault/note?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
+                  .then((r) => r.json())
+                  .then((d) => { if (!d.error) updateTab(t.id, { noteMeta: d }); })
+                  .catch(() => {});
+                fetch(`/api/vault/backlinks?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
+                  .then((r) => r.json())
+                  .then((d) => { if (!d.error) updateTab(t.id, { backlinks: d.backlinks, unlinkedMentions: d.unlinkedMentions ?? [] }); })
+                  .catch(() => {});
+              }
+            }
+            setTabsMap(newTabsMap);
+            setPanes(snapshot.panes);
+            setActivePaneIdx(snapshot.activePaneIdx);
+            setLeftPanel(snapshot.leftPanel as typeof leftPanel);
+            setLeftWidth(snapshot.leftWidth);
+            setRightWidth(snapshot.rightWidth);
+            setSplitRatio(snapshot.splitRatio);
+            setLeftCollapsed(snapshot.leftCollapsed);
+            setRightCollapsed(snapshot.rightCollapsed);
+          }}
+          showToast={showToast}
         />
       )}
 
