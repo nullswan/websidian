@@ -1311,6 +1311,63 @@ export function App() {
             </button>
           ))}
 
+          {/* Daily note */}
+          <button
+            title="Open today's daily note"
+            onClick={async () => {
+              const today = new Date();
+              const yyyy = today.getFullYear();
+              const mm = String(today.getMonth() + 1).padStart(2, "0");
+              const dd = String(today.getDate()).padStart(2, "0");
+              const dateName = `${yyyy}-${mm}-${dd}`;
+              const dailyPath = `Daily Notes/${dateName}.md`;
+              // Try to open; if it doesn't exist, create it first
+              const res = await fetch(`/api/vault/file?path=${encodeURIComponent(dailyPath)}`, { credentials: "include" });
+              const data = await res.json();
+              if (data.error) {
+                // Create the daily note
+                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const content = `---\ntags: daily\ncreated: ${dateName}\n---\n\n# ${monthNames[today.getMonth()]} ${today.getDate()}, ${yyyy} — ${dayNames[today.getDay()]}\n\n## Tasks\n\n- [ ] \n\n## Notes\n\n`;
+                await fetch("/api/vault/file", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ path: dailyPath, content }),
+                });
+                refreshTree();
+              }
+              openTab(dailyPath);
+            }}
+            style={{
+              width: 36,
+              height: 36,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+              borderRadius: 4,
+              background: "transparent",
+              color: "#666",
+              cursor: "pointer",
+              transition: "color 0.15s, background 0.15s",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ccc"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#666"; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4" />
+              <path d="M8 2v4" />
+              <path d="M3 10h18" />
+              <path d="M8 14h.01" />
+              <path d="M12 14h.01" />
+              <path d="M16 14h.01" />
+              <path d="M8 18h.01" />
+              <path d="M12 18h.01" />
+            </svg>
+          </button>
+
           <div style={{ flex: 1 }} />
 
           {/* Bottom ribbon actions */}
@@ -1640,6 +1697,15 @@ export function App() {
               name: "Open Settings",
               shortcut: "Ctrl+,",
               action: () => setShowSettings(true),
+            },
+            {
+              id: "open-daily-note",
+              name: "Open today's daily note",
+              action: () => {
+                // Trigger the daily note button click
+                const btn = document.querySelector('[title="Open today\'s daily note"]') as HTMLButtonElement;
+                btn?.click();
+              },
             },
             ...(panes.length < 2
               ? [{
