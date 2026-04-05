@@ -894,6 +894,22 @@ export function App() {
   }, [tabsMap, refreshTree, openTab, showToast]);
 
   // Open or create today's daily note
+  const openRandomNote = useCallback(() => {
+    const collectPaths = (entries: VaultEntry[]): string[] => {
+      const paths: string[] = [];
+      for (const e of entries) {
+        if (e.kind === "file" && e.path.endsWith(".md")) paths.push(e.path);
+        else if (e.kind === "folder") paths.push(...collectPaths(e.children));
+      }
+      return paths;
+    };
+    const allPaths = collectPaths(tree);
+    if (allPaths.length === 0) return;
+    const randomPath = allPaths[Math.floor(Math.random() * allPaths.length)];
+    openTab(randomPath);
+    showToast(`Random: ${randomPath.replace(/\.md$/, "").split("/").pop()}`);
+  }, [tree, openTab, showToast]);
+
   const openDailyNote = useCallback(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -1723,6 +1739,34 @@ export function App() {
 
           {/* Bottom ribbon actions */}
           <button
+            title="Open random note"
+            onClick={openRandomNote}
+            style={{
+              width: 36,
+              height: 36,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+              borderRadius: 4,
+              background: "transparent",
+              color: "#555",
+              cursor: "pointer",
+              marginBottom: 4,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#999"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+          <button
             title="Settings"
             onClick={() => setShowSettings(true)}
             style={{
@@ -2258,6 +2302,11 @@ export function App() {
               id: "manage-workspaces",
               name: "Manage workspaces",
               action: () => setShowWorkspaces(true),
+            },
+            {
+              id: "random-note",
+              name: "Open random note",
+              action: openRandomNote,
             },
             {
               id: "extract-selection",
