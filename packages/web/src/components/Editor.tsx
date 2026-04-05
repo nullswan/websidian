@@ -19,20 +19,20 @@ interface EditorProps {
 
 // Obsidian-like highlight style for markdown Live Preview
 const obsidianHighlight = HighlightStyle.define([
-  { tag: tags.heading1, fontSize: "1.8em", fontWeight: "700", color: "#ddd" },
-  { tag: tags.heading2, fontSize: "1.5em", fontWeight: "600", color: "#ddd" },
-  { tag: tags.heading3, fontSize: "1.25em", fontWeight: "600", color: "#ddd" },
+  { tag: tags.heading1, fontSize: "1.8em", fontWeight: "700", color: "#e0e0e0" },
+  { tag: tags.heading2, fontSize: "1.5em", fontWeight: "600", color: "#e0e0e0" },
+  { tag: tags.heading3, fontSize: "1.25em", fontWeight: "600", color: "#e0e0e0" },
   { tag: tags.heading4, fontSize: "1.1em", fontWeight: "600", color: "#ddd" },
   { tag: tags.heading5, fontSize: "1.05em", fontWeight: "600", color: "#ccc" },
   { tag: tags.heading6, fontSize: "1em", fontWeight: "600", color: "#bbb" },
   { tag: tags.strong, fontWeight: "bold", color: "#e0e0e0" },
-  { tag: tags.emphasis, fontStyle: "italic", color: "#e0e0e0" },
+  { tag: tags.emphasis, fontStyle: "italic", color: "#dcddde" },
   { tag: tags.strikethrough, textDecoration: "line-through", color: "#888" },
-  { tag: tags.link, color: "#7f6df2", textDecoration: "underline" },
-  { tag: tags.url, color: "#7f6df2", opacity: "0.7" },
-  { tag: tags.monospace, fontFamily: "monospace", backgroundColor: "rgba(255,255,255,0.06)", padding: "1px 4px", borderRadius: "3px" },
-  { tag: tags.processingInstruction, color: "#7f6df2" }, // tags (#tag)
-  { tag: tags.meta, color: "#888" }, // frontmatter delimiters
+  { tag: tags.link, color: "#7f6df2", textDecoration: "none" },
+  { tag: tags.url, color: "#7f6df2", opacity: "0.6" },
+  { tag: tags.monospace, fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", backgroundColor: "rgba(255,255,255,0.06)", padding: "1px 4px", borderRadius: "3px", fontSize: "0.9em" },
+  { tag: tags.processingInstruction, color: "#e6994a" }, // tags (#tag) — Obsidian orange
+  { tag: tags.meta, color: "#555" }, // frontmatter delimiters — dimmer
   { tag: tags.quote, color: "#aaa", fontStyle: "italic" },
   { tag: tags.list, color: "#7f6df2" }, // list markers
 ]);
@@ -85,27 +85,32 @@ const headingPlugin = ViewPlugin.fromClass(
 const livePreviewTheme = EditorView.theme({
   "&": {
     fontSize: "16px",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+    backgroundColor: "#1e1e1e",
+  },
+  "&.cm-focused": {
+    outline: "none",
   },
   ".cm-content": {
-    padding: "20px 40px",
-    maxWidth: "800px",
+    padding: "16px 48px",
+    maxWidth: "750px",
     caretColor: "#7f6df2",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
   },
   ".cm-scroller": {
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
   },
   ".cm-line": {
-    lineHeight: "1.6",
+    lineHeight: "1.65",
+    padding: "0",
   },
   ".cm-heading-line": {
-    paddingTop: "8px",
+    paddingTop: "10px",
   },
-  ".cm-heading-1": { paddingBottom: "4px", borderBottom: "1px solid #333" },
+  ".cm-heading-1": { paddingBottom: "4px", borderBottom: "1px solid rgba(255,255,255,0.08)" },
   ".cm-heading-2": { paddingBottom: "2px" },
   ".cm-activeLine": {
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "rgba(255,255,255,0.02)",
   },
   ".cm-gutters": {
     display: "none",
@@ -114,9 +119,22 @@ const livePreviewTheme = EditorView.theme({
     borderLeftColor: "#7f6df2",
     borderLeftWidth: "2px",
   },
-  // Horizontal rule styling
-  ".cm-line:has(.tok-processingInstruction)": {
-    opacity: "0.6",
+  // Dim the heading markers (# ## ###) — Obsidian fades these
+  ".tok-heading .tok-meta": {
+    color: "#555 !important",
+    fontWeight: "normal",
+  },
+  // Dim wikilink brackets [[ ]]
+  ".tok-link": {
+    color: "#7f6df2",
+  },
+  // Scrollbar styling
+  ".cm-scroller::-webkit-scrollbar": {
+    width: "8px",
+  },
+  ".cm-scroller::-webkit-scrollbar-thumb": {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: "4px",
   },
 });
 
