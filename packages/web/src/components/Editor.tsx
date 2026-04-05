@@ -4,7 +4,7 @@ import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching } from "@codemirror/language";
-import { tags } from "@lezer/highlight";
+import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap } from "@codemirror/search";
@@ -396,6 +396,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange }
         markdown(),
         oneDarkTheme,
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
+        syntaxHighlighting(classHighlighter),
         headingPlugin,
         frontmatterField,
         livePreviewTheme,

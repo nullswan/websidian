@@ -540,7 +540,6 @@ body {
 /* ── CM6 Editor Obsidian fidelity ── */
 
 /* Hide heading markers (# ## ###) like Obsidian Live Preview — reveal on active line */
-/* The first child span in a heading line contains the # marker */
 .cm-editor .cm-heading-line > span:first-child {
   font-size: 0;
   overflow: hidden;
@@ -557,14 +556,57 @@ body {
   font-weight: normal;
 }
 
+.cm-editor .cm-heading-line .tok-heading.tok-meta {
+  font-size: 0;
+  overflow: hidden;
+  width: 0;
+  display: inline-block;
+}
+
+.cm-editor .cm-activeLine.cm-heading-line .tok-heading.tok-meta {
+  font-size: inherit;
+  width: auto;
+  overflow: visible;
+  display: inline;
+  color: #555;
+  font-weight: normal;
+}
+
 /* Dim frontmatter --- delimiters */
-.cm-editor .tok-meta {
+.cm-editor .tok-meta:not(.tok-link):not(.tok-heading) {
   color: #555 !important;
 }
 
-/* Wikilink brackets — dim the [[ and ]] */
-.cm-editor .tok-squareBracket {
+/* Wikilink brackets — hide on non-active lines, show dimmed on active */
+.cm-editor .cm-line:not(.cm-activeLine) .tok-link.tok-meta {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+.cm-editor .cm-activeLine .tok-link.tok-meta {
+  font-size: inherit;
   color: rgba(127, 109, 242, 0.4) !important;
+}
+
+/* Bold/italic markers — hide on non-active lines */
+.cm-editor .cm-line:not(.cm-activeLine) .tok-strong.tok-meta {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+.cm-editor .cm-activeLine .tok-strong.tok-meta {
+  font-size: inherit;
+  color: #555 !important;
+}
+
+.cm-editor .cm-line:not(.cm-activeLine) .tok-emphasis.tok-meta {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+.cm-editor .cm-activeLine .tok-emphasis.tok-meta {
+  font-size: inherit;
+  color: #555 !important;
 }
 
 /* Tag hash symbol — slightly dimmer than tag text */
