@@ -169,7 +169,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
 
   return (
     <>
-      <div style={{ padding: "4px 8px" }}>
+      <div style={{ padding: "4px 8px 4px" }}>
         <input
           type="text"
           value={filter}
@@ -178,7 +178,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
           style={{
             width: "100%",
             padding: "4px 8px",
-            border: "1px solid #444",
+            border: "1px solid transparent",
             borderRadius: 4,
             background: "#1e1e1e",
             color: "#ccc",
@@ -186,6 +186,8 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate }: File
             outline: "none",
             boxSizing: "border-box",
           }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#7f6df2"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
         />
       </div>
       <ul
@@ -262,22 +264,27 @@ function FileTreeNode({
         <div
           style={{
             paddingLeft: depth * 16 + 4,
-            padding: "2px 4px 2px " + (depth * 16 + 4) + "px",
+            padding: "3px 8px 3px " + (depth * 16 + 4) + "px",
             cursor: "pointer",
             color: "#999",
             userSelect: "none",
             display: "flex",
             alignItems: "center",
-            gap: 4,
+            gap: 5,
+            borderRadius: 3,
+            margin: "0 4px",
+            transition: "background 0.1s",
           }}
           onClick={() => setExpanded(!expanded)}
           onContextMenu={(e) => onContextMenu(e, entry, entry.path)}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
           <span style={{ display: "flex", alignItems: "center", width: 10 }}>
             {expanded ? <ChevronDown /> : <ChevronRight />}
           </span>
           <FolderIcon open={expanded} />
-          <span>{entry.path.split("/").pop()}</span>
+          <span style={{ fontSize: 13 }}>{entry.path.split("/").pop()}</span>
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -328,14 +335,17 @@ function FileTreeNode({
         <div
           style={{
             paddingLeft: depth * 16 + 18,
-            padding: "2px 4px 2px " + (depth * 16 + 18) + "px",
+            padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
             cursor: "pointer",
             background: isSelected ? "#37373d" : "transparent",
-            color: isSelected ? "#fff" : "#ccc",
+            color: isSelected ? "#fff" : "#bbb",
             borderRadius: 3,
             display: "flex",
             alignItems: "center",
-            gap: 4,
+            gap: 5,
+            margin: "0 4px",
+            transition: "background 0.1s",
+            fontSize: 13,
           }}
           onClick={() => onFileSelect(entry.path)}
           onContextMenu={(e) => {
@@ -344,6 +354,8 @@ function FileTreeNode({
               : "";
             onContextMenu(e, entry, parentPath);
           }}
+          onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+          onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
           <FileIcon name={name} />
           <span>{name}</span>

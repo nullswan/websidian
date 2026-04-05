@@ -135,7 +135,7 @@ function SidebarSection({ title, defaultOpen = true, children }: {
   };
 
   return (
-    <div style={{ borderTop: "1px solid #333" }}>
+    <div style={{ borderTop: "1px solid #2a2a2a" }}>
       <div
         onClick={toggle}
         style={{
@@ -143,21 +143,31 @@ function SidebarSection({ title, defaultOpen = true, children }: {
           fontSize: 11,
           fontWeight: 600,
           textTransform: "uppercase",
-          color: "#666",
-          letterSpacing: "0.5px",
+          color: "#888",
+          letterSpacing: "0.05em",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
-          gap: 4,
+          gap: 6,
           userSelect: "none",
         }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#bbb"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
       >
-        <span style={{
-          display: "inline-block",
-          fontSize: 8,
-          transition: "transform 0.15s",
-          transform: open ? "rotate(90deg)" : "rotate(0deg)",
-        }}>▶</span>
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 8 8"
+          fill="currentColor"
+          style={{
+            transition: "transform 0.15s",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            flexShrink: 0,
+            opacity: 0.7,
+          }}
+        >
+          <path d="M2 0 L6 4 L2 8 Z" />
+        </svg>
         {title}
       </div>
       {open && children}
@@ -1141,96 +1151,240 @@ export function App() {
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Left Sidebar */}
-      <aside
-        style={{
-          width: leftWidth,
-          minWidth: 140,
-          borderRight: "1px solid #333",
-          background: "#1e1e1e",
-          color: "#ccc",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-        }}
-      >
-        <ResizeHandle side="left" onResize={handleLeftResize} />
+      {/* Ribbon + Left Sidebar */}
+      <div style={{ display: "flex", height: "100%" }}>
+        {/* Obsidian-style icon ribbon */}
         <div
           style={{
-            padding: "8px 12px",
-            borderBottom: "1px solid #333",
+            width: 44,
+            background: "#1a1a1a",
+            borderRight: "1px solid #2a2a2a",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "space-between",
+            paddingTop: 8,
+            gap: 2,
+            flexShrink: 0,
           }}
         >
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{vaultName}</span>
-          <div style={{ display: "flex", gap: 4 }}>
+          {[
+            {
+              id: "files" as const,
+              title: "File explorer",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3h7l2 2h9v15H3z" />
+                  <path d="M3 10h18" />
+                </svg>
+              ),
+            },
+            {
+              id: "search" as const,
+              title: "Search",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              ),
+            },
+            {
+              id: "graph" as const,
+              title: "Graph view",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="6" cy="6" r="2.5" />
+                  <circle cx="18" cy="8" r="2.5" />
+                  <circle cx="12" cy="18" r="2.5" />
+                  <path d="M8.2 7.5 15.5 9.5" />
+                  <path d="M7.5 8.2 10.5 16" />
+                  <path d="M15.8 10.2 13.5 16" />
+                </svg>
+              ),
+            },
+            {
+              id: "plugins" as const,
+              title: "Plugins",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2" />
+                  <path d="M9 4v16" />
+                  <path d="M4 9h5" />
+                </svg>
+              ),
+            },
+          ].map((item) => (
             <button
-              onClick={() => setLeftPanel("files")}
+              key={item.id}
+              title={item.title}
+              onClick={() => {
+                if (item.id === "graph") {
+                  setShowGraph((g) => !g);
+                } else {
+                  setLeftPanel(item.id);
+                }
+              }}
               style={{
-                padding: "2px 8px",
+                width: 36,
+                height: 36,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 border: "none",
-                borderRadius: 3,
-                background: leftPanel === "files" ? "#37373d" : "transparent",
-                color: leftPanel === "files" ? "#ddd" : "#666",
+                borderRadius: 4,
+                background: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "#2a2a2a" : "transparent",
+                color: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "#ddd" : "#666",
                 cursor: "pointer",
-                fontSize: 11,
+                transition: "color 0.15s, background 0.15s",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ccc"; }}
+              onMouseLeave={(e) => {
+                const isActive = item.id === "graph" ? showGraph : leftPanel === item.id;
+                (e.currentTarget as HTMLElement).style.color = isActive ? "#ddd" : "#666";
               }}
             >
-              Files
+              {item.icon}
             </button>
-            <button
-              onClick={() => setLeftPanel("search")}
-              style={{
-                padding: "2px 8px",
-                border: "none",
-                borderRadius: 3,
-                background: leftPanel === "search" ? "#37373d" : "transparent",
-                color: leftPanel === "search" ? "#ddd" : "#666",
-                cursor: "pointer",
-                fontSize: 11,
-              }}
-            >
-              Search
-            </button>
-            <button
-              onClick={() => setLeftPanel("plugins")}
-              style={{
-                padding: "2px 8px",
-                border: "none",
-                borderRadius: 3,
-                background: leftPanel === "plugins" ? "#37373d" : "transparent",
-                color: leftPanel === "plugins" ? "#ddd" : "#666",
-                cursor: "pointer",
-                fontSize: 11,
-              }}
-            >
-              Plugins
-            </button>
-          </div>
+          ))}
+
+          <div style={{ flex: 1 }} />
+
+          {/* Bottom ribbon actions */}
+          <button
+            title="Settings"
+            onClick={() => setShowCommandPalette(true)}
+            style={{
+              width: 36,
+              height: 36,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+              borderRadius: 4,
+              background: "transparent",
+              color: "#555",
+              cursor: "pointer",
+              marginBottom: 8,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#999"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+            </svg>
+          </button>
         </div>
-        <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" ? "8px 4px" : 0 }}>
-          {leftPanel === "files" ? (
-            tree.length > 0 ? (
-              <FileTree
-                entries={tree}
-                onFileSelect={openTab}
-                selectedPath={activeTab?.path ?? null}
-                onMutate={refreshTree}
-              />
-            ) : (
-              <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
-                Loading...
+
+        {/* Sidebar panel */}
+        <aside
+          style={{
+            width: leftWidth,
+            minWidth: 140,
+            borderRight: "1px solid #333",
+            background: "#252526",
+            color: "#ccc",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+          }}
+        >
+          <ResizeHandle side="left" onResize={handleLeftResize} />
+          <div
+            style={{
+              padding: "10px 12px",
+              borderBottom: "1px solid #333",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{
+              fontWeight: 600,
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "#888",
+            }}>
+              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : "Plugins"}
+            </span>
+            {leftPanel === "files" && (
+              <div style={{ display: "flex", gap: 2 }}>
+                <button
+                  title="New note (Ctrl+N)"
+                  onClick={createNewNote}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "none",
+                    borderRadius: 3,
+                    background: "transparent",
+                    color: "#888",
+                    cursor: "pointer",
+                    fontSize: 16,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ddd"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                    <path d="M14 3v6h6" />
+                    <path d="M12 12v6" />
+                    <path d="M9 15h6" />
+                  </svg>
+                </button>
+                <button
+                  title="New folder"
+                  onClick={() => {/* will trigger via context menu */}}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "none",
+                    borderRadius: 3,
+                    background: "transparent",
+                    color: "#888",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ddd"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 5h7l2 2h9v12H3z" />
+                    <path d="M12 11v6" />
+                    <path d="M9 14h6" />
+                  </svg>
+                </button>
               </div>
-            )
-          ) : leftPanel === "search" ? (
-            <SearchPanel onNavigate={(path, q) => { openTab(path); if (q) setReaderHighlight(q); }} initialQuery={searchQuery} />
-          ) : (
-            <Plugins />
-          )}
-        </div>
-      </aside>
+            )}
+          </div>
+          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" ? "4px 4px" : 0 }}>
+            {leftPanel === "files" ? (
+              tree.length > 0 ? (
+                <FileTree
+                  entries={tree}
+                  onFileSelect={openTab}
+                  selectedPath={activeTab?.path ?? null}
+                  onMutate={refreshTree}
+                />
+              ) : (
+                <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
+                  Loading...
+                </div>
+              )
+            ) : leftPanel === "search" ? (
+              <SearchPanel onNavigate={(path, q) => { openTab(path); if (q) setReaderHighlight(q); }} initialQuery={searchQuery} />
+            ) : (
+              <Plugins />
+            )}
+          </div>
+        </aside>
+      </div>
 
       {/* Main content area */}
       <div
@@ -1298,7 +1452,7 @@ export function App() {
             width: rightWidth,
             minWidth: 140,
             borderLeft: "1px solid #333",
-            background: "#1e1e1e",
+            background: "#252526",
             color: "#ccc",
             display: "flex",
             flexDirection: "column",
