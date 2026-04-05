@@ -292,7 +292,38 @@ export async function vaultRoutes(app: FastifyInstance) {
         }
       }
 
-      return { path: filePath, backlinks };
+      // Unlinked mentions: notes containing the current note's title but not linking to it
+      const linkedPaths = new Set(backlinks.map((b) => b.path));
+      linkedPaths.add(filePath); // exclude self
+      const basename = filePath.replace(/\.md$/, "").split("/").pop() ?? "";
+      const unlinkedMentions: Array<{ path: string; line: number; lineContext: string }> = [];
+
+      if (basename.length >= 2) {
+        const searchLower = basename.toLowerCase();
+        for (const note of notes) {
+          if (linkedPaths.has(note.path)) continue;
+          const lines = await getLines(note.path);
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].toLowerCase().includes(searchLower)) {
+              // Skip if the mention is inside a wikilink
+              const wikiLinkRe = /\[\[([^\]]*)\]\]/g;
+              let inWikilink = false;
+              let m;
+              while ((m = wikiLinkRe.exec(lines[i])) !== null) {
+                if (m[1].toLowerCase().includes(searchLower)) {
+                  inWikilink = true;
+                  break;
+                }
+              }
+              if (!inWikilink) {
+                unlinkedMentions.push({ path: note.path, line: i + 1, lineContext: lines[i].trim() });
+              }
+            }
+          }
+        }
+      }
+
+      return { path: filePath, backlinks, unlinkedMentions };
     },
   );
 

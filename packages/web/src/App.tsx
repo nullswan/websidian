@@ -39,6 +39,12 @@ interface BacklinkEntry {
   lineContext?: string;
 }
 
+interface UnlinkedMention {
+  path: string;
+  line: number;
+  lineContext: string;
+}
+
 interface Tab {
   id: string;
   path: string;
@@ -46,6 +52,7 @@ interface Tab {
   mode: ViewMode;
   noteMeta: NoteMeta | null;
   backlinks: BacklinkEntry[];
+  unlinkedMentions: UnlinkedMention[];
   scrollTop: number;
   pinned?: boolean;
   missing?: boolean;
@@ -514,6 +521,7 @@ export function App() {
                     mode: t.mode ?? "read",
                     noteMeta: null,
                     backlinks: [],
+                    unlinkedMentions: [],
                     scrollTop: 0,
                   };
                   newTabsMap[t.id] = tab;
@@ -543,7 +551,7 @@ export function App() {
                       .catch(() => {});
                     fetch(`/api/vault/backlinks?path=${encodeURIComponent(tabPath)}`, { credentials: "include" })
                       .then((r) => r.json())
-                      .then((d) => { if (!d.error) updateTab(tabId, { backlinks: d.backlinks }); })
+                      .then((d) => { if (!d.error) updateTab(tabId, { backlinks: d.backlinks, unlinkedMentions: d.unlinkedMentions ?? [] }); })
                       .catch(() => {});
                   }
                 }
@@ -641,6 +649,7 @@ export function App() {
           mode: "read",
           noteMeta: null,
           backlinks: [],
+          unlinkedMentions: [],
           scrollTop: 0,
         };
 
@@ -669,7 +678,7 @@ export function App() {
           fetch(`/api/vault/backlinks?path=${encodeURIComponent(path)}`)
             .then((r) => r.json())
             .then((data) => {
-              if (!data.error) updateTab(id, { backlinks: data.backlinks });
+              if (!data.error) updateTab(id, { backlinks: data.backlinks, unlinkedMentions: data.unlinkedMentions ?? [] });
             });
         }
 
@@ -1930,6 +1939,83 @@ export function App() {
                 backlinks={activeTab.backlinks}
                 onNavigate={openTab}
               />
+            </SidebarSection>
+            <SidebarSection title={`Unlinked Mentions (${activeTab.unlinkedMentions.length})`}>
+              {activeTab.unlinkedMentions.length === 0 ? (
+                <div style={{ padding: "4px 12px", fontSize: 12, color: "#555" }}>No unlinked mentions</div>
+              ) : (
+                <div style={{ padding: "4px 12px 8px" }}>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {(() => {
+                      const grouped = new Map<string, Array<{ line: number; lineContext: string }>>();
+                      for (const m of activeTab.unlinkedMentions) {
+                        if (!grouped.has(m.path)) grouped.set(m.path, []);
+                        grouped.get(m.path)!.push({ line: m.line, lineContext: m.lineContext });
+                      }
+                      return [...grouped.entries()].map(([path, mentions]) => (
+                        <li key={path} style={{ marginBottom: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <a
+                              href="#"
+                              onClick={(e) => { e.preventDefault(); openTab(path); }}
+                              title={path}
+                              style={{ color: "#7f6df2", textDecoration: "none", fontSize: 13, flex: 1 }}
+                            >
+                              {path.replace(/\.md$/, "").split("/").pop()}
+                            </a>
+                            <button
+                              title="Link all mentions in this note"
+                              onClick={async () => {
+                                const basename = activeTab.path.replace(/\.md$/, "").split("/").pop() ?? "";
+                                const res = await fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" });
+                                const data = await res.json();
+                                if (data.error) return;
+                                const re = new RegExp(`(?<!\\[\\[)\\b(${basename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b(?!\\]\\])`, "gi");
+                                const newContent = data.content.replace(re, "[[" + basename + "]]");
+                                if (newContent !== data.content) {
+                                  await fetch("/api/vault/file", {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    credentials: "include",
+                                    body: JSON.stringify({ path, content: newContent }),
+                                  });
+                                  // Refresh backlinks
+                                  fetch(`/api/vault/backlinks?path=${encodeURIComponent(activeTab.path)}`)
+                                    .then((r) => r.json())
+                                    .then((d) => { if (!d.error) updateTab(activeTab.id, { backlinks: d.backlinks, unlinkedMentions: d.unlinkedMentions ?? [] }); });
+                                  showToast(`Linked mentions in ${path.replace(/\.md$/, "").split("/").pop()}`);
+                                }
+                              }}
+                              style={{
+                                background: "transparent", border: "1px solid #444", borderRadius: 3,
+                                color: "#7f6df2", fontSize: 10, padding: "1px 5px", cursor: "pointer",
+                                lineHeight: 1.4, flexShrink: 0,
+                              }}
+                            >
+                              Link
+                            </button>
+                          </div>
+                          {mentions.slice(0, 3).map((m, i) => (
+                            <div key={i} style={{
+                              fontSize: 11, color: "#999", marginTop: 2,
+                              padding: "2px 0 2px 8px", borderLeft: "2px solid #333",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              cursor: "pointer",
+                            }} onClick={() => openTab(path)}>
+                              {m.lineContext}
+                            </div>
+                          ))}
+                          {mentions.length > 3 && (
+                            <div style={{ fontSize: 10, color: "#555", paddingLeft: 8, marginTop: 2 }}>
+                              +{mentions.length - 3} more
+                            </div>
+                          )}
+                        </li>
+                      ));
+                    })()}
+                  </ul>
+                </div>
+              )}
             </SidebarSection>
             <SidebarSection title={`Outgoing Links (${(() => {
               const re = /\[\[([^\]|#]+)/g;
