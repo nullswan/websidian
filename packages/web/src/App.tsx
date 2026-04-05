@@ -1422,6 +1422,24 @@ export function App() {
                 onSave={handleSave}
                 onNavigate={handleNavigate}
                 onCursorChange={(info) => setCursorPos(info)}
+                onExtractSelection={(selectedText, replaceWith) => {
+                  const name = window.prompt("New note name:");
+                  if (!name?.trim()) return;
+                  const newPath = name.trim().endsWith(".md") ? name.trim() : `${name.trim()}.md`;
+                  fetch("/api/vault/file", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ path: newPath, content: selectedText }),
+                  }).then((res) => {
+                    if (res.ok) {
+                      const linkName = newPath.replace(/\.md$/, "");
+                      replaceWith(`[[${linkName}]]`);
+                      refreshTree();
+                      showToast(`Extracted to ${linkName}`);
+                    }
+                  });
+                }}
                 fontSize={appSettings.editorFontSize}
                 spellCheck={appSettings.spellCheck}
                 showLineNumbers={appSettings.showLineNumbers}
@@ -2176,6 +2194,20 @@ export function App() {
               id: "insert-template",
               name: "Insert template",
               action: () => setShowTemplatePicker(true),
+            },
+            {
+              id: "extract-selection",
+              name: "Extract current selection to new note",
+              shortcut: "Ctrl+Shift+N",
+              action: () => {
+                // This triggers the editor's built-in keymap
+                // Just inform the user to select text first
+                if (activeTab?.mode !== "edit") {
+                  showToast("Switch to edit mode and select text first");
+                } else {
+                  showToast("Select text in the editor, then press Ctrl+Shift+N");
+                }
+              },
             },
             ...(panes.length < 2
               ? [{

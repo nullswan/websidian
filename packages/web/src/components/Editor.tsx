@@ -16,6 +16,7 @@ interface EditorProps {
   onSave: (content: string) => void;
   onNavigate?: (target: string) => void;
   onCursorChange?: (info: { line: number; col: number; selectedChars: number }) => void;
+  onExtractSelection?: (selectedText: string, replaceWith: (text: string) => void) => void;
   fontSize?: number;
   spellCheck?: boolean;
   showLineNumbers?: boolean;
@@ -729,7 +730,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -779,6 +780,20 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         key: "Mod-s",
         run: (view) => {
           onSave(view.state.doc.toString());
+          return true;
+        },
+      },
+      {
+        key: "Mod-Shift-n",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          const selected = view.state.sliceDoc(sel.from, sel.to);
+          if (!selected.trim() || !onExtractSelection) return false;
+          onExtractSelection(selected, (replacement) => {
+            view.dispatch({
+              changes: { from: sel.from, to: sel.to, insert: replacement },
+            });
+          });
           return true;
         },
       },
