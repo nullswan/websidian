@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { createMarkdownRenderer } from "../lib/markdown.js";
 import mermaid from "mermaid";
 
@@ -43,11 +43,28 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Strip frontmatter for rendering
-  const body = useMemo(() => {
-    const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(content);
-    return fmMatch ? content.slice(fmMatch[0].length) : content;
+  // Parse and strip frontmatter for rendering
+  const { body, properties } = useMemo(() => {
+    const fmMatch = /^---[\t ]*\r?\n([\s\S]*?)\n---[\t ]*(?:\r?\n|$)/.exec(content);
+    if (!fmMatch) return { body: content, properties: [] as Array<{ key: string; value: string }> };
+    const yaml = fmMatch[1];
+    const props: Array<{ key: string; value: string }> = [];
+    for (const line of yaml.split("\n")) {
+      const kv = line.match(/^(\w[\w-]*):\s*(.*)/);
+      if (kv) {
+        let val = kv[2].trim();
+        if (val.startsWith("[")) val = val.replace(/^\[|\]$/g, "").trim();
+        props.push({ key: kv[1], value: val });
+      } else if (line.match(/^\s+-\s/) && props.length > 0) {
+        // Continuation of a YAML array
+        const item = line.replace(/^\s+-\s/, "").trim();
+        const last = props[props.length - 1];
+        last.value = last.value ? `${last.value}, ${item}` : item;
+      }
+    }
+    return { body: content.slice(fmMatch[0].length), properties: props };
   }, [content]);
+  const [propsCollapsed, setPropsCollapsed] = useState(false);
 
   const html = useMemo(() => md.render(body), [md, body]);
 
@@ -435,10 +452,52 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="reader-view"
-      onClick={handleClick}
-    />
+    <>
+      {properties.length > 0 && (
+        <div style={{
+          background: "#252526",
+          border: "1px solid #333",
+          borderRadius: 6,
+          margin: "0 0 12px 0",
+          overflow: "hidden",
+        }}>
+          <div
+            onClick={() => setPropsCollapsed((c) => !c)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              cursor: "pointer",
+              fontSize: 11,
+              color: "#888",
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              userSelect: "none",
+            }}
+          >
+            <span style={{ transform: propsCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s", fontSize: 8 }}>▼</span>
+            Properties
+          </div>
+          {!propsCollapsed && (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <tbody>
+                {properties.map((p) => (
+                  <tr key={p.key} style={{ borderTop: "1px solid #333" }}>
+                    <td style={{ padding: "4px 12px", color: "#7f6df2", width: 100, verticalAlign: "top" }}>{p.key}</td>
+                    <td style={{ padding: "4px 12px", color: "#ccc" }}>{p.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="reader-view"
+        onClick={handleClick}
+      />
+    </>
   );
 }
