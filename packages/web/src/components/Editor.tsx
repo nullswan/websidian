@@ -8,6 +8,7 @@ import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap } from "@codemirror/search";
+import { createMarkdownRenderer } from "../lib/markdown.js";
 
 interface EditorProps {
   content: string;
@@ -825,6 +826,17 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       },
     });
 
+    // Hover preview state (managed via DOM listeners after view creation)
+    const hoverMd = createMarkdownRenderer();
+    let hoverEl: HTMLDivElement | null = null;
+    let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+    let hoverTarget = "";
+    const removeHover = () => {
+      if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+      if (hoverEl) { hoverEl.remove(); hoverEl = null; }
+      hoverTarget = "";
+    };
+
     // Place cursor after frontmatter so the Properties widget shows immediately
     const fm = parseFrontmatterRange({ toString: () => content });
     const initialCursor = fm ? Math.min(fm.to + 1, content.length) : 0;
@@ -887,8 +899,78 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       parent: containerRef.current,
     });
 
+    // Attach hover preview listeners directly on the content DOM
+    const contentDOM = viewRef.current.contentDOM;
+    const handleMouseMove = (e: MouseEvent) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+      if (pos === null) { removeHover(); return; }
+      const line = view.state.doc.lineAt(pos);
+      const offset = pos - line.from;
+      const text = line.text;
+      const re = /\[\[([^\]]+)\]\]/g;
+      let match;
+      let found = "";
+      while ((match = re.exec(text)) !== null) {
+        if (offset >= match.index && offset <= match.index + match[0].length) {
+          const inner = match[1];
+          found = inner.includes("|") ? inner.split("|")[0] : inner;
+          break;
+        }
+      }
+      if (!found) { removeHover(); return; }
+      if (found === hoverTarget) return;
+      removeHover();
+      hoverTarget = found;
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      hoverTimer = setTimeout(() => {
+        const target = hoverTarget;
+        fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(filePath)}`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((data) => {
+            if (!data.resolved || hoverTarget !== target) return;
+            return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((fileData) => {
+                if (fileData.error || hoverTarget !== target || !view.dom) return;
+                let previewContent = fileData.content;
+                const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(previewContent);
+                if (fmMatch) previewContent = previewContent.slice(fmMatch[0].length);
+                if (previewContent.length > 800) previewContent = previewContent.slice(0, 800) + "\n\n...";
+
+                hoverEl = document.createElement("div");
+                hoverEl.className = "hover-preview";
+                hoverEl.innerHTML = hoverMd.render(previewContent);
+                const editorDom = view.dom;
+                editorDom.style.position = "relative";
+                const editorRect = editorDom.getBoundingClientRect();
+                hoverEl.style.position = "absolute";
+                hoverEl.style.left = `${mouseX - editorRect.left}px`;
+                hoverEl.style.top = `${mouseY - editorRect.top + 20}px`;
+                hoverEl.style.zIndex = "100";
+                editorDom.appendChild(hoverEl);
+
+                const previewRect = hoverEl.getBoundingClientRect();
+                if (previewRect.bottom > window.innerHeight - 20) {
+                  hoverEl.style.top = `${mouseY - editorRect.top - previewRect.height - 10}px`;
+                }
+              });
+          })
+          .catch(() => {});
+      }, 300);
+    };
+    const handleMouseLeave = () => removeHover();
+    contentDOM.addEventListener("mousemove", handleMouseMove);
+    contentDOM.addEventListener("mouseleave", handleMouseLeave);
+
     return () => {
+      contentDOM.removeEventListener("mousemove", handleMouseMove);
+      contentDOM.removeEventListener("mouseleave", handleMouseLeave);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      removeHover();
       viewRef.current?.destroy();
       viewRef.current = null;
     };
