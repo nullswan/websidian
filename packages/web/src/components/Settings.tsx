@@ -8,6 +8,7 @@ export interface AppSettings {
   showInlineTitle: boolean;
   tabSize: number;
   templatesFolder: string;
+  typewriterMode: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -18,6 +19,7 @@ const DEFAULTS: AppSettings = {
   showInlineTitle: true,
   tabSize: 4,
   templatesFolder: "Templates",
+  typewriterMode: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -238,6 +240,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                   <option value={4}>4</option>
                   <option value={8}>8</option>
                 </select>
+              </SettingItem>
+
+              <SettingItem
+                title="Typewriter mode"
+                description="Keep the active line centered in the editor while typing"
+              >
+                <Toggle checked={settings.typewriterMode} onChange={(v) => update("typewriterMode", v)} />
               </SettingItem>
 
               <SettingItem

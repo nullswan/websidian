@@ -22,6 +22,7 @@ interface EditorProps {
   showLineNumbers?: boolean;
   tabSize?: number;
   scrollToHeadingRef?: React.MutableRefObject<((heading: string, level: number) => void) | null>;
+  typewriterMode?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -778,7 +779,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -789,6 +790,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
   const lineNumbersComp = useRef(new Compartment());
   const tabSizeComp = useRef(new Compartment());
   const indentUnitComp = useRef(new Compartment());
+  const typewriterComp = useRef(new Compartment());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1016,6 +1018,23 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
         EditorView.lineWrapping,
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
+        typewriterComp.current.of(typewriterMode ? EditorView.updateListener.of((update) => {
+          if (update.docChanged || update.selectionSet) {
+            const head = update.state.selection.main.head;
+            update.view.requestMeasure({
+              read() { return update.view.coordsAtPos(head); },
+              write(coords) {
+                if (!coords) return;
+                const rect = update.view.dom.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                const diff = coords.top - midY;
+                if (Math.abs(diff) > 10) {
+                  update.view.scrollDOM.scrollBy({ top: diff, behavior: "smooth" });
+                }
+              },
+            });
+          }
+        }) : []),
         autocompletion({
           override: [wikilinkCompletion, tagCompletion, slashCompletion],
           activateOnTyping: true,
@@ -1153,9 +1172,26 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         lineNumbersComp.current.reconfigure(showLineNumbers ? lineNumbers() : []),
         tabSizeComp.current.reconfigure(EditorState.tabSize.of(tabSize)),
         indentUnitComp.current.reconfigure(indentUnit.of(" ".repeat(tabSize))),
+        typewriterComp.current.reconfigure(typewriterMode ? EditorView.updateListener.of((update) => {
+          if (update.docChanged || update.selectionSet) {
+            const head = update.state.selection.main.head;
+            update.view.requestMeasure({
+              read() { return update.view.coordsAtPos(head); },
+              write(coords) {
+                if (!coords) return;
+                const rect = update.view.dom.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                const diff = coords.top - midY;
+                if (Math.abs(diff) > 10) {
+                  update.view.scrollDOM.scrollBy({ top: diff, behavior: "smooth" });
+                }
+              },
+            });
+          }
+        }) : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
