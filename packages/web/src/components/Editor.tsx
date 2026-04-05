@@ -390,9 +390,38 @@ function buildLivePreviewDecorations(state: EditorState): DecorationSet {
     const bulletMatch = text.match(/^(\s*)- (?!\[[ x]\])/);
     if (bulletMatch) {
       builder.add(line.from, line.from + bulletMatch[0].length, Decoration.replace({ widget: new BulletWidget(bulletMatch[1]) }));
+      continue;
+    }
+
+    // Blockquote: add left-border line decoration and hide > marker
+    const bqMatch = text.match(/^(\s*>+)\s?/);
+    if (bqMatch) {
+      const depth = (bqMatch[1].match(/>/g) || []).length;
+      builder.add(line.from, line.from, Decoration.line({
+        class: `cm-blockquote cm-blockquote-${Math.min(depth, 3)}`,
+      }));
+      // Hide the > markers on non-active lines
+      builder.add(line.from, line.from + bqMatch[0].length, Decoration.replace({
+        widget: new BlockquoteMarkerWidget(bqMatch[1].replace(/[^>]/g, "").length),
+      }));
     }
   }
   return builder.finish();
+}
+
+class BlockquoteMarkerWidget extends WidgetType {
+  depth: number;
+  constructor(depth: number) {
+    super();
+    this.depth = depth;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.style.cssText = "width: 0; display: inline-block; overflow: hidden;";
+    return span;
+  }
+  eq(other: BlockquoteMarkerWidget) { return this.depth === other.depth; }
+  ignoreEvent() { return true; }
 }
 
 const livePreviewWidgetsField = StateField.define<DecorationSet>({
@@ -455,6 +484,23 @@ const livePreviewTheme = EditorView.theme({
   // Dim wikilink brackets [[ ]]
   ".tok-link": {
     color: "#7f6df2",
+  },
+  // Blockquote styling
+  ".cm-blockquote": {
+    borderLeft: "3px solid #7f6df2",
+    paddingLeft: "12px",
+    color: "#aaa",
+    fontStyle: "italic",
+  },
+  ".cm-blockquote-2": {
+    borderLeft: "3px solid #7f6df2",
+    paddingLeft: "12px",
+    marginLeft: "16px",
+  },
+  ".cm-blockquote-3": {
+    borderLeft: "3px solid #7f6df2",
+    paddingLeft: "12px",
+    marginLeft: "32px",
   },
   // Scrollbar styling
   ".cm-scroller::-webkit-scrollbar": {
