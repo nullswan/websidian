@@ -46,6 +46,7 @@ interface Tab {
   backlinks: BacklinkEntry[];
   scrollTop: number;
   pinned?: boolean;
+  missing?: boolean;
 }
 
 interface Pane {
@@ -503,7 +504,11 @@ export function App() {
                   fetch(`/api/vault/file?path=${encodeURIComponent(tabPath)}`, { credentials: "include" })
                     .then((r) => r.json())
                     .then((d) => {
-                      if (!d.error) updateTab(tabId, { content: d.content });
+                      if (d.error) {
+                        updateTab(tabId, { missing: true });
+                      } else {
+                        updateTab(tabId, { content: d.content, missing: false });
+                      }
                     })
                     .catch(() => {});
 
@@ -622,9 +627,9 @@ export function App() {
           .then((r) => r.json())
           .then((data) => {
             if (data.error) {
-              setError(data.error);
+              updateTab(id, { missing: true });
             } else {
-              updateTab(id, { content: data.content });
+              updateTab(id, { content: data.content, missing: false });
               setError(null);
             }
           })
@@ -1298,7 +1303,44 @@ export function App() {
               {paneTab.path.split("/").pop()?.replace(/\.md$/, "") ?? paneTab.path}
             </div>
           )}
-          {paneTab ? (
+          {paneTab?.missing ? (
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              height: "100%", gap: 16, color: "#888", userSelect: "none",
+            }}>
+              <div style={{ fontSize: 16, color: "#666" }}>File not found</div>
+              <div style={{ fontSize: 13, color: "#555" }}>{paneTab.path}</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={async () => {
+                    await fetch("/api/vault/file", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ path: paneTab.path, content: "" }),
+                    });
+                    updateTab(paneTab.id, { content: "", missing: false });
+                    refreshTree();
+                  }}
+                  style={{
+                    padding: "6px 14px", border: "1px solid #444", borderRadius: 4,
+                    background: "#2a2a2a", color: "#ccc", cursor: "pointer", fontSize: 12,
+                  }}
+                >
+                  Create file
+                </button>
+                <button
+                  onClick={() => closeTab(paneTab.id)}
+                  style={{
+                    padding: "6px 14px", border: "1px solid #444", borderRadius: 4,
+                    background: "#2a2a2a", color: "#999", cursor: "pointer", fontSize: 12,
+                  }}
+                >
+                  Close tab
+                </button>
+              </div>
+            </div>
+          ) : paneTab ? (
             paneIsCanvas ? (
               <CanvasView
                 content={paneTab.content}
