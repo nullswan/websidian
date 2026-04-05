@@ -539,10 +539,22 @@ body {
 
 /* ── CM6 Editor Obsidian fidelity ── */
 
-/* Dim heading markers (# ## ###) like Obsidian Live Preview */
-.cm-editor .tok-heading.tok-meta {
-  color: #555 !important;
-  font-weight: normal !important;
+/* Hide heading markers (# ## ###) like Obsidian Live Preview — reveal on active line */
+/* The first child span in a heading line contains the # marker */
+.cm-editor .cm-heading-line > span:first-child {
+  font-size: 0;
+  overflow: hidden;
+  width: 0;
+  display: inline-block;
+}
+
+.cm-editor .cm-activeLine.cm-heading-line > span:first-child {
+  font-size: inherit;
+  width: auto;
+  overflow: visible;
+  display: inline;
+  color: #555;
+  font-weight: normal;
 }
 
 /* Dim frontmatter --- delimiters */

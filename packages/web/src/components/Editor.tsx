@@ -53,8 +53,8 @@ const headingPlugin = ViewPlugin.fromClass(
     constructor(view: EditorView) {
       this.decorations = this.buildDecorations(view);
     }
-    update(update: { docChanged: boolean; viewportChanged: boolean; view: EditorView }) {
-      if (update.docChanged || update.viewportChanged) {
+    update(update: { docChanged: boolean; viewportChanged: boolean; selectionSet: boolean; view: EditorView }) {
+      if (update.docChanged || update.viewportChanged || update.selectionSet) {
         this.decorations = this.buildDecorations(update.view);
       }
     }
