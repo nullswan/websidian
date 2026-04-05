@@ -1138,6 +1138,7 @@ export function App() {
                 onCursorChange={(info) => setCursorPos(info)}
                 fontSize={appSettings.editorFontSize}
                 spellCheck={appSettings.spellCheck}
+                showLineNumbers={appSettings.showLineNumbers}
               />
             )
           ) : (

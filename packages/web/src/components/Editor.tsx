@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, highlightActiveLine, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
+import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -17,6 +17,7 @@ interface EditorProps {
   onCursorChange?: (info: { line: number; col: number; selectedChars: number }) => void;
   fontSize?: number;
   spellCheck?: boolean;
+  showLineNumbers?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -228,7 +229,9 @@ const livePreviewTheme = EditorView.theme({
     backgroundColor: "rgba(255,255,255,0.02)",
   },
   ".cm-gutters": {
-    display: "none",
+    background: "#1e1e1e",
+    borderRight: "1px solid #2a2a2a",
+    color: "#555",
   },
   ".cm-cursor": {
     borderLeftColor: "#7f6df2",
@@ -282,7 +285,7 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   }
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, fontSize = 16, spellCheck = false, showLineNumbers = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -388,6 +391,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       doc: content,
       selection: { anchor: initialCursor },
       extensions: [
+        ...(showLineNumbers ? [lineNumbers()] : []),
         highlightActiveLine(),
         bracketMatching(),
         history(),
@@ -439,7 +443,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [filePath]); // Re-create editor when file changes
+  }, [filePath, fontSize, spellCheck, showLineNumbers]); // Re-create editor when file or settings change
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
