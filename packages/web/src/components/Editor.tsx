@@ -24,6 +24,7 @@ interface EditorProps {
   tabSize?: number;
   scrollToHeadingRef?: React.MutableRefObject<((heading: string, level: number) => void) | null>;
   typewriterMode?: boolean;
+  focusMode?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -780,7 +781,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -792,6 +793,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
   const tabSizeComp = useRef(new Compartment());
   const indentUnitComp = useRef(new Compartment());
   const typewriterComp = useRef(new Compartment());
+  const focusModeComp = useRef(new Compartment());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1019,6 +1021,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
         EditorView.lineWrapping,
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
+        focusModeComp.current.of(focusMode ? EditorView.theme({
+          ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
+          ".cm-line.cm-activeLine": { opacity: "1" },
+        }) : []),
         typewriterComp.current.of(typewriterMode ? EditorView.updateListener.of((update) => {
           if (update.docChanged || update.selectionSet) {
             const head = update.state.selection.main.head;
@@ -1174,6 +1180,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         lineNumbersComp.current.reconfigure(showLineNumbers ? lineNumbers() : []),
         tabSizeComp.current.reconfigure(EditorState.tabSize.of(tabSize)),
         indentUnitComp.current.reconfigure(indentUnit.of(" ".repeat(tabSize))),
+        focusModeComp.current.reconfigure(focusMode ? EditorView.theme({
+          ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
+          ".cm-line.cm-activeLine": { opacity: "1" },
+        }) : []),
         typewriterComp.current.reconfigure(typewriterMode ? EditorView.updateListener.of((update) => {
           if (update.docChanged || update.selectionSet) {
             const head = update.state.selection.main.head;
@@ -1193,7 +1203,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         }) : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

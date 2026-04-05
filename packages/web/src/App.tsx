@@ -1475,6 +1475,7 @@ export function App() {
                 showLineNumbers={appSettings.showLineNumbers}
                 tabSize={appSettings.tabSize}
                 typewriterMode={appSettings.typewriterMode}
+                focusMode={appSettings.focusMode}
                 scrollToHeadingRef={scrollToHeadingRef}
               />
             )

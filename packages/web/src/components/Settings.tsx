@@ -9,6 +9,7 @@ export interface AppSettings {
   tabSize: number;
   templatesFolder: string;
   typewriterMode: boolean;
+  focusMode: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -20,6 +21,7 @@ const DEFAULTS: AppSettings = {
   tabSize: 4,
   templatesFolder: "Templates",
   typewriterMode: false,
+  focusMode: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -247,6 +249,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Keep the active line centered in the editor while typing"
               >
                 <Toggle checked={settings.typewriterMode} onChange={(v) => update("typewriterMode", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Focus mode"
+                description="Dim inactive lines to focus on the current line"
+              >
+                <Toggle checked={settings.focusMode} onChange={(v) => update("focusMode", v)} />
               </SettingItem>
 
               <SettingItem
