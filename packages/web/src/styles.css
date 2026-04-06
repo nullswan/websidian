@@ -298,6 +298,12 @@ details.callout > div {
   color: var(--text-secondary);
   background: linear-gradient(90deg, rgba(127, 109, 242, 0.06) 0%, transparent 60%);
   border-radius: 0 4px 4px 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.reader-view blockquote:hover {
+  transform: translateX(2px);
+  box-shadow: -3px 0 12px -4px rgba(127, 109, 242, 0.2);
+  background: linear-gradient(90deg, rgba(127, 109, 242, 0.1) 0%, transparent 60%);
 }
 .reader-view blockquote blockquote { border-left-color: #e6994a; }
 .reader-view blockquote blockquote blockquote { border-left-color: #4ac8e6; }
