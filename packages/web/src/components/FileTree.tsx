@@ -102,6 +102,19 @@ interface ContextMenuState {
   parentPath: string;
 }
 
+function highlightMatch(name: string, query: string): React.ReactNode {
+  if (!query) return name;
+  const idx = name.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return name;
+  return (
+    <>
+      {name.slice(0, idx)}
+      <span style={{ color: "var(--accent-color)", fontWeight: 600 }}>{name.slice(idx, idx + query.length)}</span>
+      {name.slice(idx + query.length)}
+    </>
+  );
+}
+
 function filterTree(entries: VaultEntry[], query: string): VaultEntry[] {
   const q = query.toLowerCase();
   return entries.reduce<VaultEntry[]>((acc, entry) => {
@@ -492,6 +505,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             backlinkCounts={backlinkCounts}
             onFileHover={handleFileHover}
             onClearHover={clearHoverPreview}
+            filterQuery={filter.trim() || undefined}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -634,6 +648,7 @@ function FileTreeNode({
   backlinkCounts,
   onFileHover,
   onClearHover,
+  filterQuery,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -654,6 +669,7 @@ function FileTreeNode({
   backlinkCounts?: Record<string, number>;
   onFileHover?: (e: React.MouseEvent, path: string) => void;
   onClearHover?: () => void;
+  filterQuery?: string;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -707,7 +723,7 @@ function FileTreeNode({
             {expanded ? <ChevronDown /> : <ChevronRight />}
           </span>
           <FolderIcon open={expanded} />
-          <span style={{ fontSize: 13, flex: 1 }}>{entry.path.split("/").pop()}</span>
+          <span style={{ fontSize: 13, flex: 1 }}>{filterQuery ? highlightMatch(entry.path.split("/").pop() ?? "", filterQuery) : entry.path.split("/").pop()}</span>
           <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0 }}>{countFiles(entry)}</span>
         </div>
         {expanded && (
@@ -734,6 +750,7 @@ function FileTreeNode({
                 backlinkCounts={backlinkCounts}
                 onFileHover={onFileHover}
                 onClearHover={onClearHover}
+                filterQuery={filterQuery}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -813,7 +830,7 @@ function FileTreeNode({
           }}
         >
           <FileIcon name={name} />
-          <span style={{ flex: 1 }}>{name}</span>
+          <span style={{ flex: 1 }}>{filterQuery ? highlightMatch(name, filterQuery) : name}</span>
           {entry.kind === "file" && Date.now() - entry.mtime < 3600000 && (
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ec9b0", flexShrink: 0 }} title="Recently modified" />
           )}
