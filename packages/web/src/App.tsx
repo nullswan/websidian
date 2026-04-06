@@ -15,6 +15,7 @@ import { CanvasView } from "./components/CanvasView.js";
 import { activateDemoMode, isDemoMode, resetDemoVault } from "./demoApi.js";
 import { WelcomeTour } from "./components/WelcomeTour.js";
 import { RelatedNotes } from "./components/RelatedNotes.js";
+import { recordWritingActivity } from "./components/WritingStreak.js";
 import { Snippets } from "./components/Snippets.js";
 import { Tags } from "./components/Tags.js";
 import { Keywords } from "./components/Keywords.js";
@@ -1474,6 +1475,10 @@ export function App() {
             // Save version snapshot + clear recovery draft
             saveSnapshot(activeTab.path, content);
             clearDraft(activeTab.path);
+            // Record writing activity for streak tracking
+            const wc = content.split(/\s+/).filter(Boolean).length;
+            recordWritingActivity(wc);
+            window.dispatchEvent(new Event("websidian-save"));
           }
         })
         .catch((e) => {
