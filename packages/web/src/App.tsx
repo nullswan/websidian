@@ -1956,7 +1956,7 @@ ${rendered}
         }}
       >
         {/* Pane tab bar */}
-        {!zenMode && pane.tabIds.length > 0 && (
+        {!zenMode && pane.tabIds.length > 0 && !(appSettings.autoHideTabBar && pane.tabIds.length === 1) && (
           <div
             className="tab-bar-wrapper"
             ref={(el) => {

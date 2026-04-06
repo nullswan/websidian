@@ -26,6 +26,7 @@ export interface AppSettings {
   cursorTrail: boolean;
   smartQuotes: boolean;
   customCSS: string;
+  autoHideTabBar: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -53,6 +54,7 @@ const DEFAULTS: AppSettings = {
   cursorTrail: false,
   smartQuotes: true,
   customCSS: "",
+  autoHideTabBar: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -471,6 +473,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Open notes as sliding panes side by side (Andy Matuschak mode)"
               >
                 <Toggle checked={settings.stackedTabs} onChange={(v) => update("stackedTabs", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Auto-hide tab bar"
+                description="Hide the tab bar when only one tab is open"
+              >
+                <Toggle checked={settings.autoHideTabBar} onChange={(v) => update("autoHideTabBar", v)} />
               </SettingItem>
 
               <SettingItem
