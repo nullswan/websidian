@@ -13,7 +13,7 @@ interface TagsProps {
 export function Tags({ onNavigate }: TagsProps) {
   const [tags, setTags] = useState<TagInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedTag, setExpandedTag] = useState<string | null>(null);
+  const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/vault/tags", { credentials: "include" })
@@ -50,8 +50,13 @@ export function Tags({ onNavigate }: TagsProps) {
         <TagNode
           key={node.fullName}
           node={node}
-          expandedTag={expandedTag}
-          onToggle={setExpandedTag}
+          expandedTags={expandedTags}
+          onToggle={(tag) => setExpandedTags((prev) => {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+          })}
           onNavigate={onNavigate}
           depth={0}
         />
@@ -105,18 +110,18 @@ function buildTagTree(tags: TagInfo[]): TagTreeNode[] {
 
 function TagNode({
   node,
-  expandedTag,
+  expandedTags,
   onToggle,
   onNavigate,
   depth,
 }: {
   node: TagTreeNode;
-  expandedTag: string | null;
-  onToggle: (tag: string | null) => void;
+  expandedTags: Set<string>;
+  onToggle: (tag: string) => void;
   onNavigate: (path: string) => void;
   depth: number;
 }) {
-  const isExpanded = expandedTag === node.fullName;
+  const isExpanded = expandedTags.has(node.fullName);
   const hasNotes = node.count > 0;
 
   return (
@@ -127,12 +132,12 @@ function TagNode({
           alignItems: "center",
           gap: 4,
           padding: "4px 8px 4px " + (8 + depth * 14) + "px",
-          cursor: hasNotes ? "pointer" : "default",
+          cursor: hasNotes || node.children.length > 0 ? "pointer" : "default",
           color: hasNotes ? "var(--accent-color)" : "var(--text-muted)",
         }}
         onClick={() => {
-          if (hasNotes) {
-            onToggle(isExpanded ? null : node.fullName);
+          if (hasNotes || node.children.length > 0) {
+            onToggle(node.fullName);
           }
         }}
       >
@@ -174,11 +179,11 @@ function TagNode({
         </div>
       )}
 
-      {node.children.map((child) => (
+      {node.children.length > 0 && (isExpanded || !hasNotes) && node.children.map((child) => (
         <TagNode
           key={child.fullName}
           node={child}
-          expandedTag={expandedTag}
+          expandedTags={expandedTags}
           onToggle={onToggle}
           onNavigate={onNavigate}
           depth={depth + 1}
