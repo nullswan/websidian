@@ -499,6 +499,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     const imgs = container.querySelectorAll<HTMLImageElement>("img:not(.ext-favicon):not(.img-processed)");
     imgs.forEach((img) => {
       img.classList.add("img-processed");
+      img.loading = "lazy";
       // Wrap in placeholder
       const wrapper = document.createElement("div");
       wrapper.className = "img-placeholder";
