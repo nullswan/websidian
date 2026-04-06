@@ -29,6 +29,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [loaded, setLoaded] = useState(false);
   const [graphFilter, setGraphFilter] = useState("");
   const [showOrphans, setShowOrphans] = useState(true);
+  const [filterDepth, setFilterDepth] = useState(1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; words: number; links: number } | null>(null);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
@@ -74,7 +75,31 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     const allEdges = allEdgesRef.current;
     const q = graphFilter.toLowerCase();
 
-    let filteredNodes = q ? all.filter((n) => n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)) : [...all];
+    let filteredIds: Set<string>;
+
+    if (q) {
+      // Start with direct matches
+      const matchIds = new Set(all.filter((n) => n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)).map(n => n.id));
+      // Expand by filterDepth hops
+      const expanded = new Set(matchIds);
+      let frontier = new Set(matchIds);
+      for (let d = 0; d < filterDepth; d++) {
+        const next = new Set<string>();
+        for (const id of frontier) {
+          for (const e of allEdges) {
+            if (e.source === id && !expanded.has(e.target)) { expanded.add(e.target); next.add(e.target); }
+            if (e.target === id && !expanded.has(e.source)) { expanded.add(e.source); next.add(e.source); }
+          }
+        }
+        frontier = next;
+        if (next.size === 0) break;
+      }
+      filteredIds = expanded;
+    } else {
+      filteredIds = new Set(all.map(n => n.id));
+    }
+
+    let filteredNodes = all.filter(n => filteredIds.has(n.id));
 
     if (!showOrphans) {
       const connected = new Set<string>();
@@ -87,7 +112,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
 
     nodesRef.current = filteredNodes;
     edgesRef.current = filteredEdges;
-  }, [loaded, graphFilter, showOrphans]);
+  }, [loaded, graphFilter, showOrphans, filterDepth]);
 
   // Screen to world coordinates
   const screenToWorld = useCallback((sx: number, sy: number, canvas: HTMLCanvasElement) => {
@@ -444,6 +469,12 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           placeholder="Filter..."
           style={{ flex: 1, padding: "3px 6px", border: "1px solid var(--border-color)", borderRadius: 3, background: "var(--bg-tertiary)", color: "var(--text-primary)", fontSize: 11, outline: "none" }}
         />
+        {graphFilter && (
+          <label style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }} title={`Show ${filterDepth} hop(s) from matches`}>
+            <input type="range" min={0} max={3} value={filterDepth} onChange={(e) => setFilterDepth(parseInt(e.target.value))} style={{ width: 40, accentColor: "var(--accent-color)" }} />
+            {filterDepth}
+          </label>
+        )}
         <label style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}>
           <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} style={{ accentColor: "var(--accent-color)" }} />
           Orphans
