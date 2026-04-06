@@ -1972,21 +1972,78 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
     ]);
 
     // Ctrl+Click on wikilinks to navigate
+    const peekRef = { el: null as HTMLDivElement | null };
+    const dismissPeek = () => {
+      if (peekRef.el) { peekRef.el.remove(); peekRef.el = null; }
+    };
+
     const clickHandler = EditorView.domEventHandlers({
       click: (event, view) => {
-        if (!(event.ctrlKey || event.metaKey)) return false;
+        dismissPeek();
+        if (!(event.ctrlKey || event.metaKey || event.altKey)) return false;
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos === null) return false;
         const line = view.state.doc.lineAt(pos);
         const text = line.text;
         const offset = pos - line.from;
-        // Find all [[...]] in the line and check if click is inside one
         const re = /\[\[([^\]]+)\]\]/g;
         let match;
         while ((match = re.exec(text)) !== null) {
           if (offset >= match.index && offset <= match.index + match[0].length) {
             const inner = match[1];
             const target = inner.includes("|") ? inner.split("|")[0] : inner;
+
+            // Alt+Click → peek preview
+            if (event.altKey) {
+              event.preventDefault();
+              const rect = view.coordsAtPos(pos);
+              if (!rect) return true;
+              const peekEl = document.createElement("div");
+              peekEl.style.cssText = `position: fixed; left: ${rect.left}px; top: ${rect.bottom + 4}px; width: 400px; max-height: 350px; overflow: auto; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 16px; z-index: 1000; font-size: 14px; color: var(--text-primary);`;
+              peekEl.innerHTML = '<div style="color: var(--text-faint); font-size: 12px;">Loading...</div>';
+              document.body.appendChild(peekEl);
+              peekRef.el = peekEl;
+
+              // Reposition if overflows
+              requestAnimationFrame(() => {
+                const peekRect = peekEl.getBoundingClientRect();
+                if (peekRect.right > window.innerWidth - 20) {
+                  peekEl.style.left = `${Math.max(8, window.innerWidth - peekRect.width - 20)}px`;
+                }
+                if (peekRect.bottom > window.innerHeight - 20) {
+                  peekEl.style.top = `${Math.max(8, rect.top - peekRect.height - 4)}px`;
+                }
+              });
+
+              // Escape dismisses
+              const handleKey = (e: KeyboardEvent) => {
+                if (e.key === "Escape") { dismissPeek(); document.removeEventListener("keydown", handleKey); }
+              };
+              document.addEventListener("keydown", handleKey);
+
+              fetch(`/api/vault/resolve?target=${encodeURIComponent(target.trim())}&from=${encodeURIComponent(filePath)}`)
+                .then((r) => r.json())
+                .then((data) => {
+                  if (!data.resolved || !peekRef.el) return;
+                  return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" }).then((r) => r.json());
+                })
+                .then((fileData) => {
+                  if (!fileData || fileData.error || !peekRef.el) {
+                    if (peekRef.el) peekRef.el.innerHTML = '<div style="color: #f88;">Note not found</div>';
+                    return;
+                  }
+                  let body = fileData.content;
+                  const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(body);
+                  if (fmMatch) body = body.slice(fmMatch[0].length);
+                  const md = createMarkdownRenderer();
+                  peekRef.el.innerHTML = `<div style="font-size: 11px; color: var(--accent-color); margin-bottom: 8px; font-weight: 600;">${target.trim()}</div><div class="reader-view" style="padding: 0; max-width: none; font-size: 13px;">${md.render(body)}</div>`;
+                })
+                .catch(() => { if (peekRef.el) peekRef.el.innerHTML = '<div style="color: #f88;">Failed to load</div>'; });
+
+              return true;
+            }
+
+            // Ctrl/Cmd+Click → navigate
             if (onNavigate) onNavigate(target.trim());
             event.preventDefault();
             return true;
