@@ -196,6 +196,7 @@ body {
 
 .reader-view a.wikilink:hover {
   background-size: 100% 1px;
+  text-shadow: 0 0 8px rgba(127, 109, 242, 0.3);
 }
 
 .reader-view a.wikilink-unresolved {
