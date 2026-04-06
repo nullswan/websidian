@@ -38,6 +38,7 @@ interface EditorProps {
   rulerColumns?: number[];
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
+  initialLine?: number | null;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -3397,7 +3398,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], sourceMode = false, backlinks = [] }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], sourceMode = false, backlinks = [], initialLine }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -4591,6 +4592,20 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       viewRef.current = null;
     };
   }, [filePath, sourceMode]); // Re-create editor when file or source mode changes; settings use Compartments
+
+  // Scroll to initial line (e.g. from click-to-edit in reader)
+  useEffect(() => {
+    if (initialLine == null || !viewRef.current) return;
+    const view = viewRef.current;
+    const lineCount = view.state.doc.lines;
+    const targetLine = Math.min(Math.max(1, initialLine), lineCount);
+    const line = view.state.doc.line(targetLine);
+    view.dispatch({
+      selection: { anchor: line.from },
+      scrollIntoView: true,
+    });
+    view.focus();
+  }, [initialLine]);
 
   // Hot-swap settings via Compartments (no editor recreation)
   useEffect(() => {

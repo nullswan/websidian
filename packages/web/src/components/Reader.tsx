@@ -15,6 +15,7 @@ interface ReaderProps {
   onScrollToLineDone?: () => void;
   scrollToHeading?: string | null;
   onScrollToHeadingDone?: () => void;
+  onSwitchToEditor?: (line: number) => void;
 }
 
 /** Extract a section from markdown content by heading name */
@@ -43,7 +44,7 @@ function extractSection(content: string, heading: string): string {
   return content;
 }
 
-export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone, scrollToHeading, onScrollToHeadingDone }: ReaderProps) {
+export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone, scrollToHeading, onScrollToHeadingDone, onSwitchToEditor }: ReaderProps) {
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -1635,6 +1636,30 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         ref={containerRef}
         className={`reader-view${cssClasses ? ` ${cssClasses}` : ""}`}
         onClick={handleClick}
+        onDoubleClick={(e) => {
+          if (!onSwitchToEditor) return;
+          // Don't switch if user is selecting text on a link/checkbox/etc
+          const target = e.target as HTMLElement;
+          if (target.closest("a, input, button, .embed-note, .fn-popover")) return;
+          // Find nearest block element's text to match to source line
+          const block = target.closest("p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th, pre") as HTMLElement | null;
+          if (!block) return;
+          const text = (block.textContent || "").trim();
+          if (!text) return;
+          // Search source content for this text to find approximate line
+          const lines = content.split("\n");
+          // Strip markdown to compare
+          const needle = text.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          let bestLine = 1;
+          for (let i = 0; i < lines.length; i++) {
+            const stripped = lines[i].replace(/[#*_`~\[\]>|]/g, "").trim();
+            if (stripped.includes(text.slice(0, 40)) || (needle.length > 5 && new RegExp(needle.slice(0, 40)).test(stripped))) {
+              bestLine = i + 1;
+              break;
+            }
+          }
+          onSwitchToEditor(bestLine);
+        }}
       />
       {scrollToLine != null && (
         <ScrollToLineEffect

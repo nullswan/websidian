@@ -812,6 +812,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [readerHighlight, setReaderHighlight] = useState("");
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
+  const [editorInitialLine, setEditorInitialLine] = useState<number | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [leftWidth, setLeftWidth] = useState(260);
   const [rightWidth, setRightWidth] = useState(240);
@@ -2494,6 +2495,12 @@ ${rendered}
                   setSearchQuery(`#${tag}`);
                   setLeftPanel("search");
                 }}
+                onSwitchToEditor={(line) => {
+                  setEditorInitialLine(line);
+                  updateTab(paneTab.id, { mode: "edit" });
+                  // Clear after editor has consumed the value
+                  setTimeout(() => setEditorInitialLine(null), 500);
+                }}
               />
             ) : (
               <Editor
@@ -2540,6 +2547,7 @@ ${rendered}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
                 backlinks={paneTab.backlinks}
+                initialLine={editorInitialLine}
               />
             )
           ) : (
