@@ -1117,9 +1117,12 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   color: var(--text-faint) !important;
 }
 
-/* Tag hash symbol — slightly dimmer than tag text */
+/* Tag pill styling in editor — matches reader view tag pills */
 .cm-editor .tok-processingInstruction {
   color: #e6994a !important;
+  background: rgba(230, 153, 74, 0.1);
+  padding: 1px 4px;
+  border-radius: 8px;
 }
 
 /* Obsidian-like selection */
