@@ -399,6 +399,27 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // External link favicons
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const links = container.querySelectorAll<HTMLAnchorElement>('a[target="_blank"]');
+    links.forEach((a) => {
+      if (a.querySelector(".ext-favicon")) return;
+      try {
+        const url = new URL(a.href);
+        const img = document.createElement("img");
+        img.className = "ext-favicon";
+        img.src = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=16`;
+        img.width = 14;
+        img.height = 14;
+        img.style.cssText = "vertical-align: -2px; margin-right: 3px; border-radius: 2px; opacity: 0.8;";
+        img.onerror = () => img.remove();
+        a.insertBefore(img, a.firstChild);
+      } catch {}
+    });
+  }, [html]);
+
   // Style blockquote citations — detect "— Author" or "-- Author" at end
   useEffect(() => {
     const container = containerRef.current;
