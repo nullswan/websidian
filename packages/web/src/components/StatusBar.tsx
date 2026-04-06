@@ -228,6 +228,7 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
         {content.includes("\r\n") ? "CRLF" : "LF"}
       </span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>UTF-8</span>
+      <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>Markdown</span>
       {scrollProgress != null && !cursorPos && (() => {
         const pct = scrollProgress;
         const r = 6;
