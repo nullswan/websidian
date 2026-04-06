@@ -27,6 +27,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   const [regexError, setRegexError] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [sortMode, setSortMode] = useState<"relevance" | "modified" | "name">("relevance");
+  const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
@@ -89,7 +90,15 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   // Reset selection when results change
   useEffect(() => { setSelectedIdx(-1); setExpanded(new Set()); }, [results]);
 
-  const sortedResults = [...results].sort((a, b) => {
+  const filteredResults = fileTypeFilter === "all" ? results : results.filter((r) => {
+    const ext = r.path.split(".").pop()?.toLowerCase() ?? "";
+    if (fileTypeFilter === "md") return ext === "md";
+    if (fileTypeFilter === "canvas") return ext === "canvas";
+    if (fileTypeFilter === "other") return ext !== "md" && ext !== "canvas";
+    return true;
+  });
+
+  const sortedResults = [...filteredResults].sort((a, b) => {
     if (sortMode === "relevance") {
       const diff = b.matches.length - a.matches.length;
       return diff !== 0 ? diff : a.path.localeCompare(b.path);
@@ -100,7 +109,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
     }
   });
 
-  const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
+  const totalMatches = filteredResults.reduce((sum, r) => sum + r.matches.length, 0);
 
   const toggleCollapse = (path: string) => {
     setCollapsed((prev) => {
@@ -303,10 +312,29 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
           {results.length > 0 && (
             <>
               <select
+                value={fileTypeFilter}
+                onChange={(e) => setFileTypeFilter(e.target.value)}
+                style={{
+                  marginLeft: "auto",
+                  background: "var(--bg-tertiary)",
+                  border: fileTypeFilter !== "all" ? "1px solid rgba(127,109,242,0.4)" : "1px solid var(--border-color)",
+                  borderRadius: 3,
+                  color: fileTypeFilter !== "all" ? "var(--accent-color)" : "var(--text-muted)",
+                  fontSize: 10,
+                  padding: "1px 2px",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All files</option>
+                <option value="md">Notes (.md)</option>
+                <option value="canvas">Canvas</option>
+                <option value="other">Other</option>
+              </select>
+              <select
                 value={sortMode}
                 onChange={(e) => setSortMode(e.target.value as "relevance" | "modified" | "name")}
                 style={{
-                  marginLeft: "auto",
                   background: "var(--bg-tertiary)",
                   border: "1px solid var(--border-color)",
                   borderRadius: 3,
