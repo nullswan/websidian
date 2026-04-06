@@ -3640,6 +3640,96 @@ ${rendered}
               name: "Unfold all headings",
               action: () => foldAllRef.current?.unfoldAll(),
             },
+            {
+              id: "insert-hr",
+              name: "Insert horizontal rule",
+              action: () => {
+                if (!activeTab || activeTab.mode !== "edit") { showToast("Switch to edit mode"); return; }
+                const lines = activeTab.content.split("\n");
+                // Insert --- after the cursor line (approximate: at end of content)
+                const updated = activeTab.content.trimEnd() + "\n\n---\n";
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+              },
+            },
+            {
+              id: "insert-code-block",
+              name: "Insert code block",
+              action: () => {
+                if (!activeTab || activeTab.mode !== "edit") { showToast("Switch to edit mode"); return; }
+                const updated = activeTab.content.trimEnd() + "\n\n```\n\n```\n";
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+              },
+            },
+            {
+              id: "insert-callout",
+              name: "Insert callout block",
+              action: () => {
+                if (!activeTab || activeTab.mode !== "edit") { showToast("Switch to edit mode"); return; }
+                const updated = activeTab.content.trimEnd() + "\n\n> [!note]\n> \n";
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+              },
+            },
+            {
+              id: "sort-lines",
+              name: "Sort lines alphabetically",
+              action: () => {
+                if (!activeTab || activeTab.mode !== "edit") { showToast("Switch to edit mode"); return; }
+                const lines = activeTab.content.split("\n");
+                const sorted = [...lines].sort((a, b) => a.localeCompare(b));
+                const updated = sorted.join("\n");
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+                showToast("Lines sorted");
+              },
+            },
+            {
+              id: "reverse-lines",
+              name: "Reverse lines",
+              action: () => {
+                if (!activeTab || activeTab.mode !== "edit") { showToast("Switch to edit mode"); return; }
+                const lines = activeTab.content.split("\n");
+                const updated = lines.reverse().join("\n");
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+                showToast("Lines reversed");
+              },
+            },
+            {
+              id: "toggle-readable-length",
+              name: appSettings.readableLineLength ? "Disable readable line length" : "Enable readable line length",
+              action: () => {
+                const next = { ...appSettings, readableLineLength: !appSettings.readableLineLength };
+                setAppSettings(next);
+                import("./components/Settings.js").then(({ saveSettings }) => saveSettings(next));
+              },
+            },
+            {
+              id: "toggle-spellcheck",
+              name: appSettings.spellCheck ? "Disable spell check" : "Enable spell check",
+              action: () => {
+                const next = { ...appSettings, spellCheck: !appSettings.spellCheck };
+                setAppSettings(next);
+                import("./components/Settings.js").then(({ saveSettings }) => saveSettings(next));
+              },
+            },
             ...(panes.length < 2
               ? [{
                   id: "split-right",
