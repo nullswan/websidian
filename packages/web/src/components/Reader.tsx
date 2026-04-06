@@ -998,6 +998,25 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           if (!cancelled) {
             el.innerHTML = svg;
             el.classList.add("mermaid-rendered");
+            el.style.cursor = "pointer";
+            el.title = "Click to expand";
+            el.addEventListener("click", () => {
+              const overlay = document.createElement("div");
+              overlay.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;";
+              const svgClone = el.querySelector("svg")?.cloneNode(true) as SVGElement;
+              if (svgClone) {
+                svgClone.style.maxWidth = "90vw";
+                svgClone.style.maxHeight = "90vh";
+                svgClone.style.width = "auto";
+                svgClone.style.height = "auto";
+                overlay.appendChild(svgClone);
+              }
+              overlay.addEventListener("click", () => overlay.remove());
+              document.addEventListener("keydown", function esc(e) {
+                if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", esc); }
+              });
+              document.body.appendChild(overlay);
+            });
           }
         } catch {
           if (!cancelled) {
