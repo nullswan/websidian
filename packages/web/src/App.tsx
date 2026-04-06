@@ -560,6 +560,7 @@ export function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [tree, setTree] = useState<VaultEntry[]>([]);
+  const [backlinkCounts, setBacklinkCounts] = useState<Record<string, number>>({});
   const [tabsMap, setTabsMap] = useState<Record<string, Tab>>({});
   const [panes, setPanes] = useState<Pane[]>([{ tabIds: [], activeTabId: null }]);
   const [activePaneIdx, setActivePaneIdx] = useState(0);
@@ -736,6 +737,17 @@ export function App() {
       .then((r) => r.json())
       .then((data) => {
         setTree(data.tree);
+        // Fetch backlink counts for file tree badges
+        fetch("/api/vault/graph", { credentials: "include" })
+          .then((r) => r.json())
+          .then((graphData) => {
+            const counts: Record<string, number> = {};
+            for (const edge of (graphData.edges ?? [])) {
+              counts[edge.target] = (counts[edge.target] ?? 0) + 1;
+            }
+            setBacklinkCounts(counts);
+          })
+          .catch(() => {});
         // Restore workspace from localStorage after tree is loaded
         if (!workspaceRestored.current) {
           workspaceRestored.current = true;
@@ -2399,6 +2411,7 @@ ${rendered}
                   onMutate={refreshTree}
                   onFileRenamed={handleFileRenamed}
                   onDuplicate={duplicateNote}
+                  backlinkCounts={backlinkCounts}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>

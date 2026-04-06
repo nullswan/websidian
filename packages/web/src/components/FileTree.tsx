@@ -77,6 +77,7 @@ interface FileTreeProps {
   onMutate?: () => void;
   onFileRenamed?: (from: string, to: string, updatedFiles: string[]) => void;
   onDuplicate?: (path: string) => void;
+  backlinkCounts?: Record<string, number>;
 }
 
 interface ContextMenuState {
@@ -142,7 +143,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -442,6 +443,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             setDropTarget={setDropTarget}
             onDrop={handleDrop}
             sortMode={sortMode}
+            backlinkCounts={backlinkCounts}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -491,6 +493,7 @@ function FileTreeNode({
   setDropTarget,
   onDrop,
   sortMode,
+  backlinkCounts,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -508,6 +511,7 @@ function FileTreeNode({
   setDropTarget: (path: string | null) => void;
   onDrop: (sourcePath: string, targetFolder: string) => void;
   sortMode: SortMode;
+  backlinkCounts?: Record<string, number>;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -585,6 +589,7 @@ function FileTreeNode({
                 setDropTarget={setDropTarget}
                 onDrop={onDrop}
                 sortMode={sortMode}
+                backlinkCounts={backlinkCounts}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -658,7 +663,20 @@ function FileTreeNode({
           onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
           <FileIcon name={name} />
-          <span>{name}</span>
+          <span style={{ flex: 1 }}>{name}</span>
+          {backlinkCounts && backlinkCounts[entry.path] > 0 && (
+            <span style={{
+              fontSize: 10,
+              color: "var(--accent-color)",
+              background: "rgba(127,109,242,0.12)",
+              borderRadius: 8,
+              padding: "0 5px",
+              lineHeight: "16px",
+              flexShrink: 0,
+            }}>
+              {backlinkCounts[entry.path]}
+            </span>
+          )}
         </div>
       )}
     </li>
