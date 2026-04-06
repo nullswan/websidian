@@ -108,8 +108,17 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   md.renderer.rules.embed = (tokens, idx) => {
     const token = tokens[idx];
     const target = token.meta.target as string;
+    const sizeStr = token.meta.size as string | undefined;
     if (/\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(target)) {
-      return `<div class="embed embed-image"><img class="embed-img" data-target="${escapeAttr(target)}" alt="${escapeAttr(target)}" /></div>`;
+      let sizeAttrs = "";
+      if (sizeStr) {
+        const match = sizeStr.match(/^(\d+)(?:x(\d+))?$/);
+        if (match) {
+          sizeAttrs += ` width="${match[1]}"`;
+          if (match[2]) sizeAttrs += ` height="${match[2]}"`;
+        }
+      }
+      return `<div class="embed embed-image"><img class="embed-img" data-target="${escapeAttr(target)}" alt="${escapeAttr(target)}"${sizeAttrs} /></div>`;
     }
     if (/\.(mp3|wav|ogg|m4a|flac|aac|wma)$/i.test(target)) {
       return `<div class="embed embed-audio" data-target="${escapeAttr(target)}"><audio controls preload="metadata" data-target="${escapeAttr(target)}" style="width: 100%; max-width: 500px;"><source data-target="${escapeAttr(target)}" /></audio><div class="embed-label" style="font-size: 11px; margin-top: 4px;">${escapeHtml(target)}</div></div>`;
@@ -390,9 +399,12 @@ function embedRule(state: StateInline, silent: boolean): boolean {
   if (close === -1) return false;
 
   if (!silent) {
-    const target = src.slice(3, close).trim();
+    const inner = src.slice(3, close).trim();
+    const pipeIdx = inner.indexOf("|");
+    const target = pipeIdx === -1 ? inner : inner.slice(0, pipeIdx).trim();
+    const sizeStr = pipeIdx === -1 ? undefined : inner.slice(pipeIdx + 1).trim();
     const token = state.push("embed", "", 0);
-    token.meta = { target };
+    token.meta = { target, size: sizeStr };
   }
 
   state.pos += close + 2;
