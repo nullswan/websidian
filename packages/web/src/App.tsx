@@ -2731,6 +2731,24 @@ ${rendered}
                   for (const tid of [...pane.tabIds]) closeTab(tid, tabCtxMenu.paneIdx);
                 },
               },
+              {
+                label: "Close Tabs to the Right",
+                action: () => {
+                  const pane = panes[tabCtxMenu.paneIdx];
+                  const idx = pane.tabIds.indexOf(tabCtxMenu.tabId);
+                  const right = pane.tabIds.slice(idx + 1).filter((t) => !tabsMap[t]?.pinned);
+                  for (const tid of right) closeTab(tid, tabCtxMenu.paneIdx);
+                },
+              },
+              {
+                label: "Close Tabs to the Left",
+                action: () => {
+                  const pane = panes[tabCtxMenu.paneIdx];
+                  const idx = pane.tabIds.indexOf(tabCtxMenu.tabId);
+                  const left = pane.tabIds.slice(0, idx).filter((t) => !tabsMap[t]?.pinned);
+                  for (const tid of left) closeTab(tid, tabCtxMenu.paneIdx);
+                },
+              },
               { type: "separator" as const },
               {
                 label: "Copy Path",
