@@ -992,6 +992,11 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   animation: reveal-flash 1.2s ease-out;
 }
 
+/* File tree drag source dimming */
+.file-tree-item[style*="opacity: 0.4"] {
+  filter: grayscale(0.5);
+}
+
 /* Readable line length guide — subtle side borders */
 .reader-view {
   border-left: 1px solid transparent;

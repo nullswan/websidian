@@ -298,6 +298,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   const [dragging, setDragging] = useState(false);
   const [newFolderDragOver, setNewFolderDragOver] = useState(false);
   const [dragToFolder, setDragToFolder] = useState<string | null>(null);
+  const [dragSrcPath, setDragSrcPath] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const treeRef = useRef<HTMLUListElement>(null);
   const [moveToPath, setMoveToPath] = useState<string | null>(null);
@@ -832,8 +833,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13, outline: "none" }}
         onKeyDown={handleTreeKeyDown}
         onContextMenu={(e) => handleContextMenu(e, null, "")}
-        onDragStart={() => setDragging(true)}
-        onDragEnd={() => { setDragging(false); setNewFolderDragOver(false); }}
+        onDragStart={(e) => { setDragging(true); setDragSrcPath((e.target as HTMLElement).closest<HTMLElement>("[data-path]")?.dataset.path ?? null); }}
+        onDragEnd={() => { setDragging(false); setNewFolderDragOver(false); setDragSrcPath(null); }}
         onDragOver={(e) => { e.preventDefault(); setDropTarget("__root__"); }}
         onDragLeave={() => setDropTarget(null)}
         onDrop={(e) => {
@@ -873,6 +874,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             multiSelected={multiSelected}
             onFileClick={handleFileClick}
             showFileExtensions={showFileExtensions}
+            dragSrcPath={dragSrcPath}
           />
         ))}
         {filter.trim() && filteredEntries.length === 0 && (
@@ -1112,6 +1114,7 @@ function FileTreeNode({
   multiSelected,
   onFileClick,
   showFileExtensions,
+  dragSrcPath,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -1141,7 +1144,9 @@ function FileTreeNode({
   multiSelected?: Set<string>;
   onFileClick?: (path: string, e: React.MouseEvent) => void;
   showFileExtensions?: boolean;
+  dragSrcPath?: string | null;
 }) {
+  const isDragSource = dragSrcPath === entry.path;
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
     const isDragOver = dropTarget === entry.path;
@@ -1191,9 +1196,11 @@ function FileTreeNode({
             gap: 5,
             borderRadius: 3,
             margin: "0 4px",
-            transition: "background 0.1s",
-            background: isDragOver ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
-            outline: isDragOver ? "1px solid rgba(127,109,242,0.4)" : isFocused ? "1px solid rgba(127,109,242,0.3)" : "none",
+            transition: "background 0.15s, outline 0.15s, box-shadow 0.15s, opacity 0.15s",
+            background: isDragOver ? "rgba(127,109,242,0.18)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            outline: isDragOver ? "1px dashed var(--accent-color)" : isFocused ? "1px solid rgba(127,109,242,0.3)" : "none",
+            boxShadow: isDragOver ? "inset 0 0 8px rgba(127,109,242,0.15)" : "none",
+            opacity: isDragSource ? 0.4 : 1,
             backgroundImage: depth > 0 ? Array.from({ length: depth }, (_, i) => `linear-gradient(to right, transparent ${i * 16 + 11}px, rgba(255,255,255,0.06) ${i * 16 + 11}px, rgba(255,255,255,0.06) ${i * 16 + 12}px, transparent ${i * 16 + 12}px)`).join(", ") : undefined,
           }}
           onClick={() => toggleExpanded(entry.path)}
@@ -1257,6 +1264,7 @@ function FileTreeNode({
                 multiSelected={multiSelected}
                 onFileClick={onFileClick}
                 showFileExtensions={showFileExtensions}
+                dragSrcPath={dragSrcPath}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -1354,10 +1362,11 @@ function FileTreeNode({
             alignItems: "center",
             gap: 5,
             margin: "0 4px",
-            transition: "background 0.1s",
+            transition: "background 0.15s, outline 0.15s, border-top 0.15s, opacity 0.15s",
             fontSize: 13,
             outline: dropTarget === entry.path ? "1px solid rgba(127,109,242,0.4)" : isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
             borderTop: dropTarget === entry.path ? "2px solid var(--accent-color)" : "2px solid transparent",
+            opacity: isDragSource ? 0.4 : 1,
           }}
           title={`${entry.path}\n${formatFileSize(entry.size)} · Created ${new Date(entry.ctime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
           onClick={(e) => onFileClick ? onFileClick(entry.path, e) : onFileSelect(entry.path)}
