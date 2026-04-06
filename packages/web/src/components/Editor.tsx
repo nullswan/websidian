@@ -596,6 +596,12 @@ function buildInlineMarkerDecorations(state: EditorState): DecorationSet {
     while ((m = hlRegex.exec(text)) !== null) {
       ranges.push({ from: line.from + m.index, to: line.from + m.index + 2 });
     }
+    // ^block-id at end of line — hide on non-active lines
+    const blockRef = text.match(/\s(\^[\w-]+)\s*$/);
+    if (blockRef) {
+      const refStart = line.from + text.lastIndexOf(blockRef[1]) - 1; // include leading space
+      ranges.push({ from: refStart, to: line.to });
+    }
   }
 
   // Sort by position for RangeSetBuilder
@@ -1347,6 +1353,10 @@ const livePreviewTheme = EditorView.theme({
     background: "#1e1e1e",
     borderRight: "1px solid #2a2a2a",
     color: "#555",
+  },
+  ".cm-activeLineGutter": {
+    color: "#7f6df2",
+    background: "rgba(127, 109, 242, 0.08)",
   },
   ".cm-foldGutter": {
     width: "16px",
