@@ -676,10 +676,15 @@ details.callout > div {
 }
 
 .reader-view mark {
-  background: rgba(255, 208, 0, 0.25);
+  background: linear-gradient(90deg, rgba(255, 208, 0, 0.25), rgba(255, 208, 0, 0.25)) no-repeat;
+  background-size: 0% 100%;
+  animation: mark-reveal 0.6s ease 0.05s forwards;
   color: inherit;
   padding: 1px 2px;
   border-radius: 2px;
+}
+@keyframes mark-reveal {
+  to { background-size: 100% 100%; }
 }
 mark.hltr-red { background: rgba(224, 82, 82, 0.25) !important; }
 mark.hltr-orange { background: rgba(230, 153, 74, 0.25) !important; }
