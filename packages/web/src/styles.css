@@ -11,6 +11,12 @@
   --border-color: #333;
   --border-subtle: rgba(255,255,255,0.06);
   --heading-color: #e0e0e0;
+  --h1-color: #e8e0ff;
+  --h2-color: #d4ccf0;
+  --h3-color: #c5bde0;
+  --h4-color: #b0aac8;
+  --h5-color: #9a96b0;
+  --h6-color: #858198;
   --reader-text: #dcddde;
   --code-bg: rgba(255,255,255,0.06);
   --shadow: rgba(0,0,0,0.3);
@@ -28,6 +34,12 @@
   --border-color: #ddd;
   --border-subtle: rgba(0,0,0,0.06);
   --heading-color: #1e1e1e;
+  --h1-color: #2d1f6b;
+  --h2-color: #3a2e7a;
+  --h3-color: #4a3f88;
+  --h4-color: #5a5096;
+  --h5-color: #6b62a4;
+  --h6-color: #7c74b2;
   --reader-text: #2e2e2e;
   --code-bg: rgba(0,0,0,0.04);
   --shadow: rgba(0,0,0,0.1);
@@ -95,7 +107,7 @@ body {
   font-size: 2em;
   font-weight: 700;
   margin: 0.67em 0 0.3em;
-  color: var(--heading-color);
+  color: var(--h1-color, var(--heading-color));
   border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 6px;
   letter-spacing: -0.015em;
@@ -105,7 +117,7 @@ body {
   font-size: 1.5em;
   font-weight: 600;
   margin: 1em 0 0.3em;
-  color: var(--heading-color);
+  color: var(--h2-color, var(--heading-color));
   letter-spacing: -0.01em;
 }
 
@@ -113,8 +125,12 @@ body {
   font-size: 1.25em;
   font-weight: 600;
   margin: 0.83em 0 0.25em;
-  color: var(--heading-color);
+  color: var(--h3-color, var(--heading-color));
 }
+
+.reader-view h4 { color: var(--h4-color, var(--heading-color)); }
+.reader-view h5 { color: var(--h5-color, var(--heading-color)); }
+.reader-view h6 { color: var(--h6-color, var(--heading-color)); }
 
 .reader-view p {
   margin: 1em 0;
