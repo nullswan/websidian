@@ -42,6 +42,7 @@ This is a **live demo** of [Websidian](https://github.com/nullswan/websidian) �
 - [[Markdown Showcase]] — Rich markdown rendering demo
 - [[Getting Started]] — How to run with your own vault
 - [[Architecture]] — Technical details
+- [[Learn Markdown]] — Interactive markdown tutorial
 - [[Daily Notes/2026-04-06]] — Today's daily note
 
 ## Project Stats
@@ -557,6 +558,106 @@ The Zettelkasten (German for "slip box") method emphasizes:
 Back to [[Welcome]]
 `,
     mtime: now - 6 * hour,
+  },
+  {
+    path: "Learn Markdown.md",
+    content: `---
+tags: [websidian, demo, markdown]
+aliases: [Markdown Tutorial, Markdown Guide]
+---
+
+# Learn Markdown
+
+Switch to **editor mode** (click the pen icon above) to edit these examples live!
+
+## Text Formatting
+
+- **Bold text** using \`**double asterisks**\`
+- *Italic text* using \`*single asterisks*\`
+- ~~Strikethrough~~ using \`~~tildes~~\`
+- ==Highlighted text== using \`==double equals==\`
+- \`Inline code\` using backticks
+
+## Headings
+
+Headings use \`#\` symbols. Try \`Ctrl+1\` through \`Ctrl+6\` in the editor to change heading level!
+
+## Links
+
+- **Wikilinks**: [[Welcome]] — click to navigate
+- **External links**: [GitHub](https://github.com)
+- **Heading links**: [[Features Overview#Editor]]
+
+## Lists
+
+Unordered:
+- Item one
+- Item two
+  - Nested item
+
+Ordered:
+1. First
+2. Second
+3. Third
+
+## Task Lists
+
+- [x] Learn markdown basics
+- [x] Try the editor
+- [ ] Explore the graph view
+- [ ] Use the command palette (\`Ctrl+Shift+P\`)
+
+## Blockquotes & Callouts
+
+> A regular blockquote looks like this.
+> — Someone wise
+
+> [!tip] Callout blocks
+> Use \`> [!type]\` for callouts. Types: tip, info, warning, danger, note, abstract, todo, example, quote
+
+> [!warning] Try editing me!
+> Switch to editor mode and modify this callout.
+
+## Code Blocks
+
+\`\`\`javascript
+function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+\`\`\`
+
+## Tables
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Bold    | ✅     | Ctrl+B |
+| Links   | ✅     | Ctrl+K |
+| Tables  | ✅     | Auto-format |
+
+## Math (LaTeX)
+
+Inline: $E = mc^2$
+
+Display:
+$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| \`Ctrl+B\` | Bold |
+| \`Ctrl+I\` | Italic |
+| \`Ctrl+K\` | Insert link |
+| \`Ctrl+1-6\` | Heading level |
+| \`Ctrl+Shift+P\` | Command palette |
+| \`Ctrl+Shift+F\` | Search vault |
+| \`Ctrl+O\` | Quick switcher |
+
+---
+
+Back to [[Welcome]] · See also: [[Features Overview]] · [[Markdown Showcase]]
+`,
+    mtime: now - 2 * hour,
   },
 ];
 
