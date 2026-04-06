@@ -1498,7 +1498,24 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
                   </div>`;
                 }
 
-                previewEl.innerHTML = md.render(previewContent) + outgoingHtml;
+                // Wikipedia-style popover: header + scrollable body + footer
+                const noteName = data.resolved.replace(/\.md$/, "").split("/").pop() ?? linkTarget;
+                const wordCount = fileData.content.trim().split(/\s+/).filter(Boolean).length;
+                const readingMin = Math.max(1, Math.round(wordCount / 200));
+
+                previewEl.innerHTML = `
+                  <div style="padding: 8px 12px 6px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${noteName}</span>
+                    <span style="font-size: 10px; color: var(--text-faint);">${data.resolved.includes("/") ? data.resolved.split("/").slice(0, -1).join("/") : ""}</span>
+                  </div>
+                  <div style="padding: 8px 12px; max-height: 250px; overflow-y: auto; font-size: 13px; line-height: 1.6;">
+                    ${md.render(previewContent)}
+                    ${outgoingHtml}
+                  </div>
+                  <div style="padding: 4px 12px 6px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-faint);">
+                    <span>${wordCount} words · ${readingMin} min read</span>
+                  </div>
+                `;
 
                 // Reposition if it overflows viewport
                 const previewRect = previewEl.getBoundingClientRect();
