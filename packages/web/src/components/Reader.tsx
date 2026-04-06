@@ -256,6 +256,31 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
+  // Style blockquote citations — detect "— Author" or "-- Author" at end
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const blockquotes = container.querySelectorAll("blockquote");
+    blockquotes.forEach((bq) => {
+      const paragraphs = bq.querySelectorAll("p");
+      if (paragraphs.length === 0) return;
+      const lastP = paragraphs[paragraphs.length - 1];
+      const text = lastP.textContent || "";
+      // Match "— Source" or "-- Source" at end of blockquote
+      const citMatch = text.match(/(?:^|\n)\s*(?:—|--|―)\s*(.+)$/);
+      if (!citMatch) return;
+      // Style the blockquote as a citation
+      bq.style.borderLeftColor = "var(--accent-color)";
+      bq.style.fontStyle = "italic";
+      // Style the attribution line
+      lastP.style.fontStyle = "normal";
+      lastP.style.fontSize = "0.9em";
+      lastP.style.opacity = "0.8";
+      lastP.style.textAlign = "right";
+      lastP.style.marginTop = "4px";
+    });
+  }, [html]);
+
   // Mark unresolved wikilinks with dimmed styling
   useEffect(() => {
     const container = containerRef.current;
