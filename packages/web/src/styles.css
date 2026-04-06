@@ -296,6 +296,18 @@ details.callout > div {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Callout icon hover glow */
+.reader-view .callout summary > span:first-child,
+.reader-view .callout > div:first-child > span:first-child {
+  transition: transform 0.2s ease, filter 0.2s ease;
+  display: inline-block;
+}
+.reader-view .callout:hover summary > span:first-child,
+.reader-view .callout:hover > div:first-child > span:first-child {
+  transform: scale(1.15);
+  filter: brightness(1.3);
+}
+
 .reader-view blockquote {
   border-left: 3px solid var(--accent-color, #7f6df2);
   margin: 8px 0;
