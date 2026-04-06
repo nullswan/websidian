@@ -2046,6 +2046,58 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Keyboard heading navigation: Ctrl+Up/Down jumps between headings
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scrollParent = container.closest(".scroll-container") as HTMLElement | null;
+    if (!scrollParent) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      const headings = container.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
+      if (headings.length === 0) return;
+      e.preventDefault();
+
+      const containerTop = scrollParent.getBoundingClientRect().top;
+      const threshold = containerTop + 80;
+
+      if (e.key === "ArrowDown") {
+        // Find next heading below threshold
+        for (const h of headings) {
+          if (h.getBoundingClientRect().top > threshold + 2) {
+            h.scrollIntoView({ behavior: "smooth", block: "start" });
+            h.classList.remove("heading-flash");
+            void h.offsetWidth;
+            h.classList.add("heading-flash");
+            return;
+          }
+        }
+      } else {
+        // Find previous heading above threshold
+        let best: HTMLElement | null = null;
+        for (const h of headings) {
+          if (h.getBoundingClientRect().top < threshold - 2) best = h;
+          else break;
+        }
+        if (best) {
+          best.scrollIntoView({ behavior: "smooth", block: "start" });
+          best.classList.remove("heading-flash");
+          void best.offsetWidth;
+          best.classList.add("heading-flash");
+        }
+      }
+    };
+
+    scrollParent.addEventListener("keydown", handleKeyDown);
+    // Also listen on document for when focus is elsewhere
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      scrollParent.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
