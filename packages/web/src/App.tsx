@@ -3770,7 +3770,7 @@ ${rendered}
           transition: "width 0.2s ease, min-width 0.2s ease",
         }}
       >
-        {activeTab && isMarkdown && (
+        {activeTab && isMarkdown && activeTab.content != null && (
           <>
             <ResizeHandle side="right" onResize={handleRightResize} />
             {(activeTab.noteMeta || activeTab.fileCreated) && (
