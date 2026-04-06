@@ -200,6 +200,52 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         });
         anchor.title = `Copy link to ${headingText} (Shift+click for URL)`;
 
+        // Right-click context menu on headings
+        heading.addEventListener("contextmenu", (e) => {
+          // Only if right-clicking on the heading text itself (not a link inside it)
+          const target = e.target as HTMLElement;
+          if (target.tagName === "A" && !target.classList.contains("heading-anchor")) return;
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Remove any existing heading context menu
+          document.querySelectorAll(".heading-ctx-menu").forEach((el) => el.remove());
+
+          const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+          const wikilink = `[[${noteName}#${headingText}]]`;
+          const url = `${location.origin}${location.pathname}#/note/${encodeURIComponent(filePath)}#${slug}`;
+
+          const menu = document.createElement("div");
+          menu.className = "heading-ctx-menu";
+          menu.style.cssText = `position: fixed; left: ${e.clientX}px; top: ${e.clientY}px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 0; z-index: 9999; min-width: 180px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); font-size: 12px;`;
+
+          const items = [
+            { label: "Copy heading link", value: wikilink },
+            { label: "Copy heading URL", value: url },
+            { label: "Copy heading text", value: headingText },
+          ];
+
+          for (const item of items) {
+            const row = document.createElement("div");
+            row.textContent = item.label;
+            row.style.cssText = "padding: 6px 12px; cursor: pointer; color: var(--text-normal); transition: background 0.1s;";
+            row.addEventListener("mouseenter", () => { row.style.background = "var(--bg-tertiary)"; });
+            row.addEventListener("mouseleave", () => { row.style.background = ""; });
+            row.addEventListener("click", () => {
+              navigator.clipboard.writeText(item.value);
+              menu.remove();
+            });
+            menu.appendChild(row);
+          }
+
+          document.body.appendChild(menu);
+          const dismiss = () => { menu.remove(); document.removeEventListener("click", dismiss); document.removeEventListener("contextmenu", dismiss); };
+          setTimeout(() => {
+            document.addEventListener("click", dismiss);
+            document.addEventListener("contextmenu", dismiss);
+          }, 0);
+        });
+
         // Show arrow and anchor on heading hover
         heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; anchor.style.opacity = "1"; });
         heading.addEventListener("mouseleave", () => {
