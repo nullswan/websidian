@@ -1269,6 +1269,13 @@ ${rendered}
   // Handle initial hash and browser back/forward navigation
   useEffect(() => {
     const openFromHash = () => {
+      // Support ?file= query parameter (obsidian:// URI scheme compat)
+      const params = new URLSearchParams(window.location.search);
+      const fileParam = params.get("file");
+      if (fileParam && fileParam !== activeTab?.path) {
+        openTab(fileParam.endsWith(".md") ? fileParam : fileParam + ".md");
+        return;
+      }
       const hash = window.location.hash;
       if (!hash.startsWith("#/note/")) return;
       const path = decodeURIComponent(hash.slice("#/note/".length));
