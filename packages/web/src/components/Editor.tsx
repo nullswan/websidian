@@ -4422,6 +4422,42 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       },
     ]);
 
+    // Heading level shortcuts: Ctrl+1-6 sets heading, Ctrl+0 removes heading
+    function setHeadingLevel(view: EditorView, level: number): boolean {
+      const sel = view.state.selection.main;
+      const line = view.state.doc.lineAt(sel.head);
+      const headingMatch = line.text.match(/^(#{1,6})\s/);
+      if (level === 0) {
+        // Remove heading
+        if (headingMatch) {
+          view.dispatch({
+            changes: { from: line.from, to: line.from + headingMatch[0].length, insert: "" },
+          });
+        }
+      } else {
+        const prefix = "#".repeat(level) + " ";
+        if (headingMatch) {
+          view.dispatch({
+            changes: { from: line.from, to: line.from + headingMatch[0].length, insert: prefix },
+          });
+        } else {
+          view.dispatch({
+            changes: { from: line.from, insert: prefix },
+          });
+        }
+      }
+      return true;
+    }
+    const headingKeymap = keymap.of([
+      { key: "Mod-1", run: (v) => setHeadingLevel(v, 1) },
+      { key: "Mod-2", run: (v) => setHeadingLevel(v, 2) },
+      { key: "Mod-3", run: (v) => setHeadingLevel(v, 3) },
+      { key: "Mod-4", run: (v) => setHeadingLevel(v, 4) },
+      { key: "Mod-5", run: (v) => setHeadingLevel(v, 5) },
+      { key: "Mod-6", run: (v) => setHeadingLevel(v, 6) },
+      { key: "Mod-0", run: (v) => setHeadingLevel(v, 0) },
+    ]);
+
     // Ctrl+Click on wikilinks to navigate
     const peekRef = { el: null as HTMLDivElement | null };
     const dismissPeek = () => {
@@ -4944,6 +4980,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           },
         }),
         saveKeymap,
+        headingKeymap,
         markdown({ codeLanguages: languages }),
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         syntaxHighlighting(classHighlighter),
