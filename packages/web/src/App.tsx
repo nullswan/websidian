@@ -1372,6 +1372,20 @@ ${rendered}
         if (zenMode) { toggleZenMode(); e.preventDefault(); return; }
       }
 
+      // Ctrl+1-9: switch to Nth tab (9 = last tab), like browsers
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key >= "1" && e.key <= "9") {
+        const tabIds = activePane?.tabIds ?? [];
+        if (tabIds.length === 0) return;
+        const idx = e.key === "9" ? tabIds.length - 1 : Math.min(parseInt(e.key) - 1, tabIds.length - 1);
+        e.preventDefault();
+        setPanes((prev) => {
+          const next = [...prev];
+          next[activePaneIdx] = { ...prev[activePaneIdx], activeTabId: tabIds[idx] };
+          return next;
+        });
+        return;
+      }
+
       // Check each registered hotkey action
       const hkMap = hotkeyMapRef.current;
       let matchedAction: string | null = null;
@@ -3693,6 +3707,7 @@ ${rendered}
                 [hk("toggle-mode"), "Toggle read/edit mode"],
                 [hk("next-tab"), "Next tab"],
                 [hk("prev-tab"), "Previous tab"],
+                ["Ctrl+1-9", "Switch to Nth tab (9 = last)"],
                 [hk("graph-view"), "Toggle graph view"],
               ]],
               ["Files", [
