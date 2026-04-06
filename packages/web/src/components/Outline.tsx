@@ -64,15 +64,30 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
 
   if (headings.length === 0) return null;
 
+  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
+
   return (
     <div style={{ padding: "4px 12px 8px" }}>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, position: "relative" }}>
+        {/* Indent guide lines */}
+        {Array.from(new Set(headings.map((h) => h.level - minLevel))).filter((d) => d > 0).map((depth) => (
+          <div key={`guide-${depth}`} style={{
+            position: "absolute",
+            left: depth * 12 - 7,
+            top: 0,
+            bottom: 0,
+            width: 1,
+            background: "var(--border-color)",
+            opacity: 0.4,
+            pointerEvents: "none",
+          }} />
+        ))}
         {headings.map((h, i) => (
           <li key={i}>
             <div
               style={{
-                paddingLeft: (h.level - 1) * 12,
-                padding: `2px 0 2px ${(h.level - 1) * 12}px`,
+                paddingLeft: (h.level - minLevel) * 12,
+                padding: `2px 0 2px ${(h.level - minLevel) * 12}px`,
                 fontSize: 12,
                 color: i === activeIdx
                   ? "var(--accent-color)"
