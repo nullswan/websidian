@@ -185,6 +185,10 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
       // Add fold toggles and anchor links to headings
       const noteName = filePath.replace(/\.md$/, "").split("/").pop() || "";
+      const foldKey = `heading-folds:${filePath}`;
+      let foldedSet: Set<string>;
+      try { foldedSet = new Set(JSON.parse(localStorage.getItem(foldKey) || "[]")); } catch { foldedSet = new Set(); }
+      const persistFolds = () => { try { localStorage.setItem(foldKey, JSON.stringify([...foldedSet])); } catch {} };
       const headings = containerRef.current.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
       for (const heading of headings) {
         const level = parseInt(heading.tagName[1], 10);
@@ -275,27 +279,31 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         });
 
         // Click to fold/unfold
-        arrow.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const isFolded = arrow.dataset.folded === "true";
-
-          // Collect siblings until next heading of equal or higher level
+        const foldHeading = (fold: boolean) => {
           let sibling = heading.nextElementSibling as HTMLElement | null;
           while (sibling) {
             if (/^H[1-6]$/.test(sibling.tagName)) {
               const sibLevel = parseInt(sibling.tagName[1], 10);
               if (sibLevel <= level) break;
             }
-            sibling.style.display = isFolded ? "" : "none";
+            sibling.style.display = fold ? "none" : "";
             sibling = sibling.nextElementSibling as HTMLElement | null;
           }
+          arrow.dataset.folded = fold ? "true" : "false";
+          arrow.style.transform = fold ? "translateY(-50%) rotate(0deg)" : "translateY(-50%) rotate(90deg)";
+          arrow.style.opacity = fold ? "1" : "0";
+          arrow.style.color = fold ? "var(--accent-color)" : "var(--text-faint)";
+        };
 
-          arrow.dataset.folded = isFolded ? "false" : "true";
-          arrow.style.transform = isFolded
-            ? "translateY(-50%) rotate(90deg)"
-            : "translateY(-50%) rotate(0deg)";
-          arrow.style.opacity = "1";
-          arrow.style.color = isFolded ? "var(--text-faint)" : "var(--accent-color)";
+        // Restore persisted fold state
+        if (foldedSet.has(headingText)) foldHeading(true);
+
+        arrow.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isFolded = arrow.dataset.folded === "true";
+          foldHeading(!isFolded);
+          if (!isFolded) foldedSet.add(headingText); else foldedSet.delete(headingText);
+          persistFolds();
         });
       }
 
