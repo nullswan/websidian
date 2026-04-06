@@ -288,6 +288,12 @@ details.callout > div {
   margin: 24px 0;
 }
 
+/* Heading anchor scroll offset (avoid hiding behind sticky header) */
+.reader-view h1, .reader-view h2, .reader-view h3,
+.reader-view h4, .reader-view h5, .reader-view h6 {
+  scroll-margin-top: 60px;
+}
+
 /* KaTeX math styling */
 .reader-view .katex-error {
   color: #ff6b6b !important;
