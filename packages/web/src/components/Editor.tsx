@@ -36,6 +36,7 @@ interface EditorProps {
   showWhitespace?: boolean;
   cursorBlinkRate?: number;
   sourceMode?: boolean;
+  backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -2664,6 +2665,30 @@ const linkMarker = new LineTypeMarker("#569cd6");
 const taskMarker = new LineTypeMarker("#4ec9b0");
 const codeMarker = new LineTypeMarker("#dcdcaa");
 
+// Backlink gutter: purple arrow on lines that are linked-to by other notes
+class BacklinkMarker extends GutterMarker {
+  count: number;
+  constructor(count: number) { super(); this.count = count; }
+  toDOM() {
+    const el = document.createElement("span");
+    el.title = `${this.count} backlink${this.count > 1 ? "s" : ""}`;
+    el.style.cssText = "display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-color);opacity:0.7;cursor:pointer;";
+    return el;
+  }
+}
+
+function createBacklinkGutter(backlinkLinesRef: React.MutableRefObject<Map<number, number>>) {
+  return gutter({
+    class: "cm-backlink-gutter",
+    lineMarker(view, line) {
+      const lineNo = view.state.doc.lineAt(line.from).number;
+      const count = backlinkLinesRef.current.get(lineNo);
+      if (count) return new BacklinkMarker(count);
+      return null;
+    },
+  });
+}
+
 const lineTypeGutter = gutter({
   class: "cm-line-type-gutter",
   lineMarker(view, line) {
@@ -2734,10 +2759,11 @@ const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   }
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, sourceMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, sourceMode = false, backlinks = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backlinkLinesRef = useRef<Map<number, number>>(new Map());
 
   // Compartments for hot-swappable settings (no editor recreation needed)
   const fontSizeComp = useRef(new Compartment());
@@ -2751,6 +2777,33 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const lineWrapComp = useRef(new Compartment());
   const whitespaceComp = useRef(new Compartment());
   const cursorBlinkComp = useRef(new Compartment());
+
+  // Compute backlink line numbers from backlinks prop
+  useEffect(() => {
+    const lines = new Map<number, number>();
+    if (backlinks.length > 0) {
+      const contentLines = content.split("\n");
+      for (const bl of backlinks) {
+        // Find which line in this note the backlink targets
+        // Backlinks have a `context` that contains the wikilink text — look for headings matching the link target
+        const ctx = bl.context;
+        // Try to find the heading or line that matches the context
+        for (let i = 0; i < contentLines.length; i++) {
+          const line = contentLines[i];
+          if (line.trim() && ctx.includes(line.trim().replace(/^#+\s+/, "").slice(0, 30))) {
+            const lineNo = i + 1;
+            lines.set(lineNo, (lines.get(lineNo) ?? 0) + 1);
+            break;
+          }
+        }
+      }
+    }
+    backlinkLinesRef.current = lines;
+    // Force gutter update
+    if (viewRef.current) {
+      viewRef.current.dispatch({ effects: [] });
+    }
+  }, [backlinks, content]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -3381,6 +3434,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         lineTypeGutter,
+        createBacklinkGutter(backlinkLinesRef),
         ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin]),
         foldGutter({
           markerDOM(open) {

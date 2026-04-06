@@ -2351,6 +2351,7 @@ ${rendered}
                 sourceMode={paneTab.mode === "source"}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
+                backlinks={paneTab.backlinks}
               />
             )
           ) : (
