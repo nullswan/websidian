@@ -536,6 +536,33 @@ details.callout > div {
 }
 
 /* Tab bar */
+.tab-bar-wrapper {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.tab-bar-scroll-btn {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 1px;
+  width: 24px;
+  background: linear-gradient(90deg, var(--bg-primary) 60%, transparent);
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  z-index: 10;
+  font-size: 12px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+.tab-bar-scroll-btn:hover { color: var(--text-primary); }
+.tab-bar-scroll-btn.left { left: 0; }
+.tab-bar-scroll-btn.right { right: 0; background: linear-gradient(-90deg, var(--bg-primary) 60%, transparent); }
+.tab-bar-wrapper.has-overflow .tab-bar-scroll-btn { display: flex; }
+
 .tab-bar {
   display: flex;
   align-items: stretch;
@@ -544,6 +571,7 @@ details.callout > div {
   min-height: 35px;
   overflow-x: auto;
   scrollbar-width: none;
+  flex: 1;
 }
 
 .tab-bar::-webkit-scrollbar {

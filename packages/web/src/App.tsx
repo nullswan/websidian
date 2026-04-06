@@ -1581,6 +1581,22 @@ ${rendered}
         {/* Pane tab bar */}
         {!zenMode && pane.tabIds.length > 0 && (
           <div
+            className="tab-bar-wrapper"
+            ref={(el) => {
+              if (!el) return;
+              const tabBar = el.querySelector<HTMLElement>(".tab-bar");
+              if (!tabBar) return;
+              const check = () => el.classList.toggle("has-overflow", tabBar.scrollWidth > tabBar.clientWidth + 2);
+              requestAnimationFrame(check);
+              const ro = new ResizeObserver(check);
+              ro.observe(tabBar);
+            }}
+          >
+          <button className="tab-bar-scroll-btn left" onClick={(e) => {
+            const bar = (e.currentTarget as HTMLElement).parentElement?.querySelector(".tab-bar");
+            if (bar) bar.scrollBy({ left: -120, behavior: "smooth" });
+          }}>‹</button>
+          <div
             className="tab-bar"
             style={isMobile ? { paddingLeft: 0 } : undefined}
             onWheel={(e) => {
@@ -1826,6 +1842,11 @@ ${rendered}
                 </button>
               </div>
             )}
+          </div>
+          <button className="tab-bar-scroll-btn right" onClick={(e) => {
+            const bar = (e.currentTarget as HTMLElement).parentElement?.querySelector(".tab-bar");
+            if (bar) bar.scrollBy({ left: 120, behavior: "smooth" });
+          }}>›</button>
           </div>
         )}
 
