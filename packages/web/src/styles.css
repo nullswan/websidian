@@ -662,6 +662,36 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   margin-left: 4px;
 }
 
+/* Footnote sidenotes (margin notes) */
+.reader-view .footnote-sidenote {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  border-left: 2px solid var(--accent-color);
+  padding: 4px 0 4px 8px;
+  opacity: 0;
+  animation: sidenote-enter 0.3s ease forwards;
+  transition: color 0.2s, border-color 0.2s;
+}
+.reader-view .footnote-sidenote:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+.reader-view .footnote-sidenote .sidenote-label {
+  font-weight: 700;
+  color: var(--accent-color);
+  margin-right: 3px;
+  font-size: 10px;
+}
+.reader-view .footnote-sidenote p {
+  margin: 0;
+  display: inline;
+}
+@keyframes sidenote-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* CodeMirror overrides */
 .cm-editor {
   height: 100%;

@@ -993,6 +993,74 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Footnote sidenotes — position footnote content in right margin next to references
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // Only show sidenotes on wide viewports (need space in margin)
+    const MIN_WIDTH = 1100;
+    if (window.innerWidth < MIN_WIDTH) return;
+
+    const refs = container.querySelectorAll<HTMLElement>("sup.footnote-ref");
+    if (refs.length === 0) return;
+
+    const sidenotes: HTMLElement[] = [];
+    const containerRect = container.getBoundingClientRect();
+    let lastBottom = 0; // track vertical stacking to avoid overlap
+
+    for (const sup of refs) {
+      const anchor = sup.querySelector<HTMLAnchorElement>("a[href^='#fn']");
+      if (!anchor) continue;
+      const href = anchor.getAttribute("href");
+      if (!href) continue;
+      const fnId = href.replace("#", "");
+      const fnLi = container.querySelector<HTMLElement>(`li#${fnId}`);
+      if (!fnLi) continue;
+
+      // Clone content minus backref
+      const clone = fnLi.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll(".footnote-backref").forEach((el) => el.remove());
+
+      const sidenote = document.createElement("div");
+      sidenote.className = "footnote-sidenote";
+      const label = anchor.textContent ?? "";
+      sidenote.innerHTML = `<span class="sidenote-label">${label}</span> ${clone.innerHTML}`;
+
+      container.appendChild(sidenote);
+
+      // Position relative to the sup reference
+      const supRect = sup.getBoundingClientRect();
+      const top = Math.max(supRect.top - containerRect.top, lastBottom + 4);
+      sidenote.style.position = "absolute";
+      sidenote.style.top = `${top}px`;
+      sidenote.style.right = "-220px";
+      sidenote.style.width = "200px";
+
+      // Track bottom for stacking
+      const noteRect = sidenote.getBoundingClientRect();
+      lastBottom = top + noteRect.height;
+
+      sidenotes.push(sidenote);
+    }
+
+    // If sidenotes were placed, hide the bottom footnotes section
+    if (sidenotes.length > 0) {
+      const sep = container.querySelector<HTMLElement>(".footnotes-sep");
+      const list = container.querySelector<HTMLElement>("section.footnotes");
+      if (sep) sep.style.display = "none";
+      if (list) list.style.display = "none";
+    }
+
+    return () => {
+      sidenotes.forEach((el) => el.remove());
+      // Restore bottom footnotes
+      const sep = container.querySelector<HTMLElement>(".footnotes-sep");
+      const list = container.querySelector<HTMLElement>("section.footnotes");
+      if (sep) sep.style.display = "";
+      if (list) list.style.display = "";
+    };
+  }, [html]);
+
   // Hydrate note embeds after html is set (with depth limit + cycle detection)
   useEffect(() => {
     const container = containerRef.current;
