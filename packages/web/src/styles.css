@@ -1224,6 +1224,17 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   will-change: opacity, transform, filter;
 }
 
+/* Command palette animations */
+@keyframes palette-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes palette-panel-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Cursor trail effect */
 @keyframes cursor-trail-fade {
   from { opacity: 0.6; transform: scaleY(1); }

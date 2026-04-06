@@ -144,6 +144,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
 
   return (
     <div
+      className="command-palette-backdrop"
       style={{
         position: "fixed",
         inset: 0,
@@ -152,12 +153,14 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         justifyContent: "center",
         paddingTop: "15vh",
         zIndex: 1000,
+        animation: "palette-backdrop-in 0.15s ease-out",
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
+        className="command-palette-panel"
         style={{
           width: 500,
           maxHeight: "60vh",
@@ -165,6 +168,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
           borderRadius: 8,
           boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           display: "flex",
+          animation: "palette-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
           flexDirection: "column",
           overflow: "hidden",
         }}
