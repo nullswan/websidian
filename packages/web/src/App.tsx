@@ -1454,12 +1454,17 @@ export function App() {
 
   // Create a new untitled note
   const createNewNote = useCallback(() => {
-    // Find a unique name
+    // Determine folder from currently active note
+    const currentPath = activeTab?.path || "";
+    const folder = currentPath.includes("/") ? currentPath.substring(0, currentPath.lastIndexOf("/")) : "";
+    const prefix = folder ? `${folder}/` : "";
+
+    // Find a unique name in that folder
     const existingPaths = new Set(Object.values(tabsMap).map((t) => t.path));
-    let name = "Untitled.md";
+    let name = `${prefix}Untitled.md`;
     let i = 1;
     while (existingPaths.has(name)) {
-      name = `Untitled ${i}.md`;
+      name = `${prefix}Untitled ${i}.md`;
       i++;
     }
     fetch("/api/vault/file", {
@@ -1494,7 +1499,7 @@ export function App() {
         }, 100);
       })
       .catch((e) => setError("Failed to create note: " + e.message));
-  }, [tabsMap, refreshTree, openTab, showToast]);
+  }, [tabsMap, activeTab, refreshTree, openTab, showToast]);
 
   // Open or create today's daily note
   const openRandomNote = useCallback(() => {
