@@ -618,6 +618,82 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Footnote reference widget — renders [^1] as superscript
+class FootnoteRefWidget extends WidgetType {
+  label: string;
+  constructor(label: string) {
+    super();
+    this.label = label;
+  }
+  toDOM() {
+    const sup = document.createElement("sup");
+    sup.textContent = this.label;
+    sup.style.cssText = "color: #7f6df2; font-size: 0.75em; cursor: pointer; vertical-align: super; padding: 0 1px;";
+    return sup;
+  }
+  eq(other: FootnoteRefWidget) { return this.label === other.label; }
+  ignoreEvent() { return true; }
+}
+
+function buildFootnoteDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  // Track footnote definitions to number them
+  const defLabels: string[] = [];
+  for (let i = 1; i <= state.doc.lines; i++) {
+    const line = state.doc.line(i);
+    const defMatch = line.text.match(/^\[\^([^\]]+)\]:/);
+    if (defMatch && !defLabels.includes(defMatch[1])) {
+      defLabels.push(defMatch[1]);
+    }
+  }
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+
+    // Footnote definition line: [^label]: ... — style as dimmed
+    const defMatch = text.match(/^\[\^([^\]]+)\]:\s*/);
+    if (defMatch) {
+      builder.add(line.from, line.from, Decoration.line({
+        attributes: { style: "color: #888; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;" },
+      }));
+      // Replace [^label] with superscript number
+      const idx = defLabels.indexOf(defMatch[1]);
+      const num = idx >= 0 ? String(idx + 1) : defMatch[1];
+      builder.add(line.from, line.from + defMatch[0].length, Decoration.replace({
+        widget: new FootnoteRefWidget(num + "."),
+      }));
+      continue;
+    }
+
+    // Inline footnote references: [^label] (not at start of line as definition)
+    const refRegex = /\[\^([^\]]+)\]/g;
+    let m;
+    while ((m = refRegex.exec(text)) !== null) {
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      const idx = defLabels.indexOf(m[1]);
+      const num = idx >= 0 ? String(idx + 1) : m[1];
+      builder.add(from, to, Decoration.replace({ widget: new FootnoteRefWidget(num) }));
+    }
+  }
+  return builder.finish();
+}
+
+const footnoteField = StateField.define<DecorationSet>({
+  create(state) { return buildFootnoteDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildFootnoteDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Table styling for Live Preview — adds borders and header background
 function buildTableDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
@@ -1764,6 +1840,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         tagRenderField,
         highlightAndLinkField,
         tableField,
+        footnoteField,
         mathField,
         codeBlockField,
         noteEmbedField,
