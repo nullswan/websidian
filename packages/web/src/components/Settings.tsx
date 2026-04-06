@@ -24,6 +24,7 @@ export interface AppSettings {
   rulerColumns: number[];
   rainbowBrackets: boolean;
   cursorTrail: boolean;
+  smartQuotes: boolean;
   customCSS: string;
 }
 
@@ -50,6 +51,7 @@ const DEFAULTS: AppSettings = {
   rulerColumns: [],
   rainbowBrackets: true,
   cursorTrail: false,
+  smartQuotes: true,
   customCSS: "",
 };
 
@@ -419,6 +421,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Show fading trail effect when cursor moves"
               >
                 <Toggle checked={settings.cursorTrail} onChange={(v) => update("cursorTrail", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Smart quotes"
+                description="Auto-replace straight quotes with typographic curly quotes"
+              >
+                <Toggle checked={settings.smartQuotes} onChange={(v) => update("smartQuotes", v)} />
               </SettingItem>
 
               <SettingItem

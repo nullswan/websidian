@@ -38,6 +38,7 @@ interface EditorProps {
   rulerColumns?: number[];
   rainbowBrackets?: boolean;
   cursorTrail?: boolean;
+  smartQuotes?: boolean;
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
   initialLine?: number | null;
@@ -3642,7 +3643,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, smartQuotes = true, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3663,6 +3664,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const rulerComp = useRef(new Compartment());
   const rainbowComp = useRef(new Compartment());
   const cursorTrailComp = useRef(new Compartment());
+  const smartQuotesComp = useRef(new Compartment());
 
   // Compute backlink line numbers from backlinks prop
   useEffect(() => {
@@ -4551,7 +4553,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         closeBrackets(),
         markdownAutoPair,
         wikilinkAutoPair,
-        smartQuotesHandler,
+        smartQuotesComp.current.of(smartQuotes ? smartQuotesHandler : []),
         htmlAutoClose,
         indentationMarkers({
           colors: {
@@ -4909,9 +4911,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         rulerComp.current.reconfigure(rulerExtension(rulerColumns)),
         rainbowComp.current.reconfigure(rainbowBrackets ? rainbowBracketPlugin : []),
         cursorTrailComp.current.reconfigure(cursorTrail ? cursorTrailPlugin : []),
+        smartQuotesComp.current.reconfigure(smartQuotes ? smartQuotesHandler : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets, cursorTrail]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets, cursorTrail, smartQuotes]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

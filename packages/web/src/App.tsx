@@ -2649,6 +2649,7 @@ ${rendered}
                 rulerColumns={appSettings.rulerColumns}
                 rainbowBrackets={appSettings.rainbowBrackets}
                 cursorTrail={appSettings.cursorTrail}
+                smartQuotes={appSettings.smartQuotes}
                 sourceMode={paneTab.mode === "source"}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
@@ -3553,6 +3554,7 @@ ${rendered}
                             rulerColumns={appSettings.rulerColumns}
                 rainbowBrackets={appSettings.rainbowBrackets}
                 cursorTrail={appSettings.cursorTrail}
+                smartQuotes={appSettings.smartQuotes}
                             sourceMode={tab.mode === "source"}
                           />
                         ) : (
