@@ -804,6 +804,26 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             <line x1="13" y1="8" x2="15" y2="8" />
           </svg>
         </button>
+        <button
+          title="Collapse all folders"
+          onClick={() => { const empty = new Set<string>(); setExpandedPaths(empty); saveExpandedPaths(empty); }}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--text-faint)",
+            cursor: "pointer",
+            padding: "2px 4px",
+            borderRadius: 3,
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 4h12M2 8h8M2 12h4" />
+            <polyline points="12 10 14 12 12 14" />
+          </svg>
+        </button>
       </div>
       <ul
         ref={treeRef}
