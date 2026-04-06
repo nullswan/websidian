@@ -220,6 +220,8 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
 
 export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, onShowToast }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
+  const lastClickedPath = useRef<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
   const [filter, setFilter] = useState("");
@@ -417,6 +419,35 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
     }
   }, [flatPaths, focusedPath, entries, expandedPaths, toggleExpanded, onFileSelect, findEntry]);
 
+  const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      // Toggle individual selection
+      setMultiSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(path)) next.delete(path);
+        else next.add(path);
+        return next;
+      });
+      lastClickedPath.current = path;
+      return;
+    }
+    if (e.shiftKey && lastClickedPath.current) {
+      // Range select
+      const fromIdx = flatPaths.indexOf(lastClickedPath.current);
+      const toIdx = flatPaths.indexOf(path);
+      if (fromIdx !== -1 && toIdx !== -1) {
+        const start = Math.min(fromIdx, toIdx);
+        const end = Math.max(fromIdx, toIdx);
+        setMultiSelected(new Set(flatPaths.slice(start, end + 1)));
+      }
+      return;
+    }
+    // Normal click — clear multi-selection
+    setMultiSelected(new Set());
+    lastClickedPath.current = path;
+    onFileSelect(path);
+  }, [flatPaths, onFileSelect]);
+
   const closeMenu = () => setContextMenu(null);
 
   const handleContextMenu = (e: React.MouseEvent, entry: VaultEntry | null, parentPath: string) => {
@@ -433,6 +464,26 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
       credentials: "include",
     });
     onMutate?.();
+  };
+
+  const handleBatchDelete = async () => {
+    closeMenu();
+    if (multiSelected.size === 0) return;
+    if (!confirm(`Move ${multiSelected.size} items to trash?`)) return;
+    for (const p of multiSelected) {
+      await fetch(`/api/vault/file?path=${encodeURIComponent(p)}`, { method: "DELETE", credentials: "include" });
+    }
+    setMultiSelected(new Set());
+    onMutate?.();
+  };
+
+  const handleBatchOpen = () => {
+    closeMenu();
+    if (!onOpenInNewTab) return;
+    for (const p of multiSelected) {
+      if (p.endsWith(".md")) onOpenInNewTab(p);
+    }
+    setMultiSelected(new Set());
   };
 
   const handleRename = (path: string) => {
@@ -617,6 +668,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             todoCounts={todoCounts}
             customOrder={customOrder}
             reorderInFolder={reorderInFolder}
+            multiSelected={multiSelected}
+            onFileClick={handleFileClick}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -706,6 +759,9 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           onOpenToRight={onOpenToRight}
           onMoveTo={setMoveToPath}
           parentPath={contextMenu.parentPath}
+          multiSelectedCount={multiSelected.size}
+          onBatchOpen={handleBatchOpen}
+          onBatchDelete={handleBatchDelete}
         />
       )}
       {moveToPath && (
@@ -775,6 +831,8 @@ function FileTreeNode({
   todoCounts,
   customOrder,
   reorderInFolder,
+  multiSelected,
+  onFileClick,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -799,6 +857,8 @@ function FileTreeNode({
   todoCounts?: Record<string, number>;
   customOrder?: Record<string, string[]>;
   reorderInFolder?: (sourcePath: string, targetPath: string, parentPath: string) => void;
+  multiSelected?: Set<string>;
+  onFileClick?: (path: string, e: React.MouseEvent) => void;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -895,6 +955,8 @@ function FileTreeNode({
                 todoCounts={todoCounts}
                 customOrder={customOrder}
                 reorderInFolder={reorderInFolder}
+                multiSelected={multiSelected}
+                onFileClick={onFileClick}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -914,6 +976,7 @@ function FileTreeNode({
   }
 
   const isSelected = entry.path === selectedPath;
+  const isMultiSelected = multiSelected?.has(entry.path) ?? false;
   const isFocused = focusedPath === entry.path;
   const name = entry.path.split("/").pop() ?? entry.path;
   const isRenaming = renaming === entry.path;
@@ -983,7 +1046,7 @@ function FileTreeNode({
             paddingLeft: depth * 16 + 18,
             padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
             cursor: "pointer",
-            background: isSelected ? "var(--bg-hover)" : dropTarget === entry.path ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            background: isSelected ? "var(--bg-hover)" : isMultiSelected ? "rgba(127,109,242,0.12)" : dropTarget === entry.path ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
             color: isSelected ? "var(--text-primary)" : isFocused ? "var(--text-primary)" : "var(--text-secondary)",
             borderRadius: 3,
             display: "flex",
@@ -996,7 +1059,7 @@ function FileTreeNode({
             borderTop: dropTarget === entry.path ? "2px solid var(--accent-color)" : "2px solid transparent",
           }}
           title={`${entry.path}\n${entry.size < 1024 ? entry.size + " B" : entry.size < 1048576 ? (entry.size / 1024).toFixed(1) + " KB" : (entry.size / 1048576).toFixed(1) + " MB"} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
-          onClick={() => onFileSelect(entry.path)}
+          onClick={(e) => onFileClick ? onFileClick(entry.path, e) : onFileSelect(entry.path)}
           onContextMenu={(e) => {
             const parentPath = entry.path.includes("/")
               ? entry.path.split("/").slice(0, -1).join("/")
@@ -1131,6 +1194,9 @@ function ContextMenu({
   onOpenToRight,
   onMoveTo,
   parentPath,
+  multiSelectedCount,
+  onBatchOpen,
+  onBatchDelete,
 }: {
   x: number;
   y: number;
@@ -1144,6 +1210,9 @@ function ContextMenu({
   onOpenToRight?: (path: string) => void;
   onMoveTo?: (path: string) => void;
   parentPath: string;
+  multiSelectedCount?: number;
+  onBatchOpen?: () => void;
+  onBatchDelete?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1161,6 +1230,16 @@ function ContextMenu({
   const folderPath = isFolder ? entry.path : parentPath;
 
   const menuItems: Array<{ label: string; action: () => void; danger?: boolean }> = [];
+
+  if (multiSelectedCount && multiSelectedCount > 1) {
+    if (onBatchOpen) {
+      menuItems.push({ label: `Open ${multiSelectedCount} selected`, action: onBatchOpen });
+    }
+    if (onBatchDelete) {
+      menuItems.push({ label: `Delete ${multiSelectedCount} selected`, action: onBatchDelete, danger: true });
+    }
+    // Skip individual items when batch-selecting
+  }
 
   if (entry && entry.kind === "file") {
     if (onOpenInNewTab) {
