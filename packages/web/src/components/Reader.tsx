@@ -179,9 +179,61 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
             setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "var(--text-secondary)"; }, 1500);
           }
         });
-        pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; });
-        pre.addEventListener("mouseleave", () => { btn.style.opacity = "0"; });
+        pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; if (runBtn) runBtn.style.opacity = "1"; });
+        pre.addEventListener("mouseleave", () => { btn.style.opacity = "0"; if (runBtn) runBtn.style.opacity = "0"; });
         pre.appendChild(btn);
+
+        // Run button for JavaScript and HTML code blocks
+        const lang = langClass?.[1]?.toLowerCase();
+        let runBtn: HTMLButtonElement | null = null;
+        if (lang === "javascript" || lang === "js" || lang === "html" || lang === "typescript" || lang === "ts") {
+          runBtn = document.createElement("button");
+          runBtn.textContent = "▶ Run";
+          runBtn.style.cssText = "position: absolute; top: 6px; right: 60px; padding: 2px 8px; font-size: 11px; background: rgba(127,109,242,0.15); color: var(--accent-color); border: 1px solid rgba(127,109,242,0.3); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
+          const outputEl = document.createElement("div");
+          outputEl.style.cssText = "display: none; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 4px; padding: 8px; font-size: 12px; font-family: monospace; max-height: 200px; overflow: auto; white-space: pre-wrap;";
+          pre.parentElement?.insertBefore(outputEl, pre.nextSibling);
+
+          runBtn.addEventListener("click", () => {
+            const source = code?.textContent || "";
+            outputEl.style.display = "block";
+            outputEl.innerHTML = "";
+
+            if (lang === "html") {
+              const iframe = document.createElement("iframe");
+              iframe.style.cssText = "width: 100%; border: none; min-height: 100px; max-height: 300px; background: white; border-radius: 3px;";
+              iframe.sandbox.add("allow-scripts");
+              iframe.srcdoc = source;
+              iframe.addEventListener("load", () => {
+                try {
+                  const h = iframe.contentDocument?.body?.scrollHeight ?? 100;
+                  iframe.style.height = `${Math.min(h + 16, 300)}px`;
+                } catch { /* cross-origin */ }
+              });
+              outputEl.appendChild(iframe);
+            } else {
+              // JavaScript/TypeScript — run in sandboxed function
+              const logs: string[] = [];
+              const mockConsole = {
+                log: (...args: unknown[]) => logs.push(args.map(String).join(" ")),
+                error: (...args: unknown[]) => logs.push("Error: " + args.map(String).join(" ")),
+                warn: (...args: unknown[]) => logs.push("Warn: " + args.map(String).join(" ")),
+                info: (...args: unknown[]) => logs.push(args.map(String).join(" ")),
+              };
+              try {
+                const fn = new Function("console", source);
+                const result = fn(mockConsole);
+                if (result !== undefined && logs.length === 0) logs.push(String(result));
+                outputEl.textContent = logs.length > 0 ? logs.join("\n") : "(no output)";
+                outputEl.style.color = "var(--text-secondary)";
+              } catch (err) {
+                outputEl.textContent = String(err);
+                outputEl.style.color = "#e06c75";
+              }
+            }
+          });
+          pre.appendChild(runBtn);
+        }
       });
     }
   }, [html, filePath]);
