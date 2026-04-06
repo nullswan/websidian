@@ -1058,7 +1058,7 @@ function FileTreeNode({
             outline: dropTarget === entry.path ? "1px solid rgba(127,109,242,0.4)" : isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
             borderTop: dropTarget === entry.path ? "2px solid var(--accent-color)" : "2px solid transparent",
           }}
-          title={`${entry.path}\n${entry.size < 1024 ? entry.size + " B" : entry.size < 1048576 ? (entry.size / 1024).toFixed(1) + " KB" : (entry.size / 1048576).toFixed(1) + " MB"} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
+          title={`${entry.path}\n${formatFileSize(entry.size)} · Created ${new Date(entry.ctime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
           onClick={(e) => onFileClick ? onFileClick(entry.path, e) : onFileSelect(entry.path)}
           onContextMenu={(e) => {
             const parentPath = entry.path.includes("/")
