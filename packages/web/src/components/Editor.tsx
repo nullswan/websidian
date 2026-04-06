@@ -2148,6 +2148,46 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
+// Pair deletion: Backspace between paired delimiters removes both sides
+const pairDeletionKeymap = keymap.of([{
+  key: "Backspace",
+  run: (view) => {
+    const sel = view.state.selection.main;
+    if (sel.from !== sel.to) return false; // has selection — default behavior
+    const pos = sel.from;
+    const doc = view.state.doc;
+    const docLen = doc.length;
+    // Check double-char pairs: [[ ]], ** **, ~~ ~~, == ==
+    if (pos >= 2 && pos + 2 <= docLen) {
+      const before2 = doc.sliceString(pos - 2, pos);
+      const after2 = doc.sliceString(pos, pos + 2);
+      if (
+        (before2 === "[[" && after2 === "]]") ||
+        (before2 === "**" && after2 === "**") ||
+        (before2 === "~~" && after2 === "~~") ||
+        (before2 === "==" && after2 === "==")
+      ) {
+        view.dispatch({ changes: { from: pos - 2, to: pos + 2 }, selection: { anchor: pos - 2 } });
+        return true;
+      }
+    }
+    // Check single-char pairs: ` `, * *, _ _
+    if (pos >= 1 && pos + 1 <= docLen) {
+      const before1 = doc.sliceString(pos - 1, pos);
+      const after1 = doc.sliceString(pos, pos + 1);
+      if (
+        (before1 === "`" && after1 === "`") ||
+        (before1 === "*" && after1 === "*") ||
+        (before1 === "_" && after1 === "_")
+      ) {
+        view.dispatch({ changes: { from: pos - 1, to: pos + 1 }, selection: { anchor: pos - 1 } });
+        return true;
+      }
+    }
+    return false;
+  },
+}]);
+
 export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -2650,6 +2690,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         highlightTrailingWhitespace(),
         bracketMatching(),
         history(),
+        pairDeletionKeymap,
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
