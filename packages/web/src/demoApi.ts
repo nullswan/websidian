@@ -68,6 +68,32 @@ function resolveLink(name: string): string | null {
   return match?.path ?? null;
 }
 
+// Parse YAML frontmatter into a plain object
+function parseFrontmatter(content: string): Record<string, unknown> {
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fmMatch) return {};
+  const result: Record<string, unknown> = {};
+  for (const line of fmMatch[1].split("\n")) {
+    const kv = line.match(/^(\w[\w-]*):\s*(.*)/);
+    if (!kv) continue;
+    const [, key, rawVal] = kv;
+    const val = rawVal.trim();
+    // Array: [a, b, c]
+    if (val.startsWith("[") && val.endsWith("]")) {
+      result[key] = val.slice(1, -1).split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (val === "true") {
+      result[key] = true;
+    } else if (val === "false") {
+      result[key] = false;
+    } else if (/^\d+$/.test(val)) {
+      result[key] = Number(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
 // Extract tags from content
 function extractTags(content: string): string[] {
   const tags: string[] = [];
@@ -176,6 +202,7 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
       const tags = extractTags(file.content);
       const wikilinks = extractWikilinks(file.content);
       const words = file.content.split(/\s+/).filter(Boolean).length;
+      const frontmatter = parseFrontmatter(file.content);
       return jsonResponse({
         path: file.path,
         content: file.content,
@@ -183,6 +210,7 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
         tags,
         links: wikilinks,
         wordCount: words,
+        frontmatter,
       });
     }
     return jsonResponse({ error: "Not found" }, 404);
