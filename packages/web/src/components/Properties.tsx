@@ -5,6 +5,7 @@ interface PropertiesProps {
   fileCreated?: string;
   fileModified?: string;
   fileSize?: number;
+  content?: string;
   onUpdate?: (key: string, value: string) => void;
   onDelete?: (key: string) => void;
   onAdd?: (key: string, value: string) => void;
@@ -73,7 +74,7 @@ function InlineEdit({ value, onCommit }: { value: string; onCommit: (v: string) 
   );
 }
 
-export function Properties({ frontmatter, fileCreated, fileModified, fileSize, onUpdate, onDelete, onAdd }: PropertiesProps) {
+export function Properties({ frontmatter, fileCreated, fileModified, fileSize, content, onUpdate, onDelete, onAdd }: PropertiesProps) {
   const entries = Object.entries(frontmatter);
   const hasFileInfo = fileCreated || fileModified || fileSize != null;
   const [adding, setAdding] = useState(false);
@@ -220,6 +221,18 @@ export function Properties({ frontmatter, fileCreated, fileModified, fileSize, o
             <span className="prop-key">size</span>
             <span className="prop-value">{formatSize(fileSize)}</span>
           </div>
+        )}
+        {content != null && (
+          <>
+            <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+              <span className="prop-key">chars</span>
+              <span className="prop-value">{content.length.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+              <span className="prop-key">lines</span>
+              <span className="prop-value">{content.split("\n").length.toLocaleString()}</span>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -3507,6 +3507,7 @@ ${rendered}
                   fileCreated={activeTab.fileCreated}
                   fileModified={activeTab.fileModified}
                   fileSize={activeTab.fileSize}
+                  content={activeTab.content}
                   onUpdate={(key, value) => {
                     if (!activeTab) return;
                     const updated = updateFrontmatterField(activeTab.content, key, value);
