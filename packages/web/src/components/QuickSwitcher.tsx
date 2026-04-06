@@ -100,6 +100,7 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [], onCreateNot
         justifyContent: "center",
         paddingTop: "15vh",
         zIndex: 1000,
+        animation: "palette-backdrop-in 0.15s ease-out",
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -115,6 +116,7 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [], onCreateNot
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          animation: "palette-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         <input

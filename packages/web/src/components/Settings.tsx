@@ -148,6 +148,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
         alignItems: "center",
         justifyContent: "center",
         background: "rgba(0,0,0,0.6)",
+        animation: "palette-backdrop-in 0.15s ease-out",
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -164,6 +165,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
           borderRadius: 8,
           display: "flex",
           overflow: "hidden",
+          animation: "palette-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {/* Left nav */}
