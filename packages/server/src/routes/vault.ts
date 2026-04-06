@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { readFile, writeFile, mkdir, readdir, unlink, rename, stat, access } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { join, dirname } from "node:path";
 import {
@@ -1042,4 +1043,30 @@ export async function vaultRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  // GET /api/vault/git-status — git status of vault files
+  app.get("/git-status", async () => {
+    try {
+      const result = await new Promise<string>((resolve, reject) => {
+        execFile("git", ["status", "--porcelain", "-uall"], { cwd: vaultRoot, timeout: 5000 }, (err, stdout) => {
+          if (err) reject(err);
+          else resolve(stdout);
+        });
+      });
+      const files: Record<string, string> = {};
+      for (const line of result.split("\n")) {
+        if (!line.trim()) continue;
+        const status = line.slice(0, 2).trim();
+        const filePath = line.slice(3).trim().replace(/^"(.*)"$/, "$1");
+        let label = "modified";
+        if (status === "??" || status === "A") label = "added";
+        else if (status === "D") label = "deleted";
+        else if (status === "R") label = "renamed";
+        files[filePath] = label;
+      }
+      return { files };
+    } catch {
+      return { files: {} };
+    }
+  });
 }

@@ -128,6 +128,7 @@ interface FileTreeProps {
   onDuplicate?: (path: string) => void;
   backlinkCounts?: Record<string, number>;
   todoCounts?: Record<string, number>;
+  gitStatus?: Record<string, string>;
   onShowToast?: (msg: string) => void;
 }
 
@@ -218,7 +219,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, onShowToast }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, gitStatus, onShowToast }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const lastClickedPath = useRef<string | null>(null);
@@ -662,6 +663,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             onDrop={handleDrop}
             sortMode={sortMode}
             backlinkCounts={backlinkCounts}
+            gitStatus={gitStatus}
             onFileHover={handleFileHover}
             onClearHover={clearHoverPreview}
             filterQuery={filter.trim() || undefined}
@@ -830,6 +832,7 @@ function FileTreeNode({
   onDrop,
   sortMode,
   backlinkCounts,
+  gitStatus,
   onFileHover,
   onClearHover,
   filterQuery,
@@ -856,6 +859,7 @@ function FileTreeNode({
   onDrop: (sourcePath: string, targetFolder: string) => void;
   sortMode: SortMode;
   backlinkCounts?: Record<string, number>;
+  gitStatus?: Record<string, string>;
   onFileHover?: (e: React.MouseEvent, path: string) => void;
   onClearHover?: () => void;
   filterQuery?: string;
@@ -954,6 +958,7 @@ function FileTreeNode({
                 onDrop={onDrop}
                 sortMode={sortMode}
                 backlinkCounts={backlinkCounts}
+                gitStatus={gitStatus}
                 onFileHover={onFileHover}
                 onClearHover={onClearHover}
                 filterQuery={filterQuery}
@@ -1134,6 +1139,16 @@ function FileTreeNode({
               {backlinkCounts[entry.path]}
             </span>
           )}
+          {gitStatus && gitStatus[entry.path] && (() => {
+            const s = gitStatus[entry.path];
+            const color = s === "added" ? "#4ec9b0" : s === "deleted" ? "#e05252" : s === "renamed" ? "#56b6e6" : "#e6994a";
+            const letter = s === "added" ? "A" : s === "deleted" ? "D" : s === "renamed" ? "R" : "M";
+            return (
+              <span title={`Git: ${s}`} style={{ fontSize: 9, fontWeight: 700, color, flexShrink: 0, marginLeft: 2 }}>
+                {letter}
+              </span>
+            );
+          })()}
           {entry.kind === "file" && (
             <span className="file-size-label" style={{
               fontSize: 9,

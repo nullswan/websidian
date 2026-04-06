@@ -780,6 +780,7 @@ export function App() {
   const [tree, setTree] = useState<VaultEntry[]>([]);
   const [backlinkCounts, setBacklinkCounts] = useState<Record<string, number>>({});
   const [todoCounts, setTodoCounts] = useState<Record<string, number>>({});
+  const [gitStatus, setGitStatus] = useState<Record<string, string>>({});
   const [tabsMap, setTabsMap] = useState<Record<string, Tab>>({});
   const [panes, setPanes] = useState<Pane[]>([{ tabIds: [], activeTabId: null }]);
   const [activePaneIdx, setActivePaneIdx] = useState(0);
@@ -1009,6 +1010,11 @@ export function App() {
             }
             setTodoCounts(tc);
           })
+          .catch(() => {});
+        // Fetch git status for file tree indicators
+        fetch("/api/vault/git-status", { credentials: "include" })
+          .then((r) => r.json())
+          .then((data) => setGitStatus(data.files ?? {}))
           .catch(() => {});
         // Restore workspace from localStorage after tree is loaded
         if (!workspaceRestored.current) {
@@ -3090,6 +3096,7 @@ ${rendered}
                   onDuplicate={duplicateNote}
                   backlinkCounts={backlinkCounts}
                   todoCounts={todoCounts}
+                  gitStatus={gitStatus}
                   onShowToast={showToast}
                 />
               ) : (
