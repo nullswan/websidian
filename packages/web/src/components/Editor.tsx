@@ -35,6 +35,7 @@ interface EditorProps {
   lineWrap?: boolean;
   showWhitespace?: boolean;
   cursorBlinkRate?: number;
+  sourceMode?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -2592,7 +2593,7 @@ const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   }
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200 }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, sourceMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3195,8 +3196,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         lineTypeGutter,
-        stickyHeadingPlugin,
-        colorSwatchPlugin,
+        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin]),
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
@@ -3211,24 +3211,25 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         markdown({ codeLanguages: languages }),
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         syntaxHighlighting(classHighlighter),
-        headingPlugin,
+        ...(sourceMode ? [] : [headingPlugin, blockDragPlugin]),
         gutterHoverPlugin,
-        blockDragPlugin,
-        frontmatterField,
-        imagePreviewField,
-        checkboxField,
-        livePreviewWidgetsField,
-        inlineMarkerField,
-        wikilinkRenderField,
-        tagRenderField,
-        highlightAndLinkField,
-        tableField,
-        tableToolbarPlugin,
-        footnoteField,
-        mathField,
-        codeBlockField,
-        noteEmbedField,
-        livePreviewTheme,
+        ...(sourceMode ? [] : [
+          frontmatterField,
+          imagePreviewField,
+          checkboxField,
+          livePreviewWidgetsField,
+          inlineMarkerField,
+          wikilinkRenderField,
+          tagRenderField,
+          highlightAndLinkField,
+          tableField,
+          tableToolbarPlugin,
+          footnoteField,
+          mathField,
+          codeBlockField,
+          noteEmbedField,
+          livePreviewTheme,
+        ]),
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
         indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
@@ -3464,7 +3465,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [filePath]); // Only re-create editor when file changes; settings use Compartments
+  }, [filePath, sourceMode]); // Re-create editor when file or source mode changes; settings use Compartments
 
   // Hot-swap settings via Compartments (no editor recreation)
   useEffect(() => {

@@ -30,7 +30,7 @@ import "./styles.css";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
 
-type ViewMode = "edit" | "read";
+type ViewMode = "edit" | "read" | "source";
 
 interface NoteMeta {
   frontmatter: Record<string, unknown>;
@@ -1209,9 +1209,8 @@ export function App() {
   // Toggle mode for active tab
   const toggleMode = useCallback(() => {
     if (!activeTab) return;
-    updateTab(activeTab.id, {
-      mode: activeTab.mode === "edit" ? "read" : "edit",
-    });
+    const nextMode = activeTab.mode === "read" ? "edit" : activeTab.mode === "edit" ? "source" : "read";
+    updateTab(activeTab.id, { mode: nextMode });
   }, [activeTab, updateTab]);
 
   // Split right: open a new pane with the current tab's file
@@ -1965,18 +1964,26 @@ ${rendered}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 8 }}>
                 <button
                   className="mode-toggle-btn"
-                  title={paneTab.mode === "read" ? `Switch to editing view (${kbd("Ctrl+E")})` : `Switch to reading view (${kbd("Ctrl+E")})`}
-                  onClick={() => updateTab(paneTab.id, { mode: paneTab.mode === "read" ? "edit" : "read" })}
+                  title={paneTab.mode === "read" ? `Switch to Live Preview (${kbd("Ctrl+E")})` : paneTab.mode === "edit" ? `Switch to Source mode (${kbd("Ctrl+E")})` : `Switch to Reading view (${kbd("Ctrl+E")})`}
+                  onClick={() => {
+                    const next = paneTab.mode === "read" ? "edit" : paneTab.mode === "edit" ? "source" : "read";
+                    updateTab(paneTab.id, { mode: next as ViewMode });
+                  }}
                 >
                   {paneTab.mode === "read" ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                     </svg>
-                  ) : (
+                  ) : paneTab.mode === "edit" ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                       <path d="m15 5 4 4" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
                     </svg>
                   )}
                 </button>
@@ -2219,6 +2226,7 @@ ${rendered}
                 lineWrap={appSettings.lineWrap}
                 showWhitespace={appSettings.showWhitespace}
                 cursorBlinkRate={appSettings.cursorBlinkRate}
+                sourceMode={paneTab.mode === "source"}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
               />
@@ -2983,7 +2991,7 @@ ${rendered}
                             scrollToLine={null}
                             onScrollToLineDone={() => {}}
                           />
-                        ) : tab.path.endsWith(".md") && tab.mode === "edit" ? (
+                        ) : tab.path.endsWith(".md") && (tab.mode === "edit" || tab.mode === "source") ? (
                           <Editor
                             content={tab.content}
                             filePath={tab.path}
@@ -2999,7 +3007,8 @@ ${rendered}
                             vimMode={appSettings.vimMode}
                             lineWrap={appSettings.lineWrap}
                             showWhitespace={appSettings.showWhitespace}
-                cursorBlinkRate={appSettings.cursorBlinkRate}
+                            cursorBlinkRate={appSettings.cursorBlinkRate}
+                            sourceMode={tab.mode === "source"}
                           />
                         ) : (
                           <div style={{ padding: 20, color: "var(--text-muted)", fontSize: 13 }}>
@@ -3030,7 +3039,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} lineWrap={activeTab.mode === "edit" ? appSettings.lineWrap : undefined} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode !== "read" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} lineWrap={activeTab.mode !== "read" ? appSettings.lineWrap : undefined} />
         )}
         </div>
       </div>
@@ -3340,7 +3349,7 @@ ${rendered}
             },
             {
               id: "toggle-mode",
-              name: activeTab?.mode === "edit" ? "Switch to Read Mode" : "Switch to Edit Mode",
+              name: activeTab?.mode === "read" ? "Switch to Live Preview" : activeTab?.mode === "edit" ? "Switch to Source Mode" : "Switch to Reading View",
               shortcut: hk("toggle-mode"),
               action: toggleMode,
             },
@@ -4174,7 +4183,7 @@ ${rendered}
                 id: t.id,
                 path: t.path,
                 content: "",
-                mode: t.mode as "read" | "edit",
+                mode: t.mode as ViewMode,
                 noteMeta: null,
                 backlinks: [],
                 unlinkedMentions: [],
