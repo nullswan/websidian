@@ -11,6 +11,9 @@ import {
   resolveLink,
 } from "@obsidian-web/vault-core";
 
+// In-memory share tokens: token -> notePath
+const shareTokens = new Map<string, string>();
+
 export async function vaultRoutes(app: FastifyInstance) {
   const vaultRoot: string = (app as any).vaultRoot;
 
@@ -210,6 +213,43 @@ export async function vaultRoutes(app: FastifyInstance) {
       }
 
       return { from, to, renamed: true, updatedFiles };
+    },
+  );
+
+  // POST /api/vault/rename-heading — update [[Note#OldHeading]] refs across vault
+  app.post<{ Body: { notePath: string; oldHeading: string; newHeading: string } }>(
+    "/rename-heading",
+    async (request) => {
+      const { notePath, oldHeading, newHeading } = request.body;
+      if (!notePath || !oldHeading || !newHeading || oldHeading === newHeading) {
+        return { updatedFiles: [] };
+      }
+      const noteName = notePath.replace(/\.md$/, "").split("/").pop() ?? notePath;
+      const tree = await scanVault(vaultRoot);
+      const files = flattenFiles(tree).filter((f) => f.path.endsWith(".md"));
+      const updatedFiles: string[] = [];
+
+      for (const file of files) {
+        const fullPath = join(vaultRoot, file.path);
+        try {
+          const content = await readFile(fullPath, "utf8");
+          // Match [[NoteName#OldHeading]] and [[NoteName#OldHeading|alias]]
+          const pattern = new RegExp(
+            `\\[\\[${noteName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}#${oldHeading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\|[^\\]]*)?\\]\\]`,
+            "g"
+          );
+          if (!pattern.test(content)) continue;
+          const updated = content.replace(pattern, (match, alias) => {
+            return `[[${noteName}#${newHeading}${alias ?? ""}]]`;
+          });
+          if (updated !== content) {
+            await writeFile(fullPath, updated, "utf8");
+            updatedFiles.push(file.path);
+          }
+        } catch { /* skip unreadable files */ }
+      }
+
+      return { updatedFiles };
     },
   );
 

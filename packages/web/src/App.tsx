@@ -3350,6 +3350,41 @@ ${rendered}
               },
             },
             {
+              id: "rename-heading",
+              name: "Rename heading and update links across vault",
+              action: () => {
+                if (!activeTab) return;
+                const headings: string[] = [];
+                for (const line of activeTab.content.split("\n")) {
+                  const m = /^#{1,6}\s+(.+)$/.exec(line);
+                  if (m) headings.push(m[1].trim());
+                }
+                if (headings.length === 0) { showToast("No headings found"); return; }
+                const oldHeading = prompt("Which heading to rename?\n\n" + headings.map((h, i) => `${i + 1}. ${h}`).join("\n") + "\n\nEnter heading text:");
+                if (!oldHeading || !headings.includes(oldHeading)) { showToast("Heading not found"); return; }
+                const newHeading = prompt(`Rename "${oldHeading}" to:`);
+                if (!newHeading || newHeading === oldHeading) return;
+                // Update in current note
+                const updated = activeTab.content.replace(
+                  new RegExp(`^(#{1,6})\\s+${oldHeading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"),
+                  `$1 ${newHeading}`,
+                );
+                updateTab(activeTab.id, { content: updated, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ content: updated }),
+                }).catch(() => {});
+                // Update links across vault
+                fetch("/api/vault/rename-heading", {
+                  method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                  body: JSON.stringify({ notePath: activeTab.path, oldHeading, newHeading }),
+                }).then((r) => r.json()).then((data) => {
+                  const count = data.updatedFiles?.length ?? 0;
+                  showToast(count > 0 ? `Updated links in ${count} file${count !== 1 ? "s" : ""}` : "Heading renamed (no links to update)");
+                }).catch(() => {});
+              },
+            },
+            {
               id: "close-all-tabs",
               name: "Close all tabs",
               action: () => {
