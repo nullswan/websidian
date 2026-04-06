@@ -422,6 +422,16 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
             </div>
           );
         })}
+        {!query && !searching && (
+          <div style={{ padding: "12px 12px 8px", color: "var(--text-faint)", fontSize: 12 }}>
+            <div style={{ marginBottom: 8, color: "var(--text-muted)", fontSize: 11 }}>Search tips:</div>
+            <div style={{ marginBottom: 4 }}>• Type to search all notes</div>
+            <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>.*</span> toggle for regex patterns</div>
+            <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>Aa</span> toggle for case-sensitive</div>
+            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>#tag</code> to search by tag</div>
+            <div>• Press <kbd style={{ fontSize: 10, background: "var(--bg-tertiary)", padding: "1px 4px", borderRadius: 2, border: "1px solid var(--border-color)" }}>Esc</kbd> to close</div>
+          </div>
+        )}
         {!searching && results.length === 0 && query && !regexError && (
           <div style={{ padding: 12, color: "var(--text-faint)" }}>
             No results found
