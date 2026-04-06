@@ -761,6 +761,49 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           </svg>
           {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : sortMode === "size" ? "size" : sortMode === "custom" ? "drag" : "ext"}</span>}
         </button>
+        <button
+          title="Reveal active file in explorer"
+          onClick={() => {
+            if (!selectedPath || !treeRef.current) return;
+            const el = treeRef.current.querySelector(`[data-path="${CSS.escape(selectedPath)}"]`) as HTMLElement | null;
+            if (!el) return;
+            // Expand parent folders
+            const parts = selectedPath.split("/");
+            const parents = new Set<string>();
+            for (let i = 1; i < parts.length; i++) parents.add(parts.slice(0, i).join("/"));
+            if (parents.size > 0) setExpandedPaths((prev) => { const next = new Set(prev); parents.forEach((p) => next.add(p)); return next; });
+            // Scroll + flash after layout
+            requestAnimationFrame(() => {
+              const target = treeRef.current?.querySelector(`[data-path="${CSS.escape(selectedPath)}"]`) as HTMLElement | null;
+              if (!target) return;
+              target.scrollIntoView({ block: "center", behavior: "smooth" });
+              target.classList.remove("reveal-flash");
+              void target.offsetWidth;
+              target.classList.add("reveal-flash");
+            });
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            color: selectedPath ? "var(--text-faint)" : "var(--text-faint)",
+            cursor: selectedPath ? "pointer" : "default",
+            padding: "2px 4px",
+            borderRadius: 3,
+            opacity: selectedPath ? 1 : 0.3,
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="8" cy="8" r="5" />
+            <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+            <line x1="8" y1="1" x2="8" y2="3" />
+            <line x1="8" y1="13" x2="8" y2="15" />
+            <line x1="1" y1="8" x2="3" y2="8" />
+            <line x1="13" y1="8" x2="15" y2="8" />
+          </svg>
+        </button>
       </div>
       <ul
         ref={treeRef}
