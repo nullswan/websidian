@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface Snippet {
   name: string;
@@ -46,6 +46,42 @@ export function Snippets() {
     [activeSnippets],
   );
 
+  // Live preview: temporarily inject CSS on hover
+  const previewRef = useRef<HTMLStyleElement | null>(null);
+  const previewCache = useRef<Record<string, string>>({});
+
+  const handleMouseEnter = useCallback((snippet: Snippet) => {
+    if (activeSnippets.has(snippet.name)) return; // already active
+    const cached = previewCache.current[snippet.filename];
+    if (cached) {
+      const style = document.createElement("style");
+      style.id = `snippet-preview-${snippet.name}`;
+      style.textContent = cached;
+      document.head.appendChild(style);
+      previewRef.current = style;
+      return;
+    }
+    fetch(`/api/vault/snippet?name=${encodeURIComponent(snippet.filename)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.content) {
+          previewCache.current[snippet.filename] = data.content;
+          const style = document.createElement("style");
+          style.id = `snippet-preview-${snippet.name}`;
+          style.textContent = data.content;
+          document.head.appendChild(style);
+          previewRef.current = style;
+        }
+      });
+  }, [activeSnippets]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (previewRef.current) {
+      previewRef.current.remove();
+      previewRef.current = null;
+    }
+  }, []);
+
   if (snippets.length === 0) return null;
 
   return (
@@ -62,6 +98,8 @@ export function Snippets() {
             color: "var(--text-primary)",
             cursor: "pointer",
           }}
+          onMouseEnter={() => handleMouseEnter(s)}
+          onMouseLeave={handleMouseLeave}
         >
           <input
             type="checkbox"
@@ -69,7 +107,10 @@ export function Snippets() {
             onChange={() => toggleSnippet(s)}
             style={{ accentColor: "var(--accent-color)" }}
           />
-          {s.name}
+          <span style={{ flex: 1 }}>{s.name}</span>
+          {!activeSnippets.has(s.name) && (
+            <span style={{ fontSize: 9, color: "var(--text-faint)", opacity: 0.6 }}>hover to preview</span>
+          )}
         </label>
       ))}
     </div>
