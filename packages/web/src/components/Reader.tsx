@@ -1115,6 +1115,41 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           </div>
         );
       })()}
+      {(() => {
+        const headings = body.split("\n").filter(l => /^#{1,6}\s+/.test(l)).map(l => {
+          const m = l.match(/^(#{1,6})\s+(.+)/);
+          return m ? { level: m[1].length, text: m[2].replace(/\*\*|__|[*_`]/g, "").trim() } : null;
+        }).filter(Boolean) as { level: number; text: string }[];
+        if (headings.length < 5) return null;
+        return (
+          <details style={{ marginBottom: 12, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", borderRadius: 6, padding: "8px 12px", fontSize: 13 }}>
+            <summary style={{ cursor: "pointer", color: "var(--text-secondary)", fontWeight: 600, userSelect: "none" }}>
+              Table of Contents ({headings.length})
+            </summary>
+            <nav style={{ marginTop: 6 }}>
+              {headings.map((h, i) => (
+                <div
+                  key={i}
+                  style={{ paddingLeft: (h.level - 1) * 16, padding: "2px 0 2px " + ((h.level - 1) * 16) + "px", cursor: "pointer", color: "var(--accent-color)", fontSize: 12 }}
+                  onClick={() => {
+                    const container = containerRef.current;
+                    if (!container) return;
+                    const headingEl = container.querySelectorAll("h1,h2,h3,h4,h5,h6");
+                    for (const el of headingEl) {
+                      if (el.textContent?.trim() === h.text) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        break;
+                      }
+                    }
+                  }}
+                >
+                  {h.text}
+                </div>
+              ))}
+            </nav>
+          </details>
+        );
+      })()}
       <div
         ref={containerRef}
         className={`reader-view${cssClasses ? ` ${cssClasses}` : ""}`}
