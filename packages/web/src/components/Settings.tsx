@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 export interface AppSettings {
+  theme: "dark" | "light";
   editorFontSize: number;
   readableLineLength: boolean;
   showLineNumbers: boolean;
@@ -15,6 +16,7 @@ export interface AppSettings {
 }
 
 const DEFAULTS: AppSettings = {
+  theme: "dark",
   editorFontSize: 16,
   readableLineLength: true,
   showLineNumbers: false,
@@ -171,6 +173,27 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
 
           {section === "appearance" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <SettingItem
+                title="Theme"
+                description="Choose between light and dark appearance"
+              >
+                <select
+                  value={settings.theme}
+                  onChange={(e) => update("theme", e.target.value as "dark" | "light")}
+                  style={{
+                    background: "#2a2a2a",
+                    color: "#ddd",
+                    border: "1px solid #444",
+                    borderRadius: 4,
+                    padding: "4px 8px",
+                    fontSize: 13,
+                  }}
+                >
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </SettingItem>
+
               <SettingItem
                 title="Show inline title"
                 description="Show the note filename as a heading above the content"

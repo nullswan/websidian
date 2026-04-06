@@ -1,5 +1,36 @@
 :root {
   --accent-color: #7f6df2;
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252525;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: rgba(255,255,255,0.06);
+  --text-primary: #ddd;
+  --text-secondary: #aaa;
+  --text-muted: #888;
+  --text-faint: #555;
+  --border-color: #333;
+  --border-subtle: rgba(255,255,255,0.06);
+  --heading-color: #e0e0e0;
+  --reader-text: #dcddde;
+  --code-bg: rgba(255,255,255,0.06);
+  --shadow: rgba(0,0,0,0.3);
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f6f6;
+  --bg-tertiary: #eeeeee;
+  --bg-hover: rgba(0,0,0,0.04);
+  --text-primary: #1e1e1e;
+  --text-secondary: #555;
+  --text-muted: #777;
+  --text-faint: #bbb;
+  --border-color: #ddd;
+  --border-subtle: rgba(0,0,0,0.06);
+  --heading-color: #1e1e1e;
+  --reader-text: #2e2e2e;
+  --code-bg: rgba(0,0,0,0.04);
+  --shadow: rgba(0,0,0,0.1);
 }
 
 /* Global reset */
@@ -10,8 +41,8 @@
 body {
   margin: 0;
   padding: 0;
-  background: #1e1e1e;
-  color: #ddd;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Reader view */
@@ -20,7 +51,7 @@ body {
   max-width: 750px;
   line-height: 1.65;
   font-size: 16px;
-  color: #dcddde;
+  color: var(--reader-text);
   position: relative;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
@@ -29,8 +60,8 @@ body {
   font-size: 2em;
   font-weight: 700;
   margin: 0.67em 0 0.3em;
-  color: #e0e0e0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: var(--heading-color);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 6px;
   letter-spacing: -0.015em;
 }
@@ -39,7 +70,7 @@ body {
   font-size: 1.5em;
   font-weight: 600;
   margin: 1em 0 0.3em;
-  color: #e0e0e0;
+  color: var(--heading-color);
   letter-spacing: -0.01em;
 }
 
@@ -47,7 +78,7 @@ body {
   font-size: 1.25em;
   font-weight: 600;
   margin: 0.83em 0 0.25em;
-  color: #e0e0e0;
+  color: var(--heading-color);
 }
 
 .reader-view p {
@@ -89,14 +120,14 @@ body {
 
 .reader-view code {
   font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  background: #2a2a2a;
+  background: var(--code-bg);
   padding: 2px 5px;
   border-radius: 3px;
   font-size: 13px;
 }
 
 .reader-view pre {
-  background: #2a2a2a;
+  background: var(--bg-tertiary);
   padding: 12px 16px;
   border-radius: 6px;
   overflow-x: auto;
@@ -111,7 +142,7 @@ body {
   border-left: 3px solid var(--accent-color, #7f6df2);
   margin: 8px 0;
   padding: 4px 16px;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 .reader-view ul,
@@ -135,7 +166,7 @@ body {
 
 .reader-view hr {
   border: none;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-color);
   margin: 24px 0;
 }
 
@@ -145,11 +176,11 @@ body {
 }
 
 .reader-view .embed {
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 12px;
   margin: 8px 0;
-  background: #252526;
+  background: var(--bg-secondary);
 }
 
 .reader-view .embed-label {
@@ -161,14 +192,14 @@ body {
   max-width: 400px;
   max-height: 300px;
   overflow: hidden;
-  background: #252526;
-  border: 1px solid #444;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 12px 16px;
   font-size: 13px;
   line-height: 1.5;
-  color: #dcddde;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  color: var(--reader-text);
+  box-shadow: 0 4px 16px var(--shadow);
   z-index: 100;
   pointer-events: none;
 }
@@ -196,15 +227,15 @@ body {
 
 .reader-view th,
 .reader-view td {
-  border: 1px solid #444;
+  border: 1px solid var(--border-color);
   padding: 6px 12px;
   text-align: left;
 }
 
 .reader-view th {
-  background: #2a2a2a;
+  background: var(--bg-tertiary);
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--heading-color);
 }
 
 .reader-view tr:nth-child(even) {

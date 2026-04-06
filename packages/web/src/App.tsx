@@ -478,6 +478,11 @@ export function App() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
+  // Apply theme to document root
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", appSettings.theme);
+  }, [appSettings.theme]);
+
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
