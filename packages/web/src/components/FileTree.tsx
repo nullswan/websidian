@@ -724,7 +724,9 @@ function FileTreeNode({
           </span>
           <FolderIcon open={expanded} />
           <span style={{ fontSize: 13, flex: 1 }}>{filterQuery ? highlightMatch(entry.path.split("/").pop() ?? "", filterQuery) : entry.path.split("/").pop()}</span>
-          <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0 }}>{countFiles(entry)}</span>
+          <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0, opacity: countFiles(entry) === 0 ? 0.5 : 1 }}>
+            {countFiles(entry) === 0 ? "empty" : countFiles(entry)}
+          </span>
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>

@@ -8,6 +8,7 @@ interface StatusBarProps {
   fileCreated?: string;
   fileModified?: string;
   scrollProgress?: number;
+  lineWrap?: boolean;
 }
 
 function formatDate(iso: string): string {
@@ -17,7 +18,7 @@ function formatDate(iso: string): string {
 
 let vaultStatsCache: { totalNotes: number; totalWords: number } | null = null;
 
-export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress }: StatusBarProps) {
+export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress, lineWrap }: StatusBarProps) {
   const [vaultStats, setVaultStats] = useState(vaultStatsCache);
 
   useEffect(() => {
@@ -102,6 +103,9 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
         <span title={`Vault: ${vaultStats.totalNotes.toLocaleString()} notes, ${vaultStats.totalWords.toLocaleString()} words`} style={{ opacity: 0.7 }}>
           Vault: {vaultStats.totalWords.toLocaleString()}w
         </span>
+      )}
+      {lineWrap != null && (
+        <span style={{ opacity: 0.6 }}>{lineWrap ? "Wrap" : "No Wrap"}</span>
       )}
       {saveStatus === "saving" && (
         <span style={{ color: "#e6994a" }}>Saving...</span>

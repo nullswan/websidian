@@ -2946,7 +2946,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} lineWrap={activeTab.mode === "edit" ? appSettings.lineWrap : undefined} />
         )}
         </div>
       </div>
