@@ -20,6 +20,7 @@ import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
+import { Minimap } from "./components/Minimap.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
@@ -77,17 +78,20 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
   children: React.ReactNode;
   className?: string;
+  noteContent?: string;
+  showMinimap?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(0);
+  const [scrollMetrics, setScrollMetrics] = useState({ scrollTop: 0, scrollHeight: 1, clientHeight: 1 });
 
   useEffect(() => {
     const el = ref.current;
@@ -106,6 +110,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
     const handleScroll = () => {
       const max = el.scrollHeight - el.clientHeight;
       setProgress(max > 0 ? el.scrollTop / max : 0);
+      setScrollMetrics({ scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight });
 
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
       scrollTimer.current = setTimeout(() => {
@@ -132,8 +137,23 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
           }} />
         </div>
       )}
-      <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>
-        <div key={tabId} className="note-content-fade">{children}</div>
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>
+          <div key={tabId} className="note-content-fade">{children}</div>
+        </div>
+        {showMinimap && noteContent && (
+          <Minimap
+            content={noteContent}
+            scrollTop={scrollMetrics.scrollTop}
+            scrollHeight={scrollMetrics.scrollHeight}
+            clientHeight={scrollMetrics.clientHeight}
+            onSeek={(fraction) => {
+              if (ref.current) {
+                ref.current.scrollTop = fraction * (ref.current.scrollHeight - ref.current.clientHeight);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -1846,7 +1866,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
