@@ -32,6 +32,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [showOrphans, setShowOrphans] = useState(true);
   const [filterDepth, setFilterDepth] = useState(1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; words: number; links: number } | null>(null);
+  const [folderLegend, setFolderLegend] = useState<Array<{ folder: string; color: string }>>([]);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
@@ -182,10 +183,14 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       folders.add(parts.length > 1 ? parts.slice(0, -1).join("/") : "(root)");
     }
     const folderList = [...folders].sort();
+    const legendEntries: Array<{ folder: string; color: string }> = [];
     for (let i = 0; i < folderList.length; i++) {
       const hue = (i * 360 / Math.max(folderList.length, 1)) % 360;
-      folderColorMap.set(folderList[i], `hsl(${hue}, 65%, 65%)`);
+      const color = `hsl(${hue}, 65%, 65%)`;
+      folderColorMap.set(folderList[i], color);
+      legendEntries.push({ folder: folderList[i], color });
     }
+    setFolderLegend(legendEntries);
 
     const getNodeColor = (id: string): string => {
       const parts = id.split("/");
@@ -555,6 +560,30 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           title="Reset view"
         >⟲</button>
       </div>
+      {folderLegend.length > 1 && (
+        <div style={{
+          position: "absolute",
+          bottom: 8,
+          left: 8,
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+          borderRadius: 6,
+          padding: "4px 8px",
+          fontSize: 10,
+          maxHeight: 120,
+          overflowY: "auto",
+          opacity: 0.85,
+        }}>
+          {folderLegend.map((f) => (
+            <div key={f.folder} style={{ display: "flex", alignItems: "center", gap: 4, padding: "1px 0" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: f.color, flexShrink: 0 }} />
+              <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 100 }}>
+                {f.folder}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {tooltip && (
         <div
           style={{
