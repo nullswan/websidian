@@ -2793,6 +2793,94 @@ const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   }
 });
 
+// Floating format toolbar on text selection
+const floatingToolbarPlugin = ViewPlugin.fromClass(class {
+  toolbar: HTMLDivElement;
+  view: EditorView;
+  visible = false;
+
+  constructor(view: EditorView) {
+    this.view = view;
+    this.toolbar = document.createElement("div");
+    this.toolbar.className = "cm-floating-toolbar";
+    this.toolbar.style.cssText = "position: absolute; z-index: 100; display: none; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); gap: 1px; align-items: center; pointer-events: auto;";
+
+    const buttons: Array<{ label: string; title: string; action: (v: EditorView) => void }> = [
+      { label: "B", title: "Bold (Cmd+B)", action: (v) => this.wrapSelection(v, "**") },
+      { label: "I", title: "Italic (Cmd+I)", action: (v) => this.wrapSelection(v, "*") },
+      { label: "S", title: "Strikethrough", action: (v) => this.wrapSelection(v, "~~") },
+      { label: "<>", title: "Code", action: (v) => this.wrapSelection(v, "`") },
+      { label: "H", title: "Highlight", action: (v) => this.wrapSelection(v, "==") },
+      { label: "🔗", title: "Link", action: (v) => {
+        const sel = v.state.selection.main;
+        const text = v.state.sliceDoc(sel.from, sel.to);
+        v.dispatch({ changes: { from: sel.from, to: sel.to, insert: `[${text}](url)` }, selection: { anchor: sel.from + text.length + 3, head: sel.from + text.length + 6 } });
+      }},
+    ];
+
+    for (const btn of buttons) {
+      const el = document.createElement("button");
+      el.textContent = btn.label;
+      el.title = btn.title;
+      el.style.cssText = "background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 3px 6px; font-size: 12px; border-radius: 3px; font-weight: 600; min-width: 24px; line-height: 1;";
+      el.addEventListener("mouseenter", () => { el.style.background = "var(--bg-tertiary)"; el.style.color = "var(--accent-color)"; });
+      el.addEventListener("mouseleave", () => { el.style.background = "none"; el.style.color = "var(--text-secondary)"; });
+      el.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // Prevent losing selection
+        btn.action(this.view);
+      });
+      this.toolbar.appendChild(el);
+    }
+
+    view.dom.appendChild(this.toolbar);
+  }
+
+  wrapSelection(view: EditorView, delimiter: string) {
+    const sel = view.state.selection.main;
+    if (sel.empty) return;
+    const text = view.state.sliceDoc(sel.from, sel.to);
+    view.dispatch({
+      changes: { from: sel.from, to: sel.to, insert: `${delimiter}${text}${delimiter}` },
+      selection: { anchor: sel.from + delimiter.length, head: sel.to + delimiter.length },
+    });
+  }
+
+  update(update: import("@codemirror/view").ViewUpdate) {
+    const sel = update.state.selection.main;
+    if (sel.empty || !update.view.hasFocus) {
+      if (this.visible) {
+        this.toolbar.style.display = "none";
+        this.visible = false;
+      }
+      return;
+    }
+
+    // Only show if selection is within a single line or short multi-line
+    const selText = update.state.sliceDoc(sel.from, sel.to);
+    if (selText.length < 1 || selText.length > 500) {
+      this.toolbar.style.display = "none";
+      this.visible = false;
+      return;
+    }
+
+    // Position above selection start
+    const coords = update.view.coordsAtPos(sel.from);
+    if (!coords) return;
+    const dom = update.view.dom.getBoundingClientRect();
+    const left = Math.max(0, coords.left - dom.left);
+    const top = coords.top - dom.top - 32;
+
+    this.toolbar.style.display = "flex";
+    this.toolbar.style.left = `${left}px`;
+    this.toolbar.style.top = `${Math.max(0, top)}px`;
+    this.visible = true;
+  }
+
+  destroy() {
+    this.toolbar.remove();
+  }
+});
+
 export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, sourceMode = false, backlinks = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -3497,6 +3585,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           highlightAndLinkField,
           tableField,
           tableToolbarPlugin,
+          floatingToolbarPlugin,
           footnoteField,
           mathField,
           codeBlockField,
