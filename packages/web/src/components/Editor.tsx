@@ -832,6 +832,178 @@ function buildTableDecorations(state: EditorState): DecorationSet {
   return builder.finish();
 }
 
+// Table toolbar — floating actions when cursor is inside a table
+const tableToolbarPlugin = ViewPlugin.fromClass(
+  class {
+    dom: HTMLDivElement;
+    view: EditorView;
+
+    constructor(view: EditorView) {
+      this.view = view;
+      this.dom = document.createElement("div");
+      this.dom.className = "cm-table-toolbar";
+      this.dom.style.cssText = "position: absolute; display: none; z-index: 100; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 4px; gap: 2px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 12px; user-select: none;";
+      view.dom.appendChild(this.dom);
+      this.buildButtons();
+      this.update({ view, docChanged: true, selectionSet: true, viewportChanged: false } as Parameters<typeof this.update>[0]);
+    }
+
+    buildButtons() {
+      const btns = [
+        { label: "⇤", title: "Add column left", action: "col-left" },
+        { label: "⇥", title: "Add column right", action: "col-right" },
+        { label: "✕col", title: "Remove column", action: "col-del" },
+        { label: "│", title: "", action: "sep" },
+        { label: "↑", title: "Add row above", action: "row-above" },
+        { label: "↓", title: "Add row below", action: "row-below" },
+        { label: "✕row", title: "Remove row", action: "row-del" },
+        { label: "│", title: "", action: "sep2" },
+        { label: "⫷", title: "Align left", action: "align-left" },
+        { label: "⫸", title: "Align right", action: "align-right" },
+        { label: "⫿", title: "Align center", action: "align-center" },
+      ];
+      for (const btn of btns) {
+        if (btn.action.startsWith("sep")) {
+          const sep = document.createElement("span");
+          sep.style.cssText = "width: 1px; height: 16px; background: var(--border-color); margin: 0 2px;";
+          this.dom.appendChild(sep);
+          continue;
+        }
+        const el = document.createElement("button");
+        el.textContent = btn.label;
+        el.title = btn.title;
+        el.style.cssText = "background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 3px; font-size: 11px; line-height: 1;";
+        el.addEventListener("mouseenter", () => { el.style.background = "var(--bg-hover)"; el.style.color = "var(--text-primary)"; });
+        el.addEventListener("mouseleave", () => { el.style.background = "none"; el.style.color = "var(--text-muted)"; });
+        el.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          this.handleAction(btn.action);
+        });
+        this.dom.appendChild(el);
+      }
+    }
+
+    getTableInfo() {
+      const state = this.view.state;
+      const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+      const doc = state.doc;
+
+      // Scan backwards to find table start
+      let start = cursorLine;
+      while (start > 1 && doc.line(start - 1).text.match(/^\|.*\|/)) start--;
+      // Verify this is a table: second line must be separator
+      if (start + 1 > doc.lines) return null;
+      if (!doc.line(start + 1).text.match(/^\|[\s:-]+\|/)) return null;
+      if (!doc.line(start).text.match(/^\|.*\|/)) return null;
+
+      // Scan forward for table end
+      let end = cursorLine;
+      while (end < doc.lines && doc.line(end + 1).text.match(/^\|.*\|/)) end++;
+
+      if (cursorLine < start || cursorLine > end) return null;
+
+      const parseRow = (lineNum: number) => {
+        const text = doc.line(lineNum).text;
+        return text.split("|").slice(1, -1).map((c) => c.trim());
+      };
+
+      const numCols = parseRow(start).length;
+      const colInCursor = (() => {
+        const lineText = doc.line(cursorLine).text;
+        const offset = state.selection.main.head - doc.line(cursorLine).from;
+        let col = -1;
+        for (let i = 0; i <= offset && i < lineText.length; i++) {
+          if (lineText[i] === "|") col++;
+        }
+        return Math.max(0, Math.min(col, numCols - 1));
+      })();
+
+      return { start, end, cursorLine, numCols, colInCursor, sepLine: start + 1 };
+    }
+
+    handleAction(action: string) {
+      const info = this.getTableInfo();
+      if (!info) return;
+      const { start, end, numCols, colInCursor, sepLine } = info;
+      const doc = this.view.state.doc;
+
+      const parseRow = (lineNum: number) => doc.line(lineNum).text.split("|").slice(1, -1);
+
+      if (action === "col-right" || action === "col-left") {
+        const insertIdx = action === "col-right" ? colInCursor + 1 : colInCursor;
+        const changes: Array<{ from: number; to: number; insert: string }> = [];
+        for (let l = start; l <= end; l++) {
+          const cells = parseRow(l);
+          const newCell = l === sepLine ? " --- " : "     ";
+          cells.splice(insertIdx, 0, newCell);
+          const newLine = "|" + cells.join("|") + "|";
+          const line = doc.line(l);
+          changes.push({ from: line.from, to: line.to, insert: newLine });
+        }
+        this.view.dispatch({ changes });
+      } else if (action === "col-del" && numCols > 1) {
+        const changes: Array<{ from: number; to: number; insert: string }> = [];
+        for (let l = start; l <= end; l++) {
+          const cells = parseRow(l);
+          cells.splice(colInCursor, 1);
+          const newLine = "|" + cells.join("|") + "|";
+          const line = doc.line(l);
+          changes.push({ from: line.from, to: line.to, insert: newLine });
+        }
+        this.view.dispatch({ changes });
+      } else if (action === "row-above" || action === "row-below") {
+        const newRow = "|" + Array(numCols).fill("     ").join("|") + "|";
+        let insertLine = action === "row-below" ? this.view.state.doc.lineAt(this.view.state.selection.main.head).number : this.view.state.doc.lineAt(this.view.state.selection.main.head).number;
+        // Don't insert in header or separator position
+        if (insertLine <= sepLine && action === "row-above") insertLine = sepLine + 1;
+        const line = doc.line(action === "row-below" ? insertLine : insertLine);
+        const insertPos = action === "row-below" ? line.to : line.from;
+        this.view.dispatch({ changes: { from: insertPos, to: insertPos, insert: (action === "row-below" ? "\n" : "") + newRow + (action === "row-above" ? "\n" : "") } });
+      } else if (action === "row-del") {
+        const curLine = this.view.state.doc.lineAt(this.view.state.selection.main.head).number;
+        if (curLine <= sepLine) return; // Don't delete header or separator
+        if (end - sepLine < 2) return; // Keep at least one data row
+        const line = doc.line(curLine);
+        const from = curLine > 1 ? doc.line(curLine).from - 1 : line.from;
+        this.view.dispatch({ changes: { from, to: line.to } });
+      } else if (action.startsWith("align-")) {
+        const align = action.replace("align-", "");
+        const cells = parseRow(sepLine);
+        const sep = cells[colInCursor]?.trim() ?? "---";
+        let newSep: string;
+        if (align === "left") newSep = " :--- ";
+        else if (align === "right") newSep = " ---: ";
+        else newSep = " :---: ";
+        cells[colInCursor] = newSep;
+        const newLine = "|" + cells.join("|") + "|";
+        const line = doc.line(sepLine);
+        this.view.dispatch({ changes: { from: line.from, to: line.to, insert: newLine } });
+      }
+    }
+
+    update(update: { docChanged: boolean; selectionSet: boolean; viewportChanged: boolean; view: EditorView }) {
+      if (!update.docChanged && !update.selectionSet) return;
+      const info = this.getTableInfo();
+      if (!info) {
+        this.dom.style.display = "none";
+        return;
+      }
+      // Position toolbar above the table
+      const line = this.view.state.doc.line(info.start);
+      const coords = this.view.coordsAtPos(line.from);
+      if (!coords) { this.dom.style.display = "none"; return; }
+      const editorRect = this.view.dom.getBoundingClientRect();
+      this.dom.style.display = "flex";
+      this.dom.style.left = `${coords.left - editorRect.left}px`;
+      this.dom.style.top = `${coords.top - editorRect.top - 30}px`;
+    }
+
+    destroy() {
+      this.dom.remove();
+    }
+  },
+);
+
 const tableField = StateField.define<DecorationSet>({
   create(state) { return buildTableDecorations(state); },
   update(decos, tr) {
@@ -2332,6 +2504,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         tagRenderField,
         highlightAndLinkField,
         tableField,
+        tableToolbarPlugin,
         footnoteField,
         mathField,
         codeBlockField,
