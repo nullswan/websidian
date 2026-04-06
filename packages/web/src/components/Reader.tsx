@@ -624,6 +624,25 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // Overall task progress summary at top of note
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // Remove old summary
+    container.querySelectorAll(".task-progress-summary").forEach((el) => el.remove());
+    const allCbs = container.querySelectorAll<HTMLInputElement>("input[type=checkbox]");
+    if (allCbs.length < 3) return; // Only show for 3+ tasks
+    let checked = 0;
+    allCbs.forEach((cb) => { if (cb.checked) checked++; });
+    const total = allCbs.length;
+    const pct = Math.round((checked / total) * 100);
+    const summary = document.createElement("div");
+    summary.className = "task-progress-summary";
+    summary.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;font-size:12px;color:var(--text-secondary);";
+    summary.innerHTML = `<span style="flex-shrink:0;">${pct === 100 ? "✅" : "☐"}</span><span style="flex:1;height:4px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "#4caf50" : "var(--accent-color)"};border-radius:2px;transition:width 0.3s ease;"></span></span><span>${checked}/${total} tasks (${pct}%)</span>`;
+    container.insertBefore(summary, container.firstChild);
+  }, [html]);
+
   // Task due date highlighting — 📅 YYYY-MM-DD or ⏳ YYYY-MM-DD
   useEffect(() => {
     const container = containerRef.current;
