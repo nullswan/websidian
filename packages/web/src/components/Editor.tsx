@@ -926,6 +926,29 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
           return true;
         },
       },
+      {
+        key: "Mod-Shift-d",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          if (sel.from !== sel.to) {
+            // Duplicate selection
+            const text = view.state.sliceDoc(sel.from, sel.to);
+            view.dispatch({
+              changes: { from: sel.to, to: sel.to, insert: text },
+              selection: { anchor: sel.to, head: sel.to + text.length },
+            });
+          } else {
+            // Duplicate current line
+            const line = view.state.doc.lineAt(sel.head);
+            const text = "\n" + line.text;
+            view.dispatch({
+              changes: { from: line.to, to: line.to, insert: text },
+              selection: { anchor: line.to + text.length },
+            });
+          }
+          return true;
+        },
+      },
     ]);
 
     // Ctrl+Click on wikilinks to navigate
