@@ -18,6 +18,7 @@ import { LocalGraph } from "./components/LocalGraph.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
+import { Calendar } from "./components/Calendar.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
@@ -597,6 +598,8 @@ export function App() {
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calendarAnchorRef = useRef<HTMLButtonElement>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
   // Refresh hotkey map when settings close (user may have changed hotkeys)
@@ -1237,20 +1240,18 @@ ${rendered}
     showToast(`Exported ${title}.html`);
   }, [activeTab, showToast]);
 
-  const openDailyNote = useCallback(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const path = `Daily Notes/${yyyy}-${mm}-${dd}.md`;
-
-    // Try to open — if 404, create it first
+  const openDailyByDate = useCallback((dateStr: string) => {
+    const path = `Daily Notes/${dateStr}.md`;
     fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" })
       .then((r) => {
         if (r.ok) {
           openTab(path);
         } else {
-          const content = `# ${yyyy}-${mm}-${dd}\n\n`;
+          const [y, m, d] = dateStr.split("-");
+          const dt = new Date(Number(y), Number(m) - 1, Number(d));
+          const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          const content = `---\ntags: daily\ncreated: ${dateStr}\n---\n\n# ${monthNames[dt.getMonth()]} ${dt.getDate()}, ${y} — ${dayNames[dt.getDay()]}\n\n## Tasks\n\n- [ ] \n\n## Notes\n\n`;
           fetch("/api/vault/file", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -1264,6 +1265,14 @@ ${rendered}
       })
       .catch((e) => setError("Failed to open daily note: " + e.message));
   }, [openTab, refreshTree]);
+
+  const openDailyNote = useCallback(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    openDailyByDate(`${yyyy}-${mm}-${dd}`);
+  }, [openDailyByDate]);
 
   // Global keyboard shortcuts (driven by customizable hotkey map)
   useEffect(() => {
@@ -2109,34 +2118,11 @@ ${rendered}
             </button>
           ))}
 
-          {/* Daily note */}
+          {/* Daily note / Calendar */}
           <button
-            title="Open today's daily note"
-            onClick={async () => {
-              const today = new Date();
-              const yyyy = today.getFullYear();
-              const mm = String(today.getMonth() + 1).padStart(2, "0");
-              const dd = String(today.getDate()).padStart(2, "0");
-              const dateName = `${yyyy}-${mm}-${dd}`;
-              const dailyPath = `Daily Notes/${dateName}.md`;
-              // Try to open; if it doesn't exist, create it first
-              const res = await fetch(`/api/vault/file?path=${encodeURIComponent(dailyPath)}`, { credentials: "include" });
-              const data = await res.json();
-              if (data.error) {
-                // Create the daily note
-                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                const content = `---\ntags: daily\ncreated: ${dateName}\n---\n\n# ${monthNames[today.getMonth()]} ${today.getDate()}, ${yyyy} — ${dayNames[today.getDay()]}\n\n## Tasks\n\n- [ ] \n\n## Notes\n\n`;
-                await fetch("/api/vault/file", {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  credentials: "include",
-                  body: JSON.stringify({ path: dailyPath, content }),
-                });
-                refreshTree();
-              }
-              openTab(dailyPath);
-            }}
+            ref={calendarAnchorRef}
+            title="Daily notes calendar (click) / Open today (Ctrl+D)"
+            onClick={() => setShowCalendar((c) => !c)}
             style={{
               width: 36,
               height: 36,
@@ -3389,6 +3375,14 @@ ${rendered}
           settings={appSettings}
           onUpdate={setAppSettings}
           onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
+        />
+      )}
+
+      {showCalendar && (
+        <Calendar
+          anchorRect={calendarAnchorRef.current?.getBoundingClientRect() ?? null}
+          onSelectDate={(dateStr) => openDailyByDate(dateStr)}
+          onClose={() => setShowCalendar(false)}
         />
       )}
 
