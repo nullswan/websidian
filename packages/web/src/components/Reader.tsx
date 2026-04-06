@@ -2073,6 +2073,11 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
             lines[i] = match[1] + (nowChecked ? "x" : " ") + match[3];
             const updated = lines.join("\n");
             onSave(updated);
+            // Bounce animation
+            checkbox.classList.remove("just-toggled");
+            void checkbox.offsetWidth;
+            checkbox.classList.add("just-toggled");
+            setTimeout(() => checkbox.classList.remove("just-toggled"), 300);
             break;
           }
           cbCount++;
