@@ -77,7 +77,33 @@ export function VaultStats({ onClose, onNavigate }: VaultStatsProps) {
 
     const avgWords = totalNotes > 0 ? Math.round(totalWords / totalNotes) : 0;
 
-    return { totalNotes, totalWords, totalEdges, avgWords, mostLinked, orphans, largestNotes };
+    // Word count distribution buckets
+    const buckets = [0, 100, 250, 500, 1000, 2500, 5000, 10000, Infinity];
+    const bucketLabels = ["<100", "100-250", "250-500", "500-1K", "1K-2.5K", "2.5K-5K", "5K-10K", "10K+"];
+    const distribution = new Array(bucketLabels.length).fill(0) as number[];
+    for (const node of graph.nodes) {
+      const wc = node.wordCount ?? 0;
+      for (let b = 0; b < buckets.length - 1; b++) {
+        if (wc >= buckets[b] && wc < buckets[b + 1]) { distribution[b]++; break; }
+      }
+    }
+
+    // Folder breakdown
+    const folderCounts = new Map<string, { notes: number; words: number }>();
+    for (const node of graph.nodes) {
+      const parts = node.id.split("/");
+      const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "(root)";
+      const entry = folderCounts.get(folder) ?? { notes: 0, words: 0 };
+      entry.notes++;
+      entry.words += node.wordCount ?? 0;
+      folderCounts.set(folder, entry);
+    }
+    const folderBreakdown = [...folderCounts.entries()]
+      .sort((a, b) => b[1].notes - a[1].notes)
+      .slice(0, 10)
+      .map(([folder, data]) => ({ folder, ...data }));
+
+    return { totalNotes, totalWords, totalEdges, avgWords, mostLinked, orphans, largestNotes, distribution, bucketLabels, folderBreakdown };
   }, [graph]);
 
   return (
@@ -103,6 +129,51 @@ export function VaultStats({ onClose, onNavigate }: VaultStatsProps) {
                 <StatCard label="Avg Words/Note" value={stats.avgWords.toLocaleString()} />
                 <StatCard label="Links" value={stats.totalEdges.toLocaleString()} />
               </div>
+
+              {/* Word count distribution */}
+              <Section title="Note Size Distribution">
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100, padding: "0 4px" }}>
+                  {stats.distribution.map((count, i) => {
+                    const maxCount = Math.max(...stats.distribution, 1);
+                    const height = (count / maxCount) * 100;
+                    return (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        <span style={{ fontSize: 9, color: count > 0 ? "var(--text-muted)" : "transparent" }}>{count}</span>
+                        <div style={{
+                          width: "100%",
+                          height: `${height}%`,
+                          minHeight: count > 0 ? 2 : 0,
+                          background: "var(--accent-color)",
+                          borderRadius: "2px 2px 0 0",
+                          opacity: 0.7,
+                          transition: "height 0.3s",
+                        }} />
+                        <span style={{ fontSize: 8, color: "var(--text-faint)", whiteSpace: "nowrap" }}>{stats.bucketLabels[i]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+
+              {/* Folder breakdown */}
+              {stats.folderBreakdown.length > 1 && (
+                <Section title="Folder Breakdown">
+                  {stats.folderBreakdown.map((f) => {
+                    const pct = stats.totalNotes > 0 ? (f.notes / stats.totalNotes) * 100 : 0;
+                    return (
+                      <div key={f.folder} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.folder}>{f.folder}</span>
+                        <div style={{ flex: 1, height: 8, background: "var(--bg-tertiary)", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent-color)", borderRadius: 4, opacity: 0.6 }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: "var(--text-faint)", minWidth: 50, textAlign: "right" }}>
+                          {f.notes} · {(f.words / 1000).toFixed(1)}K
+                        </span>
+                      </div>
+                    );
+                  })}
+                </Section>
+              )}
 
               {/* Tag cloud */}
               {tags.length > 0 && (
