@@ -46,6 +46,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [folderLegend, setFolderLegend] = useState<Array<{ folder: string; color: string }>>([]);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
+  const panTargetRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const zoomTargetRef = useRef(1);
   const dragRef = useRef<{ node: GraphNode | null; offsetX: number; offsetY: number }>({
@@ -371,6 +372,21 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         zoomRef.current = zoomTargetRef.current;
       }
 
+      // Smooth pan lerp (only when not dragging/panning)
+      if (!isPanningRef.current && !dragRef.current.node) {
+        const pxDiff = panTargetRef.current.x - panRef.current.x;
+        const pyDiff = panTargetRef.current.y - panRef.current.y;
+        if (Math.abs(pxDiff) > 0.5 || Math.abs(pyDiff) > 0.5) {
+          panRef.current.x += pxDiff * 0.15;
+          panRef.current.y += pyDiff * 0.15;
+        } else {
+          panRef.current.x = panTargetRef.current.x;
+          panRef.current.y = panTargetRef.current.y;
+        }
+      } else {
+        panTargetRef.current = { ...panRef.current };
+      }
+
       const cx = canvas.clientWidth / 2 + panRef.current.x;
       const cy = canvas.clientHeight / 2 + panRef.current.y;
       const zoom = zoomRef.current;
@@ -568,6 +584,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         const dy = e.clientY - lastMouseRef.current.y;
         panRef.current.x += dx;
         panRef.current.y += dy;
+        panTargetRef.current = { ...panRef.current };
         lastMouseRef.current = { x: e.clientX, y: e.clientY };
       } else {
         // Hover detection
@@ -820,11 +837,24 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         <button
           onClick={() => {
             zoomTargetRef.current = 1;
-            panRef.current = { x: 0, y: 0 };
+            panTargetRef.current = { x: 0, y: 0 };
           }}
           style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
           title="Reset view"
         >⟲</button>
+        {activePath && (
+          <button
+            onClick={() => {
+              const node = nodesRef.current.find((n) => n.id === activePath);
+              if (node) {
+                panTargetRef.current = { x: -node.x * zoomRef.current, y: -node.y * zoomRef.current };
+                zoomTargetRef.current = Math.max(zoomTargetRef.current, 1.5);
+              }
+            }}
+            style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--accent-color)", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+            title="Center on active note"
+          >◎</button>
+        )}
       </div>
       {folderLegend.length > 1 && (
         <div style={{
