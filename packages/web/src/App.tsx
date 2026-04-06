@@ -4551,6 +4551,60 @@ ${rendered}
               },
             },
             {
+              id: "delete-current-note",
+              name: "Delete current note",
+              action: async () => {
+                if (!activeTab) { showToast("No active note"); return; }
+                if (!confirm(`Delete "${activeTab.path}"?`)) return;
+                try {
+                  const res = await fetch(`/api/vault/file?path=${encodeURIComponent(activeTab.path)}`, { method: "DELETE", credentials: "include" });
+                  if (res.ok) {
+                    closeTab(activeTab.id, activePaneIdx);
+                    refreshTree();
+                    showToast(`Deleted ${activeTab.path}`);
+                  }
+                } catch { showToast("Failed to delete"); }
+              },
+            },
+            {
+              id: "rename-current-note",
+              name: "Rename current note",
+              action: () => {
+                if (!activeTab) { showToast("No active note"); return; }
+                const oldName = activeTab.path.split("/").pop()?.replace(/\.md$/, "") ?? "";
+                const newName = prompt("New name:", oldName);
+                if (!newName || newName === oldName) return;
+                const dir = activeTab.path.includes("/") ? activeTab.path.split("/").slice(0, -1).join("/") + "/" : "";
+                const newPath = `${dir}${newName}.md`;
+                fetch("/api/vault/rename", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ oldPath: activeTab.path, newPath }),
+                }).then((r) => { if (r.ok) { refreshTree(); showToast(`Renamed to ${newName}`); openTab(newPath); } });
+              },
+            },
+            {
+              id: "duplicate-current-note",
+              name: "Duplicate current note",
+              action: async () => {
+                if (!activeTab) { showToast("No active note"); return; }
+                const baseName = activeTab.path.replace(/\.md$/, "");
+                const newPath = `${baseName} (copy).md`;
+                try {
+                  await fetch("/api/vault/file", {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ path: newPath, content: activeTab.content }),
+                  });
+                  refreshTree();
+                  openTab(newPath);
+                  showToast(`Created ${newPath}`);
+                } catch { showToast("Failed to duplicate"); }
+              },
+            },
+            {
               id: "toggle-line-numbers",
               name: appSettings.showLineNumbers ? "Hide line numbers" : "Show line numbers",
               action: () => {
