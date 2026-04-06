@@ -311,7 +311,8 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           ctx.fillStyle = isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
           ctx.font = `${isActive || isHovered ? 12 : 10}px system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(node.name, nx, ny + radius + 14);
+          const label = node.name.length > 20 ? node.name.slice(0, 18) + "…" : node.name;
+          ctx.fillText(label, nx, ny + radius + 14);
         }
       }
 
