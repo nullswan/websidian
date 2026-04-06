@@ -3454,6 +3454,23 @@ ${rendered}
               action: exportAsHtml,
             },
             {
+              id: "copy-embed-html",
+              name: "Copy embeddable HTML to clipboard",
+              action: () => {
+                if (!activeTab?.content) { showToast("No active note"); return; }
+                const md = createMarkdownRenderer();
+                const body = activeTab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
+                const rendered = md.render(body);
+                const title = activeTab.path.replace(/\.md$/, "").split("/").pop() || "Untitled";
+                const embed = `<div class="obsidian-embed" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.65;font-size:16px;color:#dcddde;background:#1e1e1e;padding:24px 32px;border-radius:8px;max-width:750px;">
+<h2 style="margin:0 0 12px;color:#e0e0e0;">${title}</h2>
+${rendered}
+<div style="margin-top:16px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#666;">Published from <a href="#" style="color:#7f6df2;text-decoration:none;">Websidian</a></div>
+</div>`;
+                navigator.clipboard.writeText(embed).then(() => showToast("Embeddable HTML copied to clipboard"));
+              },
+            },
+            {
               id: "version-history",
               name: "Version history",
               action: () => { if (activeTab) setShowVersionHistory(true); },
