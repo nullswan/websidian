@@ -1088,6 +1088,12 @@ details.callout > div {
   padding: 0 !important;
 }
 
+/* Active line number highlight in gutter */
+.cm-activeLineGutter {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
 /* Zen mode: constrain content width for focused writing */
 .zen-mode .cm-editor {
   max-width: 750px;

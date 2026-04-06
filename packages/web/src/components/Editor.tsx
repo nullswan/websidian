@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker, drawSelection } from "@codemirror/view";
+import { EditorView, keymap, highlightActiveLine, highlightActiveLineGutter, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker, drawSelection } from "@codemirror/view";
 import { EditorState, EditorSelection, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -4228,6 +4228,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       extensions: [
         lineNumbersComp.current.of(showLineNumbers ? lineNumbers() : []),
         highlightActiveLine(),
+        highlightActiveLineGutter(),
         highlightTrailingWhitespace(),
         bracketMatching(),
         history(),
