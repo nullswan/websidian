@@ -1572,6 +1572,26 @@ ${rendered}
                 </div>
               );
             })}
+            <button
+              className="tab-bar-new"
+              title="New note (Ctrl+N)"
+              onClick={createNewNote}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "2px 6px",
+                fontSize: 18,
+                lineHeight: 1,
+                flexShrink: 0,
+                borderRadius: 4,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+            >
+              +
+            </button>
             {paneTab && paneIsMarkdown && (
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 8 }}>
                 <button
