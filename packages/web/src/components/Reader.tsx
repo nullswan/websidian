@@ -512,6 +512,50 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => { cancelled = true; };
   }, [html]);
 
+  // Task due date highlighting — 📅 YYYY-MM-DD or ⏳ YYYY-MM-DD
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const items = container.querySelectorAll<HTMLElement>("li.task-list-item");
+    items.forEach((li) => {
+      const text = li.textContent || "";
+      const dateMatch = text.match(/[📅⏳🗓️]\s*(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) return;
+      const dueDate = new Date(dateMatch[1] + "T00:00:00");
+      if (isNaN(dueDate.getTime())) return;
+      const isChecked = li.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked;
+      if (isChecked) return; // Don't highlight completed tasks
+      const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      // Find the date text node and wrap it
+      const walker = document.createTreeWalker(li, NodeFilter.SHOW_TEXT);
+      let node: Text | null;
+      while ((node = walker.nextNode() as Text | null)) {
+        const idx = node.textContent?.indexOf(dateMatch[1]) ?? -1;
+        if (idx === -1) continue;
+        const span = document.createElement("span");
+        span.textContent = dateMatch[1];
+        if (diffDays < 0) {
+          span.style.cssText = "color: #ff6b6b; font-weight: 600; background: rgba(255,107,107,0.1); padding: 0 3px; border-radius: 3px;";
+          span.title = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? "s" : ""}`;
+        } else if (diffDays === 0) {
+          span.style.cssText = "color: #ffa726; font-weight: 600; background: rgba(255,167,38,0.1); padding: 0 3px; border-radius: 3px;";
+          span.title = "Due today";
+        } else if (diffDays <= 3) {
+          span.style.cssText = "color: #ffeb3b; font-weight: 600; background: rgba(255,235,59,0.08); padding: 0 3px; border-radius: 3px;";
+          span.title = `Due in ${diffDays} day${diffDays !== 1 ? "s" : ""}`;
+        }
+        if (span.style.cssText) {
+          const after = node.splitText(idx);
+          after.textContent = after.textContent?.slice(dateMatch[1].length) ?? "";
+          node.parentNode?.insertBefore(span, after);
+        }
+        break;
+      }
+    });
+  }, [html]);
+
   // Style blockquote citations — detect "— Author" or "-- Author" at end
   useEffect(() => {
     const container = containerRef.current;
