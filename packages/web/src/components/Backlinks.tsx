@@ -11,6 +11,7 @@ const previewMd = createMarkdownRenderer();
 export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
   const [hoverPreview, setHoverPreview] = useState<{ path: string; html: string; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
     return () => { if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current); };
@@ -54,10 +55,25 @@ export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
     grouped.get(bl.path)!.push({ context: bl.context, lineContext: bl.lineContext });
   }
 
+  const sortedEntries = [...grouped.entries()].sort((a, b) => {
+    const nameA = (a[0].split("/").pop() ?? "").toLowerCase();
+    const nameB = (b[0].split("/").pop() ?? "").toLowerCase();
+    return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+  });
+
   return (
     <div style={{ padding: "4px 12px 8px" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+        <button
+          onClick={() => setSortAsc((v) => !v)}
+          title={sortAsc ? "Sort Z→A" : "Sort A→Z"}
+          style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", fontSize: 11, padding: "1px 4px" }}
+        >
+          {sortAsc ? "A↓" : "Z↓"}
+        </button>
+      </div>
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {[...grouped.entries()].map(([path, entries]) => (
+        {sortedEntries.map(([path, entries]) => (
           <li key={path} style={{ marginBottom: 8 }}>
             <a
               href="#"
