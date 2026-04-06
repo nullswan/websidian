@@ -167,6 +167,24 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           pre.appendChild(label);
         }
 
+        // Line numbers for code blocks with 4+ lines
+        if (code) {
+          const lines = (code.textContent ?? "").split("\n");
+          if (lines.length >= 4) {
+            // Remove trailing empty line from trailing \n
+            if (lines[lines.length - 1] === "") lines.pop();
+            const gutter = document.createElement("div");
+            gutter.className = "code-line-numbers";
+            gutter.style.cssText = "position: absolute; left: 0; top: 12px; width: 32px; text-align: right; font-size: 11px; color: var(--text-faint); opacity: 0.4; user-select: none; font-family: monospace; line-height: inherit; pointer-events: none;";
+            gutter.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
+            // Match code line-height
+            const codeStyle = window.getComputedStyle(code);
+            gutter.style.lineHeight = codeStyle.lineHeight;
+            pre.appendChild(gutter);
+            code.style.paddingLeft = "32px";
+          }
+        }
+
         // Copy button
         const btn = document.createElement("button");
         btn.textContent = "Copy";

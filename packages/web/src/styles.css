@@ -388,6 +388,9 @@ details.callout > div {
 .reader-view tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.02);
 }
+.reader-view tr:hover {
+  background: rgba(127, 109, 242, 0.06);
+}
 
 .reader-view mark {
   background: rgba(255, 208, 0, 0.25);
