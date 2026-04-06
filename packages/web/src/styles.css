@@ -303,6 +303,20 @@ details.callout > div {
 .reader-view blockquote blockquote blockquote { border-left-color: #4ac8e6; }
 .reader-view blockquote blockquote blockquote blockquote { border-left-color: #e64a7b; }
 .reader-view blockquote blockquote blockquote blockquote blockquote { border-left-color: #8ae64a; }
+/* Nested blockquote depth counter */
+.reader-view { counter-reset: bq-depth; }
+.reader-view blockquote { counter-increment: bq-depth; position: relative; }
+.reader-view blockquote blockquote::before {
+  content: counter(bq-depth);
+  position: absolute;
+  left: -10px;
+  top: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-faint);
+  opacity: 0.5;
+  line-height: 1;
+}
 
 .reader-view ul,
 .reader-view ol {
