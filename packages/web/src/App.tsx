@@ -64,6 +64,7 @@ interface Tab {
   pinned?: boolean;
   missing?: boolean;
   dirty?: boolean;
+  color?: string;
   fileCreated?: string;
   fileModified?: string;
   fileSize?: number;
@@ -1702,6 +1703,7 @@ ${rendered}
                     }
                   }}
                   className={`tab ${tab.id === pane.activeTabId ? "active" : ""}${tab.pinned ? " pinned" : ""}`}
+                  style={tab.color ? { borderTop: `2px solid ${tab.color}`, paddingTop: 4 } : undefined}
                   draggable
                   onDragStart={(e) => {
                     dragTabRef.current = { tabId: tab.id, paneIdx };
@@ -3696,6 +3698,11 @@ ${rendered}
                   if (tab) toggleStar(tab.path);
                 },
               },
+              {
+                label: "Color",
+                type: "color-picker" as const,
+                action: () => {},
+              },
               { type: "separator" as const },
               {
                 label: "Split Right",
@@ -3715,6 +3722,28 @@ ${rendered}
             ].map((item, i) =>
               "type" in item && item.type === "separator" ? (
                 <div key={i} style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
+              ) : "type" in item && item.type === "color-picker" ? (
+                <div key={i} style={{ padding: "4px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4 }}>Color</span>
+                  {["", "#e06c75", "#e5c07b", "#98c379", "#61afef", "#c678dd", "#56b6c2"].map((c) => (
+                    <span
+                      key={c || "none"}
+                      onClick={() => {
+                        updateTab(tabCtxMenu.tabId, { color: c || undefined });
+                        setTabCtxMenu(null);
+                      }}
+                      style={{
+                        width: 14, height: 14, borderRadius: "50%", cursor: "pointer",
+                        background: c || "var(--bg-tertiary)",
+                        border: (tabsMap[tabCtxMenu.tabId]?.color ?? "") === c ? "2px solid var(--text-primary)" : "1px solid var(--border-color)",
+                        transition: "transform 0.1s",
+                      }}
+                      onMouseEnter={(e) => { (e.target as HTMLElement).style.transform = "scale(1.3)"; }}
+                      onMouseLeave={(e) => { (e.target as HTMLElement).style.transform = "scale(1)"; }}
+                      title={c ? c : "None"}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div
                   key={i}
