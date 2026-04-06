@@ -271,6 +271,10 @@ details.callout > div {
   padding: 4px 16px;
   color: var(--text-secondary);
 }
+.reader-view blockquote blockquote { border-left-color: #e6994a; }
+.reader-view blockquote blockquote blockquote { border-left-color: #4ac8e6; }
+.reader-view blockquote blockquote blockquote blockquote { border-left-color: #e64a7b; }
+.reader-view blockquote blockquote blockquote blockquote blockquote { border-left-color: #8ae64a; }
 
 .reader-view ul,
 .reader-view ol {
