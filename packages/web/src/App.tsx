@@ -803,6 +803,7 @@ export function App() {
   }, []);
   const splitDivRef = useRef<HTMLDivElement>(null);
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
+  const [splitDropZone, setSplitDropZone] = useState(false);
   const scrollToHeadingRef = useRef<((heading: string, level: number) => void) | null>(null);
   const foldAllRef = useRef<{ foldAll: () => void; unfoldAll: () => void } | null>(null);
   const [pendingHeading, setPendingHeading] = useState<string | null>(null);
@@ -1749,8 +1750,40 @@ ${rendered}
           minWidth: 0,
           outline: isSplit && isActive ? "1px solid var(--accent-color)" : "none",
           outlineOffset: "-1px",
+          position: "relative",
         }}
         onClick={() => setActivePaneIdx(paneIdx)}
+        onDragOver={(e) => {
+          if (!dragTabRef.current || panes.length >= 2) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          setSplitDropZone(x > rect.width - 80);
+        }}
+        onDragLeave={() => setSplitDropZone(false)}
+        onDrop={(e) => {
+          if (!splitDropZone || !dragTabRef.current || panes.length >= 2) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const src = dragTabRef.current;
+          const srcTab = tabsMap[src.tabId];
+          if (!srcTab) return;
+          // Create new pane with this tab
+          setPanes((prev) => {
+            const srcPane = { ...prev[src.paneIdx], tabIds: [...prev[src.paneIdx].tabIds] };
+            const srcIdx = srcPane.tabIds.indexOf(src.tabId);
+            if (srcIdx !== -1) {
+              srcPane.tabIds.splice(srcIdx, 1);
+              if (srcPane.activeTabId === src.tabId) {
+                srcPane.activeTabId = srcPane.tabIds[Math.min(srcIdx, srcPane.tabIds.length - 1)] ?? null;
+              }
+            }
+            return [srcPane, { tabIds: [src.tabId], activeTabId: src.tabId }];
+          });
+          setActivePaneIdx(1);
+          dragTabRef.current = null;
+          setSplitDropZone(false);
+        }}
       >
         {/* Pane tab bar */}
         {!zenMode && pane.tabIds.length > 0 && (
@@ -2378,6 +2411,27 @@ ${rendered}
             </div>
           )}
         </ScrollContainer>
+        {/* Split drop zone indicator */}
+        {splitDropZone && panes.length < 2 && (
+          <div
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 80,
+              background: "rgba(127,109,242,0.12)",
+              borderLeft: "2px solid var(--accent-color)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 100,
+            }}
+          >
+            <span style={{ color: "var(--accent-color)", fontSize: 11, fontWeight: 600, writingMode: "vertical-rl" }}>Split</span>
+          </div>
+        )}
       </div>
     );
   };
