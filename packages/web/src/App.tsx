@@ -2327,6 +2327,7 @@ ${rendered}
                 borderRadius: 4,
                 background: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--bg-tertiary)" : "transparent",
                 color: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--text-primary)" : "var(--text-faint)",
+                borderLeft: (item.id === "graph" ? showGraph : leftPanel === item.id && !leftCollapsed) ? "2px solid var(--accent-color)" : "2px solid transparent",
                 cursor: "pointer",
                 transition: "color 0.15s, background 0.15s",
               }}
