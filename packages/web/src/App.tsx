@@ -1832,9 +1832,17 @@ ${rendered}
       }
       const hash = window.location.hash;
       if (!hash.startsWith("#/note/")) return;
-      const path = decodeURIComponent(hash.slice("#/note/".length));
+      const raw = hash.slice("#/note/".length);
+      // Support heading anchors: #/note/path.md#heading-slug
+      const hashIdx = raw.indexOf("#");
+      const pathEncoded = hashIdx >= 0 ? raw.slice(0, hashIdx) : raw;
+      const headingSlug = hashIdx >= 0 ? decodeURIComponent(raw.slice(hashIdx + 1)) : null;
+      const path = decodeURIComponent(pathEncoded);
       if (path && path !== activeTab?.path) {
         openTab(path);
+      }
+      if (headingSlug) {
+        setPendingHeading(headingSlug);
       }
     };
 
