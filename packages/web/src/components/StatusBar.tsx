@@ -177,10 +177,19 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
         </span>
       )}
       {saveStatus === "saving" && (
-        <span style={{ color: "#e6994a" }}>Saving...</span>
+        <span style={{ color: "#e6994a", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#e6994a", animation: "save-pulse 1s ease-in-out infinite" }} />
+          Saving
+        </span>
       )}
       {saveStatus === "saved" && (
-        <span style={{ color: "#4ec9b0" }}>&#10003; Saved</span>
+        <span style={{ color: "#4ec9b0", display: "inline-flex", alignItems: "center", gap: 3, animation: "save-fade-in 0.25s ease-out" }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0 }}>
+            <path d="M2 6l3 3 5-5" fill="none" stroke="#4ec9b0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ strokeDasharray: 14, strokeDashoffset: 0, animation: "save-check-draw 0.35s ease-out" }} />
+          </svg>
+          Saved
+        </span>
       )}
       {cursorPos && (
         <span style={{ marginLeft: "auto" }}>
