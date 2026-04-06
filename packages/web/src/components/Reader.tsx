@@ -79,7 +79,46 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   }, [content]);
   const [propsCollapsed, setPropsCollapsed] = useState(false);
 
-  const html = useMemo(() => md.render(body), [md, body]);
+  // Parse references from YAML for citation support
+  const references = useMemo(() => {
+    const refs = new Map<string, string>();
+    const refProp = properties.find((p) => p.key === "references" || p.key === "bibliography");
+    if (!refProp) return refs;
+    // Parse "key: description" entries from comma-separated or multi-line values
+    for (const entry of refProp.value.split(",").map((s) => s.trim()).filter(Boolean)) {
+      const colonIdx = entry.indexOf(":");
+      if (colonIdx > 0) {
+        refs.set(entry.slice(0, colonIdx).trim(), entry.slice(colonIdx + 1).trim());
+      } else {
+        refs.set(entry, entry);
+      }
+    }
+    return refs;
+  }, [properties]);
+
+  const html = useMemo(() => {
+    let rendered = md.render(body);
+    // Replace [@key] citations with numbered superscripts
+    if (references.size > 0) {
+      const usedRefs: string[] = [];
+      rendered = rendered.replace(/\[@([\w-]+)\]/g, (_, key: string) => {
+        let idx = usedRefs.indexOf(key);
+        if (idx === -1) { usedRefs.push(key); idx = usedRefs.length - 1; }
+        const title = references.get(key) ?? key;
+        return `<sup class="citation-ref" title="${title.replace(/"/g, "&quot;")}" style="color: var(--accent-color); cursor: help; font-size: 0.75em;">[${idx + 1}]</sup>`;
+      });
+      // Append bibliography section
+      if (usedRefs.length > 0) {
+        rendered += `<hr style="margin: 24px 0 12px; border-color: var(--border-color); opacity: 0.3;"><div class="bibliography" style="font-size: 0.85em; color: var(--text-secondary);"><h4 style="margin: 0 0 8px; font-size: 13px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em;">References</h4><ol style="margin: 0; padding-left: 20px;">`;
+        for (const key of usedRefs) {
+          const desc = references.get(key) ?? key;
+          rendered += `<li id="ref-${key}" style="margin-bottom: 4px;">${desc}</li>`;
+        }
+        rendered += `</ol></div>`;
+      }
+    }
+    return rendered;
+  }, [md, body, references]);
 
   // Track content ref for checkbox toggling
   const contentRef = useRef(content);
