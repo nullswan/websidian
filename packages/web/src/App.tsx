@@ -1108,6 +1108,8 @@ ${rendered}
         createNewNote();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "d") {
+        // Don't intercept Cmd+D when editor is focused (used for select next occurrence)
+        if (document.activeElement?.closest(".cm-editor")) return;
         e.preventDefault();
         openDailyNote();
       }
@@ -2775,6 +2777,7 @@ ${rendered}
                 ["Ctrl+Shift+N", "Extract selection to note"],
               ]],
               ["Editing", [
+                ["Ctrl+D", "Select next occurrence"],
                 ["Ctrl+F", "Find in editor"],
                 ["Ctrl+H", "Find & replace"],
                 ["Ctrl+B", "Bold"],
