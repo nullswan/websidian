@@ -2787,6 +2787,50 @@ function emojiCompletion(ctx: CompletionContext) {
   return options.length > 0 ? { from, options, filter: false } : null;
 }
 
+// HTML entity auto-complete: typing &xx triggers entity suggestions
+const HTML_ENTITIES: [string, string][] = [
+  ["amp", "&"], ["lt", "<"], ["gt", ">"], ["nbsp", "\u00A0"],
+  ["mdash", "—"], ["ndash", "–"], ["hellip", "…"], ["laquo", "«"], ["raquo", "»"],
+  ["ldquo", "\u201C"], ["rdquo", "\u201D"], ["lsquo", "\u2018"], ["rsquo", "\u2019"],
+  ["copy", "©"], ["reg", "®"], ["trade", "™"], ["deg", "°"], ["plusmn", "±"],
+  ["times", "×"], ["divide", "÷"], ["infin", "∞"], ["ne", "≠"], ["le", "≤"], ["ge", "≥"],
+  ["larr", "←"], ["rarr", "→"], ["uarr", "↑"], ["darr", "↓"], ["harr", "↔"],
+  ["lArr", "⇐"], ["rArr", "⇒"], ["uArr", "⇑"], ["dArr", "⇓"],
+  ["bull", "•"], ["middot", "·"], ["para", "¶"], ["sect", "§"],
+  ["euro", "€"], ["pound", "£"], ["yen", "¥"], ["cent", "¢"],
+  ["frac12", "½"], ["frac14", "¼"], ["frac34", "¾"],
+  ["alpha", "α"], ["beta", "β"], ["gamma", "γ"], ["delta", "δ"], ["pi", "π"],
+  ["sigma", "σ"], ["omega", "ω"], ["theta", "θ"], ["lambda", "λ"], ["mu", "μ"],
+  ["checkmark", "✓"], ["cross", "✗"], ["star", "★"], ["heart", "♥"],
+  ["spades", "♠"], ["clubs", "♣"], ["diams", "♦"],
+];
+
+function htmlEntityCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  const match = /&(\w{1,})$/.exec(textBefore);
+  if (!match) return null;
+
+  const query = match[1].toLowerCase();
+  const from = ctx.pos - match[1].length - 1; // include the &
+
+  const options: Completion[] = HTML_ENTITIES
+    .filter(([name]) => name.toLowerCase().startsWith(query))
+    .slice(0, 20)
+    .map(([name, char]) => ({
+      label: `&${name};`,
+      detail: char,
+      apply: (view: EditorView, _: Completion, compFrom: number, to: number) => {
+        view.dispatch({
+          changes: { from: compFrom, to, insert: `&${name};` },
+          selection: { anchor: compFrom + name.length + 2 },
+        });
+      },
+    }));
+
+  return options.length > 0 ? { from, options, filter: false } : null;
+}
+
 // Markdown heading fold: fold content under a heading until next heading of equal/higher level
 const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   const line = state.doc.lineAt(lineStart);
@@ -4897,7 +4941,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [frontmatterCompletion, imagePathCompletion, mdLinkPathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion, emojiCompletion],
+          override: [frontmatterCompletion, imagePathCompletion, mdLinkPathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion, emojiCompletion, htmlEntityCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
