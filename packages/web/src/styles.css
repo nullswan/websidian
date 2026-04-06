@@ -1297,6 +1297,11 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   to { opacity: 1; max-height: 2000px; }
 }
 
+/* File tree item transitions */
+.file-tree-item {
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
 /* File tree drag source dimming */
 .file-tree-item[style*="opacity: 0.4"] {
   filter: grayscale(0.5);
