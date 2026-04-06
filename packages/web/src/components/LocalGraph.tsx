@@ -23,6 +23,17 @@ interface Edge {
 export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNavigate }: LocalGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [depth, setDepth] = useState(1);
+  const [graphEdges, setGraphEdges] = useState<Array<{ source: string; target: string }>>([]);
+
+  // Fetch full graph edges for multi-hop expansion
+  useEffect(() => {
+    if (depth <= 1) return;
+    fetch("/api/vault/graph", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setGraphEdges(data.edges ?? []))
+      .catch(() => {});
+  }, [depth]);
 
   const { nodes, edges } = useMemo(() => {
     const currentLabel = currentPath.replace(/\.md$/, "").split("/").pop() || currentPath;
@@ -37,31 +48,58 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
       isCurrent: true,
     });
 
-    // Collect unique neighbors
-    const allNeighbors = new Set<string>();
+    // Collect 1-hop neighbors
+    const hop1 = new Set<string>();
     for (const path of outgoingLinks) {
-      if (path !== currentPath) allNeighbors.add(path);
+      if (path !== currentPath) hop1.add(path);
     }
     for (const path of backlinkPaths) {
-      if (path !== currentPath) allNeighbors.add(path);
+      if (path !== currentPath) hop1.add(path);
+    }
+
+    // Collect 2+ hop neighbors from graph edges
+    const allNeighbors = new Set(hop1);
+    if (depth >= 2 && graphEdges.length > 0) {
+      const adj = new Map<string, Set<string>>();
+      for (const e of graphEdges) {
+        if (!adj.has(e.source)) adj.set(e.source, new Set());
+        if (!adj.has(e.target)) adj.set(e.target, new Set());
+        adj.get(e.source)!.add(e.target);
+        adj.get(e.target)!.add(e.source);
+      }
+      let frontier = hop1;
+      for (let d = 1; d < depth; d++) {
+        const next = new Set<string>();
+        for (const id of frontier) {
+          for (const n of adj.get(id) ?? []) {
+            if (!allNeighbors.has(n) && n !== currentPath) {
+              allNeighbors.add(n);
+              next.add(n);
+            }
+          }
+        }
+        frontier = next;
+      }
     }
 
     // Arrange neighbors in a circle
     const neighborArr = [...allNeighbors];
-    const radius = Math.min(80, 40 + neighborArr.length * 5);
+    const radius = Math.min(120, 40 + neighborArr.length * 4);
     neighborArr.forEach((path, i) => {
       const angle = (2 * Math.PI * i) / neighborArr.length - Math.PI / 2;
       const label = path.replace(/\.md$/, "").split("/").pop() || path;
+      const isHop1 = hop1.has(path);
       nodeMap.set(path, {
         id: path,
         label,
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
+        x: Math.cos(angle) * (isHop1 ? radius * 0.6 : radius),
+        y: Math.sin(angle) * (isHop1 ? radius * 0.6 : radius),
         isCurrent: false,
       });
     });
 
     const edges: Edge[] = [];
+    // 1-hop edges
     for (const path of outgoingLinks) {
       if (nodeMap.has(path) && path !== currentPath) {
         edges.push({ from: currentPath, to: path });
@@ -69,14 +107,27 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
     }
     for (const path of backlinkPaths) {
       if (nodeMap.has(path) && path !== currentPath) {
-        // Avoid duplicate edge if already outgoing
         const exists = edges.some((e) => e.from === path && e.to === currentPath);
         if (!exists) edges.push({ from: path, to: currentPath });
       }
     }
+    // 2+ hop edges from graph data
+    if (depth >= 2) {
+      const edgeSet = new Set(edges.map((e) => `${e.from}->${e.to}`));
+      for (const ge of graphEdges) {
+        if (nodeMap.has(ge.source) && nodeMap.has(ge.target)) {
+          const key1 = `${ge.source}->${ge.target}`;
+          const key2 = `${ge.target}->${ge.source}`;
+          if (!edgeSet.has(key1) && !edgeSet.has(key2)) {
+            edges.push({ from: ge.source, to: ge.target });
+            edgeSet.add(key1);
+          }
+        }
+      }
+    }
 
     return { nodes: [...nodeMap.values()], edges };
-  }, [currentPath, outgoingLinks, backlinkPaths]);
+  }, [currentPath, outgoingLinks, backlinkPaths, depth, graphEdges]);
 
   // Simple force simulation for minor adjustments
   const [positions, setPositions] = useState<Map<string, { x: number; y: number }>>(new Map());
@@ -152,6 +203,27 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
   const vbH = maxY - minY + padding * 2;
 
   return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", fontSize: 11 }}>
+        <span style={{ color: "var(--text-muted)", marginRight: 4 }}>Depth</span>
+        {[1, 2, 3].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDepth(d)}
+            style={{
+              padding: "1px 6px",
+              fontSize: 11,
+              border: "1px solid var(--border-color)",
+              borderRadius: 3,
+              background: d === depth ? "var(--accent-color, #7f6df2)" : "transparent",
+              color: d === depth ? "#fff" : "var(--text-muted)",
+              cursor: "pointer",
+            }}
+          >
+            {d}
+          </button>
+        ))}
+      </div>
     <svg
       ref={svgRef}
       viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
@@ -225,5 +297,6 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
         );
       })}
     </svg>
+    </div>
   );
 }
