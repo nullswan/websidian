@@ -291,6 +291,11 @@ details.callout > div {
 .reader-view img {
   max-width: 100%;
   border-radius: 6px;
+  opacity: 0;
+  animation: imgFadeIn 0.3s ease forwards;
+}
+@keyframes imgFadeIn {
+  to { opacity: 1; }
 }
 
 .reader-view .embed {
