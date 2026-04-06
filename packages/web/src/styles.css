@@ -718,6 +718,22 @@ details.callout > div {
 }
 
 /* Abbreviations */
+.reader-view figure {
+  margin: 16px 0;
+  text-align: center;
+}
+.reader-view figure img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.reader-view figcaption {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .reader-view abbr {
   text-decoration: underline dotted var(--text-faint);
   text-underline-offset: 3px;
