@@ -696,6 +696,125 @@ const mathField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Embedded note preview widget for Live Preview (![[note]] and ![[note#heading]])
+class NoteEmbedWidget extends WidgetType {
+  target: string;
+  filePath: string;
+  constructor(target: string, filePath: string) {
+    super();
+    this.target = target;
+    this.filePath = filePath;
+  }
+  toDOM() {
+    const container = document.createElement("div");
+    container.className = "cm-note-embed";
+    container.style.cssText = "border-left: 3px solid #7f6df2; background: rgba(127, 109, 242, 0.05); border-radius: 4px; padding: 12px 16px; margin: 4px 0; font-size: 0.9em; color: #ccc; max-height: 300px; overflow-y: auto;";
+
+    const loading = document.createElement("span");
+    loading.textContent = `Loading ${this.target}...`;
+    loading.style.color = "#666";
+    container.appendChild(loading);
+
+    const target = this.target;
+    // Parse heading fragment
+    const hashIdx = target.indexOf("#");
+    const notePath = hashIdx > 0 ? target.slice(0, hashIdx) : target;
+    const heading = hashIdx > 0 ? target.slice(hashIdx + 1) : "";
+
+    fetch(`/api/vault/resolve?target=${encodeURIComponent(notePath)}&from=${encodeURIComponent(this.filePath)}`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.resolved) {
+          loading.textContent = `Note not found: ${target}`;
+          loading.style.color = "#ff6b6b";
+          return;
+        }
+        return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((fileData) => {
+            if (fileData.error) {
+              loading.textContent = `Error loading ${target}`;
+              loading.style.color = "#ff6b6b";
+              return;
+            }
+            let content = fileData.content || "";
+            // Strip frontmatter
+            const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(content);
+            if (fmMatch) content = content.slice(fmMatch[0].length);
+
+            // If heading fragment, extract section
+            if (heading) {
+              const lines = content.split("\n");
+              let start = -1;
+              let level = 0;
+              for (let i = 0; i < lines.length; i++) {
+                const m = lines[i].match(/^(#{1,6})\s+(.*)/);
+                if (m && m[2].trim().toLowerCase() === heading.toLowerCase()) {
+                  start = i;
+                  level = m[1].length;
+                  break;
+                }
+              }
+              if (start >= 0) {
+                let end = lines.length;
+                for (let i = start + 1; i < lines.length; i++) {
+                  const m = lines[i].match(/^(#{1,6})\s/);
+                  if (m && m[1].length <= level) { end = i; break; }
+                }
+                content = lines.slice(start, end).join("\n");
+              }
+            }
+
+            // Truncate long content
+            if (content.length > 1500) content = content.slice(0, 1500) + "\n\n...";
+
+            const md = createMarkdownRenderer();
+            container.innerHTML = "";
+            // Title
+            const title = document.createElement("div");
+            title.style.cssText = "font-weight: 600; color: #7f6df2; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;";
+            title.textContent = target;
+            container.appendChild(title);
+            // Rendered content
+            const body = document.createElement("div");
+            body.className = "markdown-body";
+            body.innerHTML = md.render(content);
+            container.appendChild(body);
+          });
+      })
+      .catch(() => {
+        loading.textContent = `Failed to load ${target}`;
+        loading.style.color = "#ff6b6b";
+      });
+
+    return container;
+  }
+  eq(other: NoteEmbedWidget) { return this.target === other.target && this.filePath === other.filePath; }
+  ignoreEvent() { return true; }
+}
+
+function buildNoteEmbedDecorations(state: EditorState, filePath: string): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+    // ![[target]] — but NOT images
+    const match = text.match(/^!\[\[([^\]|#]+(?:#[^\]|]*)?)\]\]\s*$/);
+    if (!match) continue;
+    const target = match[1].trim();
+    // Skip image embeds (handled by imagePreviewField)
+    if (IMAGE_EXTENSIONS.test(target.replace(/#.*$/, ""))) continue;
+    builder.add(line.from, line.to, Decoration.replace({
+      widget: new NoteEmbedWidget(target, filePath),
+      block: true,
+    }));
+  }
+  return builder.finish();
+}
+
 // Code block language label widget for Live Preview
 class CodeBlockLabelWidget extends WidgetType {
   lang: string;
@@ -1299,6 +1418,18 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
       hoverTarget = "";
     };
 
+    // Note embed field — needs filePath closure
+    const noteEmbedField = StateField.define<DecorationSet>({
+      create(state) { return buildNoteEmbedDecorations(state, filePath); },
+      update(decos, tr) {
+        if (tr.docChanged || tr.selection) {
+          return buildNoteEmbedDecorations(tr.state, filePath);
+        }
+        return decos;
+      },
+      provide: (f) => EditorView.decorations.from(f),
+    });
+
     // Place cursor after frontmatter so the Properties widget shows immediately
     const fm = parseFrontmatterRange({ toString: () => content });
     const initialCursor = fm ? Math.min(fm.to + 1, content.length) : 0;
@@ -1348,6 +1479,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         inlineMarkerField,
         mathField,
         codeBlockField,
+        noteEmbedField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
