@@ -931,7 +931,21 @@ function FileTreeNode({
             {expanded ? <ChevronDown /> : <ChevronRight />}
           </span>
           <FolderIcon open={expanded} />
-          <span style={{ fontSize: 13, flex: 1 }}>{filterQuery ? highlightMatch(entry.path.split("/").pop() ?? "", filterQuery) : entry.path.split("/").pop()}</span>
+          {(() => {
+            const folderName = entry.path.split("/").pop() ?? "";
+            const folderNotePath = entry.children?.find(
+              (c) => c.kind === "file" && (c.path === `${entry.path}/${folderName}.md` || c.path === `${entry.path}/${folderName}.MD`)
+            )?.path;
+            return (
+              <span
+                style={{ fontSize: 13, flex: 1, textDecoration: folderNotePath ? "underline dotted var(--text-faint)" : undefined, textUnderlineOffset: 3 }}
+                onClick={folderNotePath ? (e) => { e.stopPropagation(); onFileSelect(folderNotePath); } : undefined}
+                title={folderNotePath ? `Open folder note: ${folderName}.md` : undefined}
+              >
+                {filterQuery ? highlightMatch(folderName, filterQuery) : folderName}
+              </span>
+            );
+          })()}
           <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0, opacity: countFiles(entry) === 0 ? 0.5 : 1 }}>
             {countFiles(entry) === 0 ? "empty" : countFiles(entry)}
           </span>
