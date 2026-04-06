@@ -51,7 +51,8 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
     // Link counts
     const internalLinks = (text.match(/\[\[[^\]]+\]\]/g) ?? []).length;
     const externalLinks = (text.match(/(?:^|[^(])(https?:\/\/[^\s)>\]]+)/gm) ?? []).length;
-    return { words, chars, readingTime, wordGoal, totalTasks, doneTasks, internalLinks, externalLinks };
+    const footnotes = (text.match(/^\[\^\w+\]:/gm) ?? []).length;
+    return { words, chars, readingTime, wordGoal, totalTasks, doneTasks, internalLinks, externalLinks, footnotes };
   }, [content]);
 
   // Track word count history for sparkline
@@ -155,6 +156,9 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
           {stats.internalLinks > 0 && stats.externalLinks > 0 && " · "}
           {stats.externalLinks > 0 && <>{stats.externalLinks} ext</>}
         </span>
+      )}
+      {stats.footnotes > 0 && (
+        <span title={`${stats.footnotes} footnote${stats.footnotes !== 1 ? "s" : ""}`}>{stats.footnotes} fn</span>
       )}
       {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
       {fileModified && <span title={`Modified: ${fileModified}`}>Modified {formatDate(fileModified)}</span>}
