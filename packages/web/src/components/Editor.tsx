@@ -2797,6 +2797,81 @@ function formatMarkdownTable(view: EditorView): boolean {
   return true;
 }
 
+// Table Tab navigation: move cursor to next/previous cell
+function tableTabNav(view: EditorView, reverse: boolean): boolean {
+  const state = view.state;
+  const cursor = state.selection.main.head;
+  const line = state.doc.lineAt(cursor);
+  // Check if cursor is on a table line
+  if (!/^\s*\|/.test(line.text) || !line.text.trim().endsWith("|")) return false;
+
+  const posInLine = cursor - line.from;
+  const pipes: number[] = [];
+  for (let i = 0; i < line.text.length; i++) {
+    if (line.text[i] === "|") pipes.push(i);
+  }
+  if (pipes.length < 2) return false;
+
+  if (!reverse) {
+    // Find next pipe after cursor
+    const nextPipe = pipes.find((p) => p > posInLine);
+    if (nextPipe !== undefined && nextPipe < pipes[pipes.length - 1]) {
+      // Move cursor to content start after next pipe
+      const target = line.from + nextPipe + 2;
+      view.dispatch({ selection: { anchor: Math.min(target, line.to) } });
+      return true;
+    }
+    // Move to first cell of next line if it's a table line
+    const nextLineNum = line.number + 1;
+    if (nextLineNum <= state.doc.lines) {
+      const nextLine = state.doc.line(nextLineNum);
+      if (/^\s*\|/.test(nextLine.text) && nextLine.text.trim().endsWith("|") && !/^[-|:\s]+$/.test(nextLine.text.trim())) {
+        const firstPipe = nextLine.text.indexOf("|");
+        view.dispatch({ selection: { anchor: nextLine.from + firstPipe + 2 } });
+        return true;
+      }
+    }
+    // Add a new row
+    const colCount = pipes.length - 1;
+    const newRow = "| " + Array(colCount).fill(" ").join(" | ") + " |";
+    view.dispatch({
+      changes: { from: line.to, insert: "\n" + newRow },
+      selection: { anchor: line.to + 3 },
+    });
+    return true;
+  } else {
+    // Find previous pipe before cursor
+    const prevPipes = pipes.filter((p) => p < posInLine);
+    if (prevPipes.length >= 2) {
+      const target = line.from + prevPipes[prevPipes.length - 1] + 2;
+      view.dispatch({ selection: { anchor: Math.min(target, line.to) } });
+      return true;
+    }
+    // Move to last cell of previous line
+    const prevLineNum = line.number - 1;
+    if (prevLineNum >= 1) {
+      const prevLine = state.doc.line(prevLineNum);
+      if (/^\s*\|/.test(prevLine.text) && prevLine.text.trim().endsWith("|") && !/^[-|:\s]+$/.test(prevLine.text.trim())) {
+        const prevPipesArr: number[] = [];
+        for (let i = 0; i < prevLine.text.length; i++) {
+          if (prevLine.text[i] === "|") prevPipesArr.push(i);
+        }
+        if (prevPipesArr.length >= 2) {
+          const target = prevLine.from + prevPipesArr[prevPipesArr.length - 2] + 2;
+          view.dispatch({ selection: { anchor: Math.min(target, prevLine.to) } });
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+const tableTabKeymap = keymap.of([
+  { key: "Tab", run: (view) => tableTabNav(view, false) },
+  { key: "Shift-Tab", run: (view) => tableTabNav(view, true) },
+]);
+
 // Pair deletion: Backspace between paired delimiters removes both sides
 const pairDeletionKeymap = keymap.of([{
   key: "Backspace",
@@ -4044,6 +4119,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           { key: "Shift-Alt-s", run: (view: EditorView) => sortSelectedLines(view, false) },
           { key: "Shift-Alt-r", run: (view: EditorView) => sortSelectedLines(view, true) },
         ]),
+        tableTabKeymap,
         snippetKeymap,
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
