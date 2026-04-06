@@ -264,6 +264,38 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => { cancelled = true; };
   }, [html, filePath]);
 
+  // Hydrate audio, video, and PDF embeds — resolve short names via vault search
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const mediaEls = container.querySelectorAll<HTMLElement>("audio[data-target], video[data-target], iframe[data-target]");
+    if (mediaEls.length === 0) return;
+
+    let cancelled = false;
+    for (const el of mediaEls) {
+      const target = el.dataset.target;
+      if (!target) continue;
+      fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(filePath)}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (cancelled) return;
+          const resolved = data.resolved || target;
+          const url = `/api/vault/raw?path=${encodeURIComponent(resolved)}`;
+          if (el.tagName === "IFRAME") {
+            (el as HTMLIFrameElement).src = url;
+          } else {
+            const source = el.querySelector("source[data-target]") as HTMLSourceElement | null;
+            if (source) {
+              source.src = url;
+              (el as HTMLMediaElement).load();
+            }
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [html, filePath]);
+
   // Hydrate unresolved wikilinks — dim links to non-existent notes
   useEffect(() => {
     const container = containerRef.current;

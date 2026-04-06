@@ -93,6 +93,15 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     if (/\.(png|jpg|jpeg|gif|svg|webp|bmp)$/i.test(target)) {
       return `<div class="embed embed-image"><img class="embed-img" data-target="${escapeAttr(target)}" alt="${escapeAttr(target)}" /></div>`;
     }
+    if (/\.(mp3|wav|ogg|m4a|flac|aac|wma)$/i.test(target)) {
+      return `<div class="embed embed-audio" data-target="${escapeAttr(target)}"><audio controls preload="metadata" data-target="${escapeAttr(target)}" style="width: 100%; max-width: 500px;"><source data-target="${escapeAttr(target)}" /></audio><div class="embed-label" style="font-size: 11px; margin-top: 4px;">${escapeHtml(target)}</div></div>`;
+    }
+    if (/\.(mp4|webm|mov|mkv|avi|ogv)$/i.test(target)) {
+      return `<div class="embed embed-video" data-target="${escapeAttr(target)}"><video controls preload="metadata" data-target="${escapeAttr(target)}" style="width: 100%; max-width: 640px; border-radius: 4px;"><source data-target="${escapeAttr(target)}" /></video><div class="embed-label" style="font-size: 11px; margin-top: 4px;">${escapeHtml(target)}</div></div>`;
+    }
+    if (/\.pdf$/i.test(target)) {
+      return `<div class="embed embed-pdf" data-target="${escapeAttr(target)}"><iframe data-target="${escapeAttr(target)}" style="width: 100%; height: 600px; border: 1px solid var(--border-color); border-radius: 4px;" /></div>`;
+    }
     return `<div class="embed embed-note" data-target="${escapeAttr(target)}"><span class="embed-label">${escapeHtml(target)}</span></div>`;
   };
 
