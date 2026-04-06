@@ -104,10 +104,16 @@ body {
 .reader-view a {
   color: var(--accent-color, #7f6df2);
   text-decoration: none;
+  background-image: linear-gradient(var(--accent-color, #7f6df2), var(--accent-color, #7f6df2));
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+  padding-bottom: 1px;
 }
 
 .reader-view a:hover {
-  text-decoration: underline;
+  background-size: 100% 1px;
 }
 
 .reader-view a[target="_blank"]::after {
@@ -120,20 +126,32 @@ body {
   color: var(--accent-color, #7f6df2);
   text-decoration: none;
   cursor: pointer;
+  background-image: linear-gradient(var(--accent-color, #7f6df2), var(--accent-color, #7f6df2));
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+  padding-bottom: 1px;
 }
 
 .reader-view a.wikilink:hover {
-  text-decoration: underline;
+  background-size: 100% 1px;
 }
 
 .reader-view a.wikilink-unresolved {
   opacity: 0.5;
   text-decoration: none;
+  background-image: linear-gradient(var(--text-faint), var(--text-faint));
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease, opacity 0.15s;
+  padding-bottom: 1px;
 }
 
 .reader-view a.wikilink-unresolved:hover {
-  text-decoration: underline;
   opacity: 0.7;
+  background-size: 100% 1px;
 }
 
 .reader-view a.date-link {
