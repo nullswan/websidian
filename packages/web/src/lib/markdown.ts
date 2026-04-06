@@ -262,7 +262,7 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   return md;
 }
 
-const CALLOUT_COLORS: Record<string, string> = {
+export const CALLOUT_COLORS: Record<string, string> = {
   note: "#448aff",
   info: "#448aff",
   abstract: "#00b0ff",
@@ -290,7 +290,7 @@ const CALLOUT_COLORS: Record<string, string> = {
   todo: "#448aff",
 };
 
-const CALLOUT_ICONS: Record<string, string> = {
+export const CALLOUT_ICONS: Record<string, string> = {
   note: "📝",
   info: "ℹ️",
   abstract: "📋",

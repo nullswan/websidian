@@ -9,7 +9,7 @@ import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
-import { createMarkdownRenderer } from "../lib/markdown.js";
+import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
 
 interface EditorProps {
   content: string;
@@ -447,6 +447,42 @@ function buildLivePreviewDecorations(state: EditorState): DecorationSet {
       continue;
     }
 
+    // Callout detection: > [!type] Title
+    const calloutMatch = text.match(/^>\s*\[!(\w+)\]([+-])?\s*(.*)/);
+    if (calloutMatch) {
+      const cType = calloutMatch[1].toLowerCase();
+      const cTitle = calloutMatch[3] || cType.charAt(0).toUpperCase() + cType.slice(1);
+      const cColor = CALLOUT_COLORS[cType] || CALLOUT_COLORS.note;
+      // Style callout header line
+      builder.add(line.from, line.from, Decoration.line({
+        attributes: { style: `border-left: 3px solid ${cColor}; background: ${cColor}15; border-radius: 4px 4px 0 0; padding: 6px 12px;` },
+      }));
+      // Replace the > [!type] Title with styled header
+      builder.add(line.from, line.to, Decoration.replace({
+        widget: new CalloutHeaderWidget(cType, cTitle),
+      }));
+      // Style continuation lines in this callout block
+      for (let j = i + 1; j <= state.doc.lines; j++) {
+        const nextLine = state.doc.line(j);
+        const nextText = nextLine.text;
+        if (!nextText.match(/^>\s?/)) break;
+        if (j === cursorLine) continue;
+        const isLast = j + 1 > state.doc.lines || !state.doc.line(j + 1).text.match(/^>\s?/);
+        builder.add(nextLine.from, nextLine.from, Decoration.line({
+          attributes: { style: `border-left: 3px solid ${cColor}; background: ${cColor}15; padding: 2px 12px;${isLast ? " border-radius: 0 0 4px 4px;" : ""}` },
+        }));
+        // Hide the > marker on continuation lines
+        const contBq = nextText.match(/^>\s?/);
+        if (contBq) {
+          builder.add(nextLine.from, nextLine.from + contBq[0].length, Decoration.replace({
+            widget: new BlockquoteMarkerWidget(1),
+          }));
+        }
+        i = j; // Skip processed lines
+      }
+      continue;
+    }
+
     // Blockquote: add left-border line decoration and hide > marker
     const bqMatch = text.match(/^(\s*>+)\s?/);
     if (bqMatch) {
@@ -475,6 +511,28 @@ class BlockquoteMarkerWidget extends WidgetType {
     return span;
   }
   eq(other: BlockquoteMarkerWidget) { return this.depth === other.depth; }
+  ignoreEvent() { return true; }
+}
+
+class CalloutHeaderWidget extends WidgetType {
+  type: string;
+  title: string;
+  color: string;
+  icon: string;
+  constructor(type: string, title: string) {
+    super();
+    this.type = type;
+    this.title = title;
+    this.color = CALLOUT_COLORS[type] || CALLOUT_COLORS.note;
+    this.icon = CALLOUT_ICONS[type] || CALLOUT_ICONS.note;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.style.cssText = `display: flex; align-items: center; gap: 6px; font-weight: 600; color: ${this.color}; font-size: 14px;`;
+    span.textContent = `${this.icon} ${this.title}`;
+    return span;
+  }
+  eq(other: CalloutHeaderWidget) { return this.type === other.type && this.title === other.title; }
   ignoreEvent() { return true; }
 }
 
