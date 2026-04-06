@@ -512,6 +512,33 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => { cancelled = true; };
   }, [html]);
 
+  // Per-section checklist progress bar
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const headings = container.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
+    headings.forEach((heading) => {
+      // Count checkboxes between this heading and the next heading of same/higher level
+      let total = 0;
+      let checked = 0;
+      let sibling = heading.nextElementSibling;
+      const level = parseInt(heading.tagName[1], 10);
+      while (sibling) {
+        const sibTag = sibling.tagName;
+        if (/^H[1-6]$/.test(sibTag) && parseInt(sibTag[1], 10) <= level) break;
+        const cbs = sibling.querySelectorAll<HTMLInputElement>("input[type=checkbox]");
+        cbs.forEach((cb) => { total++; if (cb.checked) checked++; });
+        sibling = sibling.nextElementSibling;
+      }
+      if (total < 2) return; // Only show for 2+ tasks
+      const pct = Math.round((checked / total) * 100);
+      const bar = document.createElement("span");
+      bar.style.cssText = `display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:10px;color:var(--text-faint);vertical-align:middle;`;
+      bar.innerHTML = `<span style="display:inline-block;width:40px;height:3px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "#4caf50" : "var(--accent-color)"};border-radius:2px;"></span></span><span>${checked}/${total}</span>`;
+      heading.appendChild(bar);
+    });
+  }, [html]);
+
   // Task due date highlighting — 📅 YYYY-MM-DD or ⏳ YYYY-MM-DD
   useEffect(() => {
     const container = containerRef.current;
