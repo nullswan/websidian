@@ -25,6 +25,7 @@ import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
+import { NoteGrowth } from "./components/NoteGrowth.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
@@ -3848,6 +3849,9 @@ ${rendered}
                 />
               </SidebarSection>
             )}
+            <SidebarSection title="Note Growth">
+              <NoteGrowth path={activeTab.path} />
+            </SidebarSection>
             <SidebarSection title="File Info">
               <div style={{ padding: "4px 12px 8px", fontSize: 12, color: "var(--text-secondary)" }}>
                 {(() => {
