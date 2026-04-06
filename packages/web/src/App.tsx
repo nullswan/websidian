@@ -2064,13 +2064,25 @@ ${rendered}
                   }}
                   className={`tab ${tab.id === pane.activeTabId ? "active" : ""}${tab.pinned ? " pinned" : ""}`}
                   title={(() => {
-                    const name = tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path;
                     const words = tab.content ? tab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim().split(/\s+/).filter(Boolean).length : 0;
                     const bl = tab.backlinks.length;
-                    const parts = [tab.path];
-                    if (words > 0) parts.push(`${words.toLocaleString()} words`);
-                    if (bl > 0) parts.push(`${bl} backlink${bl !== 1 ? "s" : ""}`);
-                    return parts.join(" · ");
+                    const lines = [tab.path];
+                    if (words > 0) lines.push(`${words.toLocaleString()} words · ~${Math.max(1, Math.ceil(words / 200))} min read`);
+                    if (bl > 0) lines.push(`${bl} backlink${bl !== 1 ? "s" : ""}`);
+                    if (tab.fileModified) lines.push(`Modified: ${new Date(tab.fileModified).toLocaleString()}`);
+                    // Extract tags from content
+                    const tagMatches = tab.content?.match(/(?:^|\s)#([A-Za-z][\w/-]*)/g);
+                    if (tagMatches && tagMatches.length > 0) {
+                      const tags = [...new Set(tagMatches.map((t) => t.trim()))].slice(0, 5);
+                      lines.push(`Tags: ${tags.join(", ")}`);
+                    }
+                    // Preview first non-empty non-frontmatter line
+                    if (tab.content) {
+                      const bodyText = tab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim();
+                      const firstLine = bodyText.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim();
+                      if (firstLine) lines.push(`"${firstLine.slice(0, 80)}${firstLine.length > 80 ? "…" : ""}"`);
+                    }
+                    return lines.join("\n");
                   })()}
                   style={tab.color ? { borderTop: `2px solid ${tab.color}`, paddingTop: 4 } : undefined}
                   draggable
