@@ -11,9 +11,10 @@ interface SearchPanelProps {
   initialQuery?: string;
   onClose?: () => void;
   showToast?: (msg: string) => void;
+  onCreateNote?: (title: string) => void;
 }
 
-export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: SearchPanelProps) {
+export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCreateNote }: SearchPanelProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [replaceText, setReplaceText] = useState("");
   const [showReplace, setShowReplace] = useState(false);
@@ -408,7 +409,30 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
           );
         })}
         {!searching && results.length === 0 && query && !regexError && (
-          <div style={{ padding: 12, color: "var(--text-faint)" }}>No results found</div>
+          <div style={{ padding: 12, color: "var(--text-faint)" }}>
+            No results found
+            {onCreateNote && query.trim() && !useRegex && (
+              <button
+                onClick={() => {
+                  onCreateNote(query.trim());
+                  onClose?.();
+                }}
+                style={{
+                  display: "block",
+                  marginTop: 8,
+                  padding: "6px 12px",
+                  background: "transparent",
+                  border: "1px solid var(--accent-color)",
+                  borderRadius: 4,
+                  color: "var(--accent-color)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                }}
+              >
+                Create note: "{query.trim()}"
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

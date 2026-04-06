@@ -2375,7 +2375,26 @@ ${rendered}
                 </div>
               )
             ) : leftPanel === "search" ? (
-              <SearchPanel onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }} initialQuery={searchQuery} onClose={() => setLeftPanel("files")} showToast={showToast} />
+              <SearchPanel
+                onNavigate={(path, q, line) => { openTab(path); if (q) setReaderHighlight(q); if (line) setScrollToLine(line); }}
+                initialQuery={searchQuery}
+                onClose={() => setLeftPanel("files")}
+                showToast={showToast}
+                onCreateNote={async (title) => {
+                  const path = `${title}.md`;
+                  try {
+                    await fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ content: `# ${title}\n` }),
+                    });
+                    refreshTree();
+                    openTab(path);
+                    showToast(`Created "${title}"`);
+                  } catch { /* ignore */ }
+                }}
+              />
             ) : leftPanel === "starred" ? (
               <div style={{ padding: "8px" }}>
                 {starredNotes.length === 0 ? (
