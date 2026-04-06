@@ -2220,6 +2220,25 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
+// Smart quote replacement: straight quotes → curly quotes
+const smartQuotesHandler = EditorView.inputHandler.of((view, from, _to, text) => {
+  if (text !== '"' && text !== "'") return false;
+  // Determine if opening or closing based on character before cursor
+  const before = from > 0 ? view.state.sliceDoc(from - 1, from) : "";
+  const isOpening = !before || /[\s\n({\[—–]/.test(before);
+  let replacement: string;
+  if (text === '"') {
+    replacement = isOpening ? "\u201C" : "\u201D"; // "" → ""
+  } else {
+    replacement = isOpening ? "\u2018" : "\u2019"; // '' → ''
+  }
+  view.dispatch({
+    changes: { from, to: from, insert: replacement },
+    selection: { anchor: from + replacement.length },
+  });
+  return true;
+});
+
 // Format markdown table: align pipes and pad cells
 function formatMarkdownTable(view: EditorView): boolean {
   const state = view.state;
@@ -3009,6 +3028,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         closeBrackets(),
         markdownAutoPair,
         wikilinkAutoPair,
+        smartQuotesHandler,
         indentationMarkers({
           colors: {
             light: "rgba(127, 109, 242, 0.1)",
