@@ -924,6 +924,33 @@ export function App() {
     showToast(`Random: ${randomPath.replace(/\.md$/, "").split("/").pop()}`);
   }, [tree, openTab, showToast]);
 
+  const duplicateNote = useCallback(async (path: string) => {
+    // Fetch original content
+    const res = await fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const content = data.content ?? "";
+    const base = path.replace(/\.md$/, "");
+    const ext = path.endsWith(".md") ? ".md" : "";
+    let copyPath = `${base} copy${ext}`;
+    let n = 2;
+    while (n <= 20) {
+      const check = await fetch(`/api/vault/file?path=${encodeURIComponent(copyPath)}`, { credentials: "include" });
+      if (check.status === 404) break;
+      copyPath = `${base} copy ${n}${ext}`;
+      n++;
+    }
+    await fetch("/api/vault/file", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ path: copyPath, content }),
+    });
+    refreshTree();
+    openTab(copyPath);
+    showToast(`Duplicated to ${copyPath.split("/").pop()}`);
+  }, [refreshTree, openTab, showToast]);
+
   const exportAsHtml = useCallback(() => {
     if (!activeTab?.content) {
       showToast("No active note to export");
@@ -2039,6 +2066,7 @@ ${rendered}
                   selectedPath={activeTab?.path ?? null}
                   onMutate={refreshTree}
                   onFileRenamed={handleFileRenamed}
+                  onDuplicate={duplicateNote}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
@@ -2530,6 +2558,13 @@ ${rendered}
               {
                 label: "Reveal in File Tree",
                 action: () => setLeftPanel("files"),
+              },
+              {
+                label: "Duplicate",
+                action: () => {
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (tab) duplicateNote(tab.path);
+                },
               },
               {
                 label: starredNotes.includes(tabsMap[tabCtxMenu.tabId]?.path) ? "Unstar" : "Star",

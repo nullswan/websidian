@@ -71,6 +71,7 @@ interface FileTreeProps {
   selectedPath: string | null;
   onMutate?: () => void;
   onFileRenamed?: (from: string, to: string, updatedFiles: string[]) => void;
+  onDuplicate?: (path: string) => void;
 }
 
 interface ContextMenuState {
@@ -136,7 +137,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFileRenamed }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFileRenamed, onDuplicate }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -457,6 +458,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
           onDelete={handleDelete}
           onRename={handleRename}
           onCreate={handleCreate}
+          onDuplicate={onDuplicate}
           parentPath={contextMenu.parentPath}
         />
       )}
@@ -706,6 +708,7 @@ function ContextMenu({
   onDelete,
   onRename,
   onCreate,
+  onDuplicate,
   parentPath,
 }: {
   x: number;
@@ -715,6 +718,7 @@ function ContextMenu({
   onDelete: (path: string) => void;
   onRename: (path: string) => void;
   onCreate: (parentPath: string, kind: "file" | "folder") => void;
+  onDuplicate?: (path: string) => void;
   parentPath: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -739,6 +743,9 @@ function ContextMenu({
 
   if (entry) {
     menuItems.push({ label: "Rename", action: () => onRename(entry.path) });
+    if (entry.kind !== "folder" && onDuplicate) {
+      menuItems.push({ label: "Duplicate", action: () => { onClose(); onDuplicate(entry.path); } });
+    }
     if (entry.kind !== "folder") {
       menuItems.push({ label: "Delete", action: () => onDelete(entry.path), danger: true });
     }
