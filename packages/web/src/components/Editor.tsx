@@ -374,24 +374,72 @@ const frontmatterField = StateField.define<DecorationSet>({
 // Inline image preview widget for Live Preview (![[image]] and ![alt](url))
 class ImagePreviewWidget extends WidgetType {
   src: string;
-  constructor(src: string) {
+  width: number | null;
+  lineFrom: number;
+  lineTo: number;
+  rawName: string;
+  isWiki: boolean;
+  constructor(src: string, width: number | null, lineFrom: number, lineTo: number, rawName: string, isWiki: boolean) {
     super();
     this.src = src;
+    this.width = width;
+    this.lineFrom = lineFrom;
+    this.lineTo = lineTo;
+    this.rawName = rawName;
+    this.isWiki = isWiki;
   }
-  toDOM() {
+  toDOM(view: EditorView) {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-image-preview";
-    wrapper.style.cssText = "padding: 4px 0; max-width: 600px;";
+    wrapper.style.cssText = "padding: 4px 0; max-width: 600px; position: relative; display: inline-block;";
     const img = document.createElement("img");
     img.src = this.src;
-    img.style.cssText = "max-width: 100%; border-radius: 6px; display: block;";
+    const widthCss = this.width ? `width: ${this.width}px; max-width: 100%;` : "max-width: 100%;";
+    img.style.cssText = `${widthCss} border-radius: 6px; display: block;`;
     img.loading = "lazy";
     img.onerror = () => { wrapper.style.display = "none"; };
     wrapper.appendChild(img);
+
+    // Resize handle
+    const handle = document.createElement("div");
+    handle.style.cssText = "position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; opacity: 0; transition: opacity 0.15s; border-right: 2px solid var(--accent-color); border-bottom: 2px solid var(--accent-color); border-radius: 0 0 6px 0;";
+    wrapper.appendChild(handle);
+
+    wrapper.addEventListener("mouseenter", () => { handle.style.opacity = "0.7"; });
+    wrapper.addEventListener("mouseleave", () => { handle.style.opacity = "0"; });
+
+    const widget = this;
+    let startX = 0, startW = 0;
+
+    const onMove = (e: MouseEvent) => {
+      const newW = Math.max(50, startW + (e.clientX - startX));
+      img.style.width = newW + "px";
+    };
+
+    const onUp = (e: MouseEvent) => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      const finalW = Math.max(50, startW + (e.clientX - startX));
+      // Update the source text with new width
+      if (widget.isWiki) {
+        const newText = `![[${widget.rawName}|${Math.round(finalW)}]]`;
+        view.dispatch({ changes: { from: widget.lineFrom, to: widget.lineTo, insert: newText } });
+      }
+    };
+
+    handle.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startX = e.clientX;
+      startW = img.getBoundingClientRect().width;
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
     return wrapper;
   }
   eq(other: ImagePreviewWidget) {
-    return this.src === other.src;
+    return this.src === other.src && this.width === other.width;
   }
   ignoreEvent() { return true; }
 }
@@ -414,13 +462,14 @@ function buildImageDecorations(state: EditorState): DecorationSet {
     const line = state.doc.line(i);
     const text = line.text;
 
-    // ![[image.png]] — wikilink embed
-    const wikiMatch = text.match(/^!\[\[([^\]|#]+?)(?:\|[^\]]*?)?\]\]\s*$/);
+    // ![[image.png]] or ![[image.png|width]] — wikilink embed
+    const wikiMatch = text.match(/^!\[\[([^\]|#]+?)(?:\|(\d+))?\]\]\s*$/);
     if (wikiMatch && IMAGE_EXTENSIONS.test(wikiMatch[1])) {
+      const imgWidth = wikiMatch[2] ? parseInt(wikiMatch[2], 10) : null;
       builder.add(
         line.to,
         line.to,
-        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(wikiMatch[1].trim())), block: true, side: 1 }),
+        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(wikiMatch[1].trim()), imgWidth, line.from, line.to, wikiMatch[1].trim(), true), block: true, side: 1 }),
       );
       continue;
     }
@@ -431,7 +480,7 @@ function buildImageDecorations(state: EditorState): DecorationSet {
       builder.add(
         line.to,
         line.to,
-        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(mdMatch[2].trim())), block: true, side: 1 }),
+        Decoration.widget({ widget: new ImagePreviewWidget(resolveImageSrc(mdMatch[2].trim()), null, line.from, line.to, mdMatch[2].trim(), false), block: true, side: 1 }),
       );
     }
   }
