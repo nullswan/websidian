@@ -875,6 +875,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           onDone={onScrollToLineDone}
         />
       )}
+      <FloatingTOC containerRef={containerRef} content={content} />
     </>
   );
 }
@@ -912,4 +913,94 @@ function ScrollToLineEffect({
   }, [containerRef, line, totalLines, onDone]);
 
   return null;
+}
+
+/** Floating mini-TOC on the right edge for long notes */
+function FloatingTOC({ containerRef, content }: { containerRef: React.RefObject<HTMLDivElement | null>; content: string }) {
+  const [headings, setHeadings] = useState<Array<{ text: string; level: number; el: Element }>>([]);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const timer = setTimeout(() => {
+      const els = container.querySelectorAll("h1, h2, h3, h4");
+      const items = Array.from(els).map((el) => ({
+        text: el.textContent?.replace(/^▶\s*/, "").trim() ?? "",
+        level: parseInt(el.tagName[1], 10),
+        el,
+      }));
+      setHeadings(items);
+      setVisible(items.length >= 3);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [content, containerRef]);
+
+  useEffect(() => {
+    if (headings.length < 3) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = headings.findIndex((h) => h.el === entry.target);
+            if (idx !== -1) setActiveIdx(idx);
+          }
+        }
+      },
+      { rootMargin: "-10% 0px -80% 0px" },
+    );
+    for (const h of headings) observer.observe(h.el);
+    return () => observer.disconnect();
+  }, [headings]);
+
+  if (!visible) return null;
+
+  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
+
+  return (
+    <div style={{
+      position: "fixed",
+      right: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      maxHeight: "60vh",
+      overflow: "auto",
+      background: "rgba(var(--bg-primary-rgb, 30,30,30), 0.85)",
+      backdropFilter: "blur(8px)",
+      border: "1px solid var(--border-color)",
+      borderRadius: 6,
+      padding: "8px 0",
+      zIndex: 50,
+      maxWidth: 180,
+      scrollbarWidth: "none",
+    }}>
+      {headings.map((h, i) => (
+        <div
+          key={i}
+          onClick={() => {
+            h.el.scrollIntoView({ behavior: "smooth", block: "start" });
+            h.el.classList.remove("heading-flash");
+            void (h.el as HTMLElement).offsetWidth;
+            h.el.classList.add("heading-flash");
+          }}
+          style={{
+            padding: `2px 12px 2px ${8 + (h.level - minLevel) * 8}px`,
+            fontSize: 11,
+            color: i === activeIdx ? "var(--accent-color)" : "var(--text-faint)",
+            cursor: "pointer",
+            fontWeight: i === activeIdx ? 600 : 400,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            borderLeft: i === activeIdx ? "2px solid var(--accent-color)" : "2px solid transparent",
+            transition: "color 0.15s",
+          }}
+          title={h.text}
+        >
+          {h.text}
+        </div>
+      ))}
+    </div>
+  );
 }
