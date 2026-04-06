@@ -5,6 +5,23 @@ type SortMode = "name" | "mtime" | "ctime" | "size" | "type" | "custom";
 
 const SORT_KEY = "filetree-sort";
 const CUSTOM_ORDER_KEY = "filetree-custom-order";
+const COLOR_LABEL_KEY = "filetree-color-labels";
+
+const LABEL_COLORS: Record<string, string> = {
+  red: "#e05252",
+  orange: "#e6994a",
+  yellow: "#dcdcaa",
+  green: "#4ec9b0",
+  blue: "#56b6e6",
+  purple: "#c98ce6",
+};
+
+function loadColorLabels(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(COLOR_LABEL_KEY) ?? "{}"); } catch { return {}; }
+}
+function saveColorLabels(labels: Record<string, string>) {
+  localStorage.setItem(COLOR_LABEL_KEY, JSON.stringify(labels));
+}
 
 function loadSortMode(): SortMode {
   try {
@@ -222,6 +239,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
 export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, gitStatus, onShowToast }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
+  const [colorLabels, setColorLabels] = useState<Record<string, string>>(loadColorLabels);
   const lastClickedPath = useRef<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -664,6 +682,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             sortMode={sortMode}
             backlinkCounts={backlinkCounts}
             gitStatus={gitStatus}
+            colorLabels={colorLabels}
             onFileHover={handleFileHover}
             onClearHover={clearHoverPreview}
             filterQuery={filter.trim() || undefined}
@@ -769,6 +788,16 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           multiSelectedCount={multiSelected.size}
           onBatchOpen={handleBatchOpen}
           onBatchDelete={handleBatchDelete}
+          colorLabels={colorLabels}
+          onSetColorLabel={(path, color) => {
+            setColorLabels((prev) => {
+              const next = { ...prev };
+              if (color) next[path] = color;
+              else delete next[path];
+              saveColorLabels(next);
+              return next;
+            });
+          }}
         />
       )}
       {moveToPath && (
@@ -833,6 +862,7 @@ function FileTreeNode({
   sortMode,
   backlinkCounts,
   gitStatus,
+  colorLabels,
   onFileHover,
   onClearHover,
   filterQuery,
@@ -860,6 +890,7 @@ function FileTreeNode({
   sortMode: SortMode;
   backlinkCounts?: Record<string, number>;
   gitStatus?: Record<string, string>;
+  colorLabels?: Record<string, string>;
   onFileHover?: (e: React.MouseEvent, path: string) => void;
   onClearHover?: () => void;
   filterQuery?: string;
@@ -973,6 +1004,7 @@ function FileTreeNode({
                 sortMode={sortMode}
                 backlinkCounts={backlinkCounts}
                 gitStatus={gitStatus}
+            colorLabels={colorLabels}
                 onFileHover={onFileHover}
                 onClearHover={onClearHover}
                 filterQuery={filterQuery}
@@ -1100,6 +1132,9 @@ function FileTreeNode({
           }}
         >
           <FileIcon name={name} />
+          {colorLabels?.[entry.path] && LABEL_COLORS[colorLabels[entry.path]] && (
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: LABEL_COLORS[colorLabels[entry.path]], flexShrink: 0, marginRight: 2 }} title={`Label: ${colorLabels[entry.path]}`} />
+          )}
           <span style={{ flex: 1 }}>{filterQuery ? highlightMatch(name, filterQuery) : name}</span>
           {entry.kind === "file" && Date.now() - entry.mtime < 3600000 && (
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ec9b0", flexShrink: 0 }} title="Recently modified" />
@@ -1242,6 +1277,8 @@ function ContextMenu({
   multiSelectedCount,
   onBatchOpen,
   onBatchDelete,
+  colorLabels,
+  onSetColorLabel,
 }: {
   x: number;
   y: number;
@@ -1257,6 +1294,8 @@ function ContextMenu({
   parentPath: string;
   multiSelectedCount?: number;
   onBatchOpen?: () => void;
+  colorLabels?: Record<string, string>;
+  onSetColorLabel?: (path: string, color: string | null) => void;
   onBatchDelete?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -1274,7 +1313,7 @@ function ContextMenu({
   const isFolder = entry?.kind === "folder";
   const folderPath = isFolder ? entry.path : parentPath;
 
-  const menuItems: Array<{ label: string; action: () => void; danger?: boolean }> = [];
+  const menuItems: Array<{ label: string; action: () => void; danger?: boolean; color?: string; submenu?: Array<{ label: string; action: () => void; color?: string }> }> = [];
 
   if (multiSelectedCount && multiSelectedCount > 1) {
     if (onBatchOpen) {
@@ -1350,6 +1389,23 @@ function ContextMenu({
     }
   }
 
+  // Color label submenu
+  if (entry && onSetColorLabel) {
+    const currentColor = colorLabels?.[entry.path];
+    menuItems.push({
+      label: "Color label",
+      action: () => {},
+      submenu: [
+        ...Object.entries(LABEL_COLORS).map(([name, hex]) => ({
+          label: `${currentColor === name ? "● " : ""}${name.charAt(0).toUpperCase() + name.slice(1)}`,
+          action: () => { onSetColorLabel(entry.path, name); onClose(); },
+          color: hex,
+        })),
+        ...(currentColor ? [{ label: "Remove label", action: () => { onSetColorLabel(entry.path, null); onClose(); } }] : []),
+      ],
+    });
+  }
+
   return (
     <div
       ref={ref}
@@ -1369,21 +1425,42 @@ function ContextMenu({
       {menuItems.map((item, i) => (
         <div
           key={i}
-          onClick={item.action}
+          onClick={item.submenu ? undefined : item.action}
           style={{
             padding: "6px 12px",
             cursor: "pointer",
             fontSize: 13,
             color: item.danger ? "#f88" : "var(--text-primary)",
+            position: item.submenu ? "relative" : undefined,
           }}
           onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = "var(--bg-hover)";
+            (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
+            const sub = (e.currentTarget as HTMLElement).querySelector(".ctx-submenu") as HTMLElement;
+            if (sub) sub.style.display = "block";
           }}
           onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            const sub = (e.currentTarget as HTMLElement).querySelector(".ctx-submenu") as HTMLElement;
+            if (sub) sub.style.display = "none";
           }}
         >
-          {item.label}
+          {item.label}{item.submenu ? " ▸" : ""}
+          {item.submenu && (
+            <div className="ctx-submenu" style={{ display: "none", position: "absolute", left: "100%", top: 0, background: "var(--bg-tertiary)", border: "1px solid var(--border-color)", borderRadius: 6, padding: "4px 0", minWidth: 120, boxShadow: "0 4px 12px rgba(0,0,0,0.5)", zIndex: 10000 }}>
+              {item.submenu.map((sub, j) => (
+                <div
+                  key={j}
+                  onClick={sub.action}
+                  style={{ padding: "5px 12px", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  {sub.color && <span style={{ width: 8, height: 8, borderRadius: "50%", background: sub.color, flexShrink: 0 }} />}
+                  {sub.label}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       {entry && entry.kind === "file" && (
