@@ -2,12 +2,12 @@ import { useEffect, useRef } from "react";
 import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
 import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
-import { search, searchKeymap } from "@codemirror/search";
+import { search, searchKeymap, selectNextOccurrence } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
@@ -1759,6 +1759,14 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
           return true;
         },
       },
+      // Select next occurrence (multi-cursor)
+      { key: "Mod-d", run: selectNextOccurrence },
+      // Move line up/down
+      { key: "Alt-ArrowUp", run: moveLineUp },
+      { key: "Alt-ArrowDown", run: moveLineDown },
+      // Copy line up/down
+      { key: "Alt-Shift-ArrowUp", run: copyLineUp },
+      { key: "Alt-Shift-ArrowDown", run: copyLineDown },
       // Toggle task list: plain → - → - [ ] → - [x] → plain
       {
         key: "Mod-Enter",
