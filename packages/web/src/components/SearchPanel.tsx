@@ -62,7 +62,16 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
       }
       setSearching(true);
       setRegexError(null);
-      const params = new URLSearchParams({ q });
+      // Extract path: filter prefix
+      const pathMatch = q.match(/^path:(\S+)\s+(.*)/);
+      const pathFilter = pathMatch ? pathMatch[1] : null;
+      const searchQuery = pathMatch ? pathMatch[2] : q;
+      if (!searchQuery.trim()) {
+        setResults([]);
+        setSearching(false);
+        return;
+      }
+      const params = new URLSearchParams({ q: searchQuery });
       if (regex) params.set("regex", "true");
       if (cs) params.set("caseSensitive", "true");
       fetch(`/api/vault/search?${params}`)
@@ -72,7 +81,11 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
             setRegexError(data.error);
             setResults([]);
           } else {
-            setResults(data.results ?? []);
+            let filtered = data.results ?? [];
+            if (pathFilter) {
+              filtered = filtered.filter((r: SearchResult) => r.path.startsWith(pathFilter));
+            }
+            setResults(filtered);
           }
           setSearching(false);
         })
@@ -520,6 +533,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
             <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>.*</span> toggle for regex patterns</div>
             <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>Aa</span> toggle for case-sensitive</div>
             <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>#tag</code> to search by tag</div>
+            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>path:folder/ query</code> to filter by path</div>
             <div>• Press <kbd style={{ fontSize: 10, background: "var(--bg-tertiary)", padding: "1px 4px", borderRadius: 2, border: "1px solid var(--border-color)" }}>Esc</kbd> to close</div>
           </div>
         )}
