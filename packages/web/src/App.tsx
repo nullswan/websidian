@@ -2785,6 +2785,38 @@ ${rendered}
                 <Properties frontmatter={activeTab.noteMeta?.frontmatter ?? {}} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} fileSize={activeTab.fileSize} />
               </SidebarSection>
             )}
+            <SidebarSection title="File Info">
+              <div style={{ padding: "4px 12px 8px", fontSize: 12, color: "var(--text-secondary)" }}>
+                {(() => {
+                  const text = activeTab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
+                  const words = text.trim().split(/\s+/).filter(Boolean).length;
+                  const chars = text.length;
+                  const links = (activeTab.content.match(/\[\[[^\]]+\]\]/g) ?? []).length;
+                  const items: [string, string][] = [
+                    ["Words", words.toLocaleString()],
+                    ["Characters", chars.toLocaleString()],
+                    ["Links", String(links)],
+                    ["Backlinks", String(activeTab.backlinks.length)],
+                  ];
+                  if (activeTab.fileSize != null) {
+                    const sz = activeTab.fileSize;
+                    items.push(["Size", sz < 1024 ? `${sz} B` : sz < 1048576 ? `${(sz / 1024).toFixed(1)} KB` : `${(sz / 1048576).toFixed(1)} MB`]);
+                  }
+                  if (activeTab.fileCreated) items.push(["Created", new Date(activeTab.fileCreated).toLocaleDateString()]);
+                  if (activeTab.fileModified) items.push(["Modified", new Date(activeTab.fileModified).toLocaleDateString()]);
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "3px 12px" }}>
+                      {items.map(([label, val]) => (
+                        <React.Fragment key={label}>
+                          <span style={{ color: "var(--text-faint)" }}>{label}</span>
+                          <span style={{ color: "var(--text-primary)", textAlign: "right" }}>{val}</span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </SidebarSection>
             <SidebarSection title={`Backlinks (${activeTab.backlinks.length})`}>
               <Backlinks
                 backlinks={activeTab.backlinks}
