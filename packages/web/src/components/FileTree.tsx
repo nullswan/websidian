@@ -871,6 +871,17 @@ function ContextMenu({
     if (entry.kind !== "folder" && onDuplicate) {
       menuItems.push({ label: "Duplicate", action: () => { onClose(); onDuplicate(entry.path); } });
     }
+    if (entry.kind === "file" && entry.path.endsWith(".md")) {
+      const linkName = entry.path.replace(/\.md$/, "");
+      menuItems.push({
+        label: "Copy wikilink",
+        action: () => { navigator.clipboard.writeText(`[[${linkName}]]`); onClose(); },
+      });
+    }
+    menuItems.push({
+      label: "Copy path",
+      action: () => { navigator.clipboard.writeText(entry.path); onClose(); },
+    });
     if (entry.kind !== "folder") {
       menuItems.push({ label: "Delete", action: () => onDelete(entry.path), danger: true });
     }
