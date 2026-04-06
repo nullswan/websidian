@@ -646,6 +646,17 @@ export function App() {
     document.documentElement.style.setProperty("--accent-color", appSettings.accentColor);
   }, [appSettings.accentColor]);
 
+  // Set CSS font family variable
+  useEffect(() => {
+    const families: Record<string, string> = {
+      system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+      "sans-serif": "'Inter', 'Helvetica Neue', Arial, sans-serif",
+      serif: "Georgia, 'Times New Roman', Times, serif",
+      monospace: "'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, monospace",
+    };
+    document.documentElement.style.setProperty("--font-family", families[appSettings.fontFamily] ?? families.system);
+  }, [appSettings.fontFamily]);
+
   const activePane = panes[activePaneIdx];
   const activeTab = activePane?.activeTabId ? tabsMap[activePane.activeTabId] ?? null : null;
   const workspaceRestored = useRef(false);

@@ -1345,7 +1345,7 @@ const codeBlockField = StateField.define<DecorationSet>({
 const livePreviewTheme = EditorView.theme({
   "&": {
     fontSize: "16px",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+    fontFamily: "var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif)",
     backgroundColor: "var(--bg-primary)",
   },
   "&.cm-focused": {
@@ -1355,10 +1355,10 @@ const livePreviewTheme = EditorView.theme({
     padding: "16px 48px",
     maxWidth: "750px",
     caretColor: "var(--accent-color)",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+    fontFamily: "var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif)",
   },
   ".cm-scroller": {
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+    fontFamily: "var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif)",
   },
   ".cm-line": {
     lineHeight: "1.65",

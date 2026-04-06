@@ -14,6 +14,7 @@ export interface AppSettings {
   vimMode: boolean;
   accentColor: string;
   lineWrap: boolean;
+  fontFamily: "system" | "sans-serif" | "serif" | "monospace";
 }
 
 const DEFAULTS: AppSettings = {
@@ -30,6 +31,7 @@ const DEFAULTS: AppSettings = {
   vimMode: false,
   accentColor: "#7f6df2",
   lineWrap: true,
+  fontFamily: "system",
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -267,6 +269,22 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                     </button>
                   )}
                 </div>
+              </SettingItem>
+
+              <SettingItem
+                title="Font family"
+                description="Font used for the editor and reading view"
+              >
+                <select
+                  value={settings.fontFamily}
+                  onChange={(e) => update("fontFamily", e.target.value as AppSettings["fontFamily"])}
+                  style={inputStyle}
+                >
+                  <option value="system">System default</option>
+                  <option value="sans-serif">Sans-serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="monospace">Monospace</option>
+                </select>
               </SettingItem>
             </div>
           )}
