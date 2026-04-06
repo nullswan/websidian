@@ -165,6 +165,19 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
 
   const totalMatches = filteredResults.reduce((sum, r) => sum + r.matches.length, 0);
 
+  // Build flat navigation list: file headers + individual match lines
+  type NavItem = { type: "file"; path: string; rIdx: number } | { type: "match"; path: string; rIdx: number; line: number };
+  const navItems: NavItem[] = [];
+  sortedResults.forEach((r, rIdx) => {
+    navItems.push({ type: "file", path: r.path, rIdx });
+    if (!collapsed.has(r.path)) {
+      const visibleMatches = expanded.has(r.path) ? r.matches : r.matches.slice(0, 5);
+      for (const m of visibleMatches) {
+        navItems.push({ type: "match", path: r.path, rIdx, line: m.line });
+      }
+    }
+  });
+
   const toggleCollapse = (path: string) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -262,13 +275,18 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   }
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    setSelectedIdx((i) => Math.min(i + 1, sortedResults.length - 1));
+                    setSelectedIdx((i) => Math.min(i + 1, navItems.length - 1));
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setSelectedIdx((i) => Math.max(i - 1, -1));
-                  } else if (e.key === "Enter" && selectedIdx >= 0 && sortedResults[selectedIdx]) {
+                  } else if (e.key === "Enter" && selectedIdx >= 0 && navItems[selectedIdx]) {
                     e.preventDefault();
-                    onNavigate(sortedResults[selectedIdx].path, query);
+                    const item = navItems[selectedIdx];
+                    if (item.type === "match") {
+                      onNavigate(item.path, query, item.line);
+                    } else {
+                      onNavigate(item.path, query);
+                    }
                   }
                 }}
                 placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
@@ -455,18 +473,19 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
         )}
         {sortedResults.map((r, rIdx) => {
           const isCollapsed = collapsed.has(r.path);
-          const isSelected = rIdx === selectedIdx;
+          const fileNavIdx = navItems.findIndex((n) => n.type === "file" && n.rIdx === rIdx);
+          const isFileSelected = fileNavIdx === selectedIdx;
           return (
             <div key={r.path} style={{ borderBottom: "1px solid var(--bg-tertiary)" }}>
               <div
-                ref={(el) => { if (el && isSelected) el.scrollIntoView({ block: "nearest" }); }}
+                ref={(el) => { if (el && isFileSelected) el.scrollIntoView({ block: "nearest" }); }}
                 style={{
                   padding: "6px 12px",
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
                   cursor: "pointer",
-                  background: isSelected ? "rgba(127,109,242,0.12)" : "transparent",
+                  background: isFileSelected ? "rgba(127,109,242,0.12)" : "transparent",
                 }}
                 onClick={() => toggleCollapse(r.path)}
               >
@@ -501,7 +520,10 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   {r.matches.length}
                 </span>
               </div>
-              {!isCollapsed && (expanded.has(r.path) ? r.matches : r.matches.slice(0, 5)).map((m) => (
+              {!isCollapsed && (expanded.has(r.path) ? r.matches : r.matches.slice(0, 5)).map((m) => {
+                const matchNavIdx = navItems.findIndex((n) => n.type === "match" && n.rIdx === rIdx && n.line === m.line);
+                const isMatchSelected = matchNavIdx === selectedIdx;
+                return (
                 <div key={m.line}>
                   {m.before?.map((line, bi) => (
                     <div key={`b${bi}`} style={{ padding: "1px 12px 1px 28px", color: "var(--text-faint)", fontSize: 11, opacity: 0.6 }}>
@@ -509,11 +531,14 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                     </div>
                   ))}
                   <div
+                    ref={(el) => { if (el && isMatchSelected) el.scrollIntoView({ block: "nearest" }); }}
                     style={{
                       padding: "2px 12px 2px 28px",
                       color: "var(--text-secondary)",
                       fontSize: 12,
                       cursor: "pointer",
+                      background: isMatchSelected ? "rgba(127,109,242,0.08)" : "transparent",
+                      borderLeft: isMatchSelected ? "2px solid var(--accent-color)" : "2px solid transparent",
                     }}
                     onClick={() => onNavigate(r.path, query, m.line)}
                   >
@@ -528,7 +553,8 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                     </div>
                   ))}
                 </div>
-              ))}
+                );
+              })}
               {!isCollapsed && r.matches.length > 5 && !expanded.has(r.path) && (
                 <div
                   style={{
