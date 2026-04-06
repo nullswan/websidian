@@ -32,6 +32,45 @@ import "highlight.js/styles/github-dark.css";
 
 type ViewMode = "edit" | "read" | "source";
 
+// --- Frontmatter helpers ---
+const FM_RE = /^---[\t ]*\r?\n([\s\S]*?)\n---[\t ]*(?:\r?\n|$)/;
+
+function updateFrontmatterField(content: string, key: string, value: string): string {
+  const m = FM_RE.exec(content);
+  if (!m) return content;
+  const lines = m[1].split("\n");
+  const keyRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`);
+  const idx = lines.findIndex((l) => keyRe.test(l));
+  if (idx >= 0) {
+    lines[idx] = `${key}: ${value}`;
+  }
+  return content.slice(0, m.index) + `---\n${lines.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
+}
+
+function deleteFrontmatterField(content: string, key: string): string {
+  const m = FM_RE.exec(content);
+  if (!m) return content;
+  const lines = m[1].split("\n");
+  const keyRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`);
+  const filtered = lines.filter((l) => !keyRe.test(l));
+  if (filtered.length === 0) {
+    // Remove entire frontmatter block
+    return content.slice(m.index + m[0].length);
+  }
+  return content.slice(0, m.index) + `---\n${filtered.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
+}
+
+function addFrontmatterField(content: string, key: string, value: string): string {
+  const m = FM_RE.exec(content);
+  if (m) {
+    const lines = m[1].split("\n");
+    lines.push(`${key}: ${value}`);
+    return content.slice(0, m.index) + `---\n${lines.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
+  }
+  // No frontmatter yet — create one
+  return `---\n${key}: ${value}\n---\n${content}`;
+}
+
 interface NoteMeta {
   frontmatter: Record<string, unknown>;
   aliases: string[];
@@ -3099,7 +3138,30 @@ ${rendered}
             <ResizeHandle side="right" onResize={handleRightResize} />
             {(activeTab.noteMeta || activeTab.fileCreated) && (
               <SidebarSection title="Properties">
-                <Properties frontmatter={activeTab.noteMeta?.frontmatter ?? {}} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} fileSize={activeTab.fileSize} />
+                <Properties
+                  frontmatter={activeTab.noteMeta?.frontmatter ?? {}}
+                  fileCreated={activeTab.fileCreated}
+                  fileModified={activeTab.fileModified}
+                  fileSize={activeTab.fileSize}
+                  onUpdate={(key, value) => {
+                    if (!activeTab) return;
+                    const updated = updateFrontmatterField(activeTab.content, key, value);
+                    updateTab(activeTab.id, { content: updated });
+                    handleSave(updated);
+                  }}
+                  onDelete={(key) => {
+                    if (!activeTab) return;
+                    const updated = deleteFrontmatterField(activeTab.content, key);
+                    updateTab(activeTab.id, { content: updated });
+                    handleSave(updated);
+                  }}
+                  onAdd={(key, value) => {
+                    if (!activeTab) return;
+                    const updated = addFrontmatterField(activeTab.content, key, value);
+                    updateTab(activeTab.id, { content: updated });
+                    handleSave(updated);
+                  }}
+                />
               </SidebarSection>
             )}
             <SidebarSection title="File Info">
