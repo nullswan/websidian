@@ -1236,6 +1236,17 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   transform: translateY(0);
 }
 
+/* Drop cap for first paragraph after h1 */
+.reader-view > h1 + p::first-letter {
+  font-size: 3.2em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 6px;
+  margin-top: 4px;
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
 /* Toast notification animation */
 @keyframes toast-slide-up {
   from { opacity: 0; transform: translateX(-50%) translateY(12px); }
