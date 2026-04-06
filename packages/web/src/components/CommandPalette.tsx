@@ -6,6 +6,59 @@ function kbd(s: string): string {
   return s.replace(/Ctrl\+Shift\+/g, "⌃⇧").replace(/Ctrl\+Alt\+/g, "⌃⌥").replace(/Ctrl\+/g, "⌘").replace(/Alt\+/g, "⌥").replace(/Shift\+/g, "⇧");
 }
 
+function fuzzyMatch(text: string, query: string): { score: number; indices: number[] } | null {
+  const tLower = text.toLowerCase();
+  const qLower = query.toLowerCase();
+  const indices: number[] = [];
+  let qi = 0;
+
+  for (let ti = 0; ti < tLower.length && qi < qLower.length; ti++) {
+    if (tLower[ti] === qLower[qi]) {
+      indices.push(ti);
+      qi++;
+    }
+  }
+
+  if (qi < qLower.length) return null;
+
+  // Score: exact > prefix > spread bonus
+  let score = 0;
+  if (tLower === qLower) score = 100;
+  else if (tLower.startsWith(qLower)) score = 90;
+  else score = 50;
+
+  // Bonus for consecutive matches
+  for (let i = 1; i < indices.length; i++) {
+    if (indices[i] === indices[i - 1] + 1) score += 5;
+  }
+  // Bonus for word-boundary matches
+  for (const idx of indices) {
+    if (idx === 0 || text[idx - 1] === " " || text[idx - 1] === "-") score += 3;
+  }
+  // Penalty for spread
+  if (indices.length > 1) {
+    score -= (indices[indices.length - 1] - indices[0] - indices.length + 1) * 0.5;
+  }
+
+  return { score, indices };
+}
+
+function HighlightedText({ text, indices }: { text: string; indices: number[] }) {
+  if (indices.length === 0) return <>{text}</>;
+  const matchSet = new Set(indices);
+  return (
+    <>
+      {text.split("").map((ch, i) =>
+        matchSet.has(i) ? (
+          <span key={i} style={{ color: "var(--accent-color)", fontWeight: 600 }}>{ch}</span>
+        ) : (
+          <span key={i}>{ch}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 interface Command {
   id: string;
   name: string;
@@ -28,9 +81,14 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!query) return commands;
-    const q = query.toLowerCase();
-    return commands.filter((c) => c.name.toLowerCase().includes(q));
+    if (!query) return commands.map((c) => ({ cmd: c, indices: [] as number[] }));
+    const results: { cmd: Command; indices: number[]; score: number }[] = [];
+    for (const cmd of commands) {
+      const match = fuzzyMatch(cmd.name, query);
+      if (match) results.push({ cmd, indices: match.indices, score: match.score });
+    }
+    results.sort((a, b) => b.score - a.score);
+    return results;
   }, [query, commands]);
 
   useEffect(() => {
@@ -48,7 +106,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (filtered[selectedIdx]) {
-          filtered[selectedIdx].action();
+          filtered[selectedIdx].cmd.action();
           onClose();
         }
       } else if (e.key === "Escape") {
@@ -103,9 +161,9 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
           }}
         />
         <div style={{ overflow: "auto", flex: 1 }}>
-          {filtered.map((cmd, i) => (
+          {filtered.map((item, i) => (
             <div
-              key={cmd.id}
+              key={item.cmd.id}
               ref={(el) => { if (el && i === selectedIdx) el.scrollIntoView({ block: "nearest" }); }}
               style={{
                 padding: "8px 16px",
@@ -116,13 +174,15 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                 justifyContent: "space-between",
               }}
               onClick={() => {
-                cmd.action();
+                item.cmd.action();
                 onClose();
               }}
               onMouseEnter={() => setSelectedIdx(i)}
             >
-              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>{cmd.name}</span>
-              {cmd.shortcut && (
+              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>
+                <HighlightedText text={item.cmd.name} indices={item.indices} />
+              </span>
+              {item.cmd.shortcut && (
                 <span
                   style={{
                     color: "var(--text-faint)",
@@ -132,7 +192,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                     borderRadius: 3,
                   }}
                 >
-                  {kbd(cmd.shortcut)}
+                  {kbd(item.cmd.shortcut)}
                 </span>
               )}
             </div>
