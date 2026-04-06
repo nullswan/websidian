@@ -800,6 +800,7 @@ export function App() {
 
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<string | null>(null);
+  const [serverAvailable, setServerAvailable] = useState(true);
   const [tree, setTree] = useState<VaultEntry[]>([]);
   const vaultPaths = useMemo(() => {
     const paths: string[] = [];
@@ -1017,7 +1018,7 @@ export function App() {
             setAuthChecked(true);
           });
       })
-      .catch(() => setAuthChecked(true));
+      .catch(() => { setServerAvailable(false); setAuthChecked(true); });
   }, []);
 
   // Load vault tree when authenticated, then restore workspace
@@ -1952,6 +1953,26 @@ ${rendered}
   }
 
   if (!user) {
+    if (!serverAvailable) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg-primary)", color: "var(--text-primary)", gap: 24, padding: 32, textAlign: "center" }}>
+          <svg width="64" height="64" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="var(--accent-color)" opacity="0.15"/><path d="M50 20 L35 50 H25 L50 80 L75 50 H65 Z" fill="var(--accent-color)"/></svg>
+          <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, color: "var(--accent-color)" }}>Websidian</h1>
+          <p style={{ fontSize: 16, color: "var(--text-secondary)", maxWidth: 480, lineHeight: 1.6, margin: 0 }}>
+            A high-fidelity, web-native Obsidian client. To use Websidian, run the companion server locally with your vault:
+          </p>
+          <code style={{ background: "var(--bg-tertiary)", padding: "12px 20px", borderRadius: 8, fontSize: 14, color: "var(--accent-color)", border: "1px solid var(--border-color)" }}>
+            npx websidian /path/to/your/vault
+          </code>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <a href="https://github.com/nullswan/websidian" target="_blank" rel="noopener noreferrer" style={{ padding: "8px 16px", borderRadius: 6, background: "var(--accent-color)", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>GitHub</a>
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-faint)", maxWidth: 520, lineHeight: 1.5 }}>
+            Features: Live Preview editor, graph view, backlinks, search, split panes, plugins, themes, and 200+ Obsidian-compatible features.
+          </div>
+        </div>
+      );
+    }
     return <LoginPage onLogin={setUser} />;
   }
 
