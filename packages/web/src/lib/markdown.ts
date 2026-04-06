@@ -127,6 +127,49 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     }
   });
 
+  // Plugin: auto-link YYYY-MM-DD dates to daily notes
+  md.core.ruler.push("date_links", (state) => {
+    const dateRe = /\b(\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))\b/g;
+    for (const blockToken of state.tokens) {
+      if (blockToken.type !== "inline" || !blockToken.children) continue;
+      const newChildren: typeof blockToken.children = [];
+      for (const child of blockToken.children) {
+        if (child.type !== "text") { newChildren.push(child); continue; }
+        const text = child.content;
+        let lastIdx = 0;
+        let match: RegExpExecArray | null;
+        dateRe.lastIndex = 0;
+        let hasMatch = false;
+        while ((match = dateRe.exec(text)) !== null) {
+          hasMatch = true;
+          if (match.index > lastIdx) {
+            const before = new state.Token("text", "", 0);
+            before.content = text.slice(lastIdx, match.index);
+            newChildren.push(before);
+          }
+          const openLink = new state.Token("html_inline", "", 0);
+          openLink.content = `<a class="date-link" data-date="${match[1]}" title="Open daily note: ${match[1]}">`;
+          newChildren.push(openLink);
+          const dateText = new state.Token("text", "", 0);
+          dateText.content = match[1];
+          newChildren.push(dateText);
+          const closeLink = new state.Token("html_inline", "", 0);
+          closeLink.content = "</a>";
+          newChildren.push(closeLink);
+          lastIdx = match.index + match[0].length;
+        }
+        if (!hasMatch) {
+          newChildren.push(child);
+        } else if (lastIdx < text.length) {
+          const after = new state.Token("text", "", 0);
+          after.content = text.slice(lastIdx);
+          newChildren.push(after);
+        }
+      }
+      blockToken.children = newChildren;
+    }
+  });
+
   // Plugin: wikilinks [[target]] and [[target|display]]
   md.inline.ruler.push("wikilink", wikilinkRule);
   md.renderer.rules.wikilink = (tokens, idx) => {

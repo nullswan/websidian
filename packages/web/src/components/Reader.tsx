@@ -672,6 +672,15 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       return;
     }
 
+    // Handle date link clicks → open daily note
+    const dateLink = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.date-link[data-date]");
+    if (dateLink) {
+      e.preventDefault();
+      const dateStr = dateLink.dataset.date;
+      if (dateStr) onNavigate(`Daily Notes/${dateStr}`);
+      return;
+    }
+
     // Handle tag clicks
     const tag = (e.target as HTMLElement).closest<HTMLSpanElement>("span.tag[data-tag]");
     if (tag && tag.dataset.tag && onTagClick) {
