@@ -27,6 +27,7 @@ import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
 import { NoteGrowth } from "./components/NoteGrowth.js";
 import { BrokenLinkReport } from "./components/BrokenLinkReport.js";
+import { SidebarSection } from "./components/SidebarSection.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
@@ -36,102 +37,11 @@ import { Settings, loadSettings, type AppSettings } from "./components/Settings.
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
 import type { VaultEntry } from "./types.js";
+import { FM_RE, updateFrontmatterField, deleteFrontmatterField, addFrontmatterField, FRONTMATTER_TEMPLATES } from "./lib/frontmatter.js";
+import type { ViewMode, NoteMeta, BacklinkEntry, UnlinkedMention, Tab, Pane } from "./lib/appTypes.js";
 import "./styles.css";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
-
-type ViewMode = "edit" | "read" | "source" | "kanban";
-
-// --- Frontmatter helpers ---
-const FM_RE = /^---[\t ]*\r?\n([\s\S]*?)\n---[\t ]*(?:\r?\n|$)/;
-
-function updateFrontmatterField(content: string, key: string, value: string): string {
-  const m = FM_RE.exec(content);
-  if (!m) return content;
-  const lines = m[1].split("\n");
-  const keyRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`);
-  const idx = lines.findIndex((l) => keyRe.test(l));
-  if (idx >= 0) {
-    lines[idx] = `${key}: ${value}`;
-  }
-  return content.slice(0, m.index) + `---\n${lines.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
-}
-
-function deleteFrontmatterField(content: string, key: string): string {
-  const m = FM_RE.exec(content);
-  if (!m) return content;
-  const lines = m[1].split("\n");
-  const keyRe = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`);
-  const filtered = lines.filter((l) => !keyRe.test(l));
-  if (filtered.length === 0) {
-    // Remove entire frontmatter block
-    return content.slice(m.index + m[0].length);
-  }
-  return content.slice(0, m.index) + `---\n${filtered.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
-}
-
-function addFrontmatterField(content: string, key: string, value: string): string {
-  const m = FM_RE.exec(content);
-  if (m) {
-    const lines = m[1].split("\n");
-    lines.push(`${key}: ${value}`);
-    return content.slice(0, m.index) + `---\n${lines.join("\n")}\n---\n` + content.slice(m.index + m[0].length);
-  }
-  // No frontmatter yet — create one
-  return `---\n${key}: ${value}\n---\n${content}`;
-}
-
-interface NoteMeta {
-  frontmatter: Record<string, unknown>;
-  aliases: string[];
-  tags: Array<{ name: string }>;
-  links: Array<{ target: string }>;
-  embeds: Array<{ target: string }>;
-}
-
-const FRONTMATTER_TEMPLATES: { name: string; fields: string }[] = [
-  { name: "Blog Post", fields: "title: \ntags: []\ndate: {{date}}\ndraft: true\ndescription: " },
-  { name: "Meeting Note", fields: "title: \ndate: {{date}}\nattendees: []\nagenda: \naction-items: []" },
-  { name: "Book Note", fields: "title: \nauthor: \nrating: \nstatus: reading\ndate-started: {{date}}\ngenre: " },
-  { name: "Project", fields: "title: \nstatus: active\npriority: medium\ndeadline: \ntags: [project]" },
-  { name: "Person", fields: "name: \nemail: \ncompany: \nrole: \ntags: [person]" },
-];
-
-interface BacklinkEntry {
-  path: string;
-  context: string;
-  lineContext?: string;
-}
-
-interface UnlinkedMention {
-  path: string;
-  line: number;
-  lineContext: string;
-}
-
-interface Tab {
-  id: string;
-  path: string;
-  content: string;
-  mode: ViewMode;
-  noteMeta: NoteMeta | null;
-  backlinks: BacklinkEntry[];
-  unlinkedMentions: UnlinkedMention[];
-  scrollTop: number;
-  pinned?: boolean;
-  missing?: boolean;
-  dirty?: boolean;
-  cursorOffset?: number;
-  color?: string;
-  fileCreated?: string;
-  fileModified?: string;
-  fileSize?: number;
-}
-
-interface Pane {
-  tabIds: string[];
-  activeTabId: string | null;
-}
 
 let tabIdCounter = 0;
 function nextTabId() {
@@ -387,96 +297,6 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
   );
 }
 
-function SidebarSection({ title, defaultOpen = true, badge, children }: {
-  title: string;
-  defaultOpen?: boolean;
-  badge?: number;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(() => {
-    try {
-      const stored = localStorage.getItem(`sidebar-${title}`);
-      return stored !== null ? stored === "1" : defaultOpen;
-    } catch { return defaultOpen; }
-  });
-
-  const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    try { localStorage.setItem(`sidebar-${title}`, next ? "1" : "0"); } catch {}
-  };
-
-  return (
-    <div style={{ borderTop: "1px solid var(--bg-tertiary)" }}>
-      <div
-        onClick={toggle}
-        style={{
-          padding: "6px 12px",
-          fontSize: 11,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          color: "var(--text-muted)",
-          letterSpacing: "0.08em",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          userSelect: "none",
-        }}
-        onMouseEnter={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color = "var(--text-secondary)";
-          const span = el.querySelector<HTMLElement>(".sidebar-section-title");
-          if (span) { span.style.backgroundImage = "linear-gradient(90deg, var(--text-secondary), var(--accent-color))"; }
-        }}
-        onMouseLeave={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color = "var(--text-muted)";
-          const span = el.querySelector<HTMLElement>(".sidebar-section-title");
-          if (span) { span.style.backgroundImage = "linear-gradient(90deg, var(--text-muted), var(--text-muted))"; }
-        }}
-      >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="currentColor"
-          style={{
-            transition: "transform 0.15s",
-            transform: open ? "rotate(90deg)" : "rotate(0deg)",
-            flexShrink: 0,
-            opacity: 0.7,
-          }}
-        >
-          <path d="M2 0 L6 4 L2 8 Z" />
-        </svg>
-        <span
-          className="sidebar-section-title"
-          style={{
-            background: "linear-gradient(90deg, var(--text-muted), var(--text-muted))",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            transition: "background-image 0.3s ease",
-          }}
-        >
-          {title}
-        </span>
-        {badge != null && badge > 0 && (
-          <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent-color)", background: "rgba(127,109,242,0.12)", padding: "1px 5px", borderRadius: 8, fontWeight: 600 }}>{badge}</span>
-        )}
-      </div>
-      <div style={{
-        overflow: "hidden",
-        maxHeight: open ? 2000 : 0,
-        transition: "max-height 0.2s ease-in-out",
-        opacity: open ? 1 : 0,
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 function TemplatePicker({ templatesFolder, onSelect, onClose }: {
   templatesFolder: string;
