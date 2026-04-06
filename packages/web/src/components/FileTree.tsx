@@ -814,6 +814,9 @@ function FileTreeNode({
         >
           <FileIcon name={name} />
           <span style={{ flex: 1 }}>{name}</span>
+          {entry.kind === "file" && Date.now() - entry.mtime < 3600000 && (
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ec9b0", flexShrink: 0 }} title="Recently modified" />
+          )}
           {backlinkCounts && backlinkCounts[entry.path] > 0 && (
             <span style={{
               fontSize: 10,
