@@ -2329,6 +2329,35 @@ ${rendered}
                 <FileTree
                   entries={tree}
                   onFileSelect={openTab}
+                  onOpenInNewTab={(path) => {
+                    // Always open in a new tab (don't reuse existing)
+                    const id = nextTabId();
+                    const newTab: Tab = { id, path, content: "", mode: "read", noteMeta: null, backlinks: [], unlinkedMentions: [], scrollTop: 0 };
+                    setTabsMap((prev) => ({ ...prev, [id]: newTab }));
+                    setPanes((prev) => {
+                      const next = [...prev];
+                      const pane = next[activePaneIdx];
+                      next[activePaneIdx] = { ...pane, tabIds: [...pane.tabIds, id], activeTabId: id };
+                      return next;
+                    });
+                    fetch(`/api/vault/file?path=${encodeURIComponent(path)}`)
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (!data.error) updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+                      });
+                    if (path.endsWith(".md")) {
+                      fetch(`/api/vault/note?path=${encodeURIComponent(path)}`).then((r) => r.json()).then((data) => { if (!data.error) updateTab(id, { noteMeta: data }); });
+                      fetch(`/api/vault/backlinks?path=${encodeURIComponent(path)}`).then((r) => r.json()).then((data) => { if (!data.error) updateTab(id, { backlinks: data.backlinks, unlinkedMentions: data.unlinkedMentions ?? [] }); });
+                    }
+                  }}
+                  onOpenToRight={(path) => {
+                    if (panes.length < 2) {
+                      setPanes((prev) => [...prev, { tabIds: [], activeTabId: null }]);
+                      setTimeout(() => openTab(path, panes.length), 0);
+                    } else {
+                      openTab(path, 1);
+                    }
+                  }}
                   selectedPath={activeTab?.path ?? null}
                   onMutate={refreshTree}
                   onFileRenamed={handleFileRenamed}

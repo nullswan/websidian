@@ -68,6 +68,8 @@ function FileIcon({ name }: { name: string }) {
 interface FileTreeProps {
   entries: VaultEntry[];
   onFileSelect: (path: string) => void;
+  onOpenInNewTab?: (path: string) => void;
+  onOpenToRight?: (path: string) => void;
   selectedPath: string | null;
   onMutate?: () => void;
   onFileRenamed?: (from: string, to: string, updatedFiles: string[]) => void;
@@ -137,7 +139,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFileRenamed, onDuplicate }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -459,6 +461,8 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
           onRename={handleRename}
           onCreate={handleCreate}
           onDuplicate={onDuplicate}
+          onOpenInNewTab={onOpenInNewTab}
+          onOpenToRight={onOpenToRight}
           parentPath={contextMenu.parentPath}
         />
       )}
@@ -712,6 +716,8 @@ function ContextMenu({
   onRename,
   onCreate,
   onDuplicate,
+  onOpenInNewTab,
+  onOpenToRight,
   parentPath,
 }: {
   x: number;
@@ -722,6 +728,8 @@ function ContextMenu({
   onRename: (path: string) => void;
   onCreate: (parentPath: string, kind: "file" | "folder") => void;
   onDuplicate?: (path: string) => void;
+  onOpenInNewTab?: (path: string) => void;
+  onOpenToRight?: (path: string) => void;
   parentPath: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -740,6 +748,15 @@ function ContextMenu({
   const folderPath = isFolder ? entry.path : parentPath;
 
   const menuItems: Array<{ label: string; action: () => void; danger?: boolean }> = [];
+
+  if (entry && entry.kind === "file") {
+    if (onOpenInNewTab) {
+      menuItems.push({ label: "Open in new tab", action: () => { onClose(); onOpenInNewTab(entry.path); } });
+    }
+    if (onOpenToRight) {
+      menuItems.push({ label: "Open to the right", action: () => { onClose(); onOpenToRight(entry.path); } });
+    }
+  }
 
   menuItems.push({ label: "New Note", action: () => onCreate(folderPath, "file") });
   menuItems.push({ label: "New Folder", action: () => onCreate(folderPath, "folder") });
