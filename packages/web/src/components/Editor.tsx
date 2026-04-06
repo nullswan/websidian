@@ -2015,6 +2015,10 @@ const livePreviewTheme = EditorView.theme({
   "&.cm-focused .cm-selectionBackground": {
     background: "rgba(127, 109, 242, 0.3) !important",
   },
+  ".cm-heading-link-gutter .cm-gutterElement:hover span": {
+    opacity: "1 !important",
+    color: "var(--accent-color) !important",
+  },
   ".cm-bare-url": {
     color: "var(--accent-color)",
     textDecoration: "underline",
@@ -2923,6 +2927,35 @@ const linkMarker = new LineTypeMarker("#569cd6");
 const taskMarker = new LineTypeMarker("#4ec9b0");
 const codeMarker = new LineTypeMarker("#dcdcaa");
 
+// Heading link copy gutter: clickable # to copy [[Note#Heading]] link
+function createHeadingLinkGutter(filePath: string) {
+  class HeadingLinkMarker extends GutterMarker {
+    heading: string;
+    constructor(heading: string) { super(); this.heading = heading; }
+    toDOM() {
+      const el = document.createElement("span");
+      el.textContent = "#";
+      el.title = `Copy link to "${this.heading}"`;
+      el.style.cssText = "cursor:pointer;color:var(--text-faint);font-size:10px;opacity:0;transition:opacity 0.15s;";
+      el.addEventListener("click", () => {
+        const noteName = filePath.replace(/\.md$/, "").split("/").pop() ?? filePath;
+        const link = `[[${noteName}#${this.heading}]]`;
+        navigator.clipboard.writeText(link);
+      });
+      return el;
+    }
+  }
+  return gutter({
+    class: "cm-heading-link-gutter",
+    lineMarker(_view, line) {
+      const text = _view.state.sliceDoc(line.from, line.to);
+      const m = /^#{1,6}\s+(.+)/.exec(text);
+      if (m) return new HeadingLinkMarker(m[1].trim());
+      return null;
+    },
+  });
+}
+
 // Backlink gutter: purple arrow on lines that are linked-to by other notes
 class BacklinkMarker extends GutterMarker {
   count: number;
@@ -3822,6 +3855,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         lineTypeGutter,
+        createHeadingLinkGutter(filePath),
         createBacklinkGutter(backlinkLinesRef),
         ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, bareUrlPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
         foldGutter({
