@@ -52,6 +52,7 @@ async function scanDir(dir: string, root: string): Promise<VaultEntry[]> {
         extension: ext,
         size: s.size,
         mtime: s.mtimeMs,
+        ctime: s.birthtimeMs,
       });
     }
   }

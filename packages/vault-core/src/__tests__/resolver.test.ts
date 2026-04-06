@@ -9,6 +9,7 @@ function makeFile(path: string): VaultFile {
     extension: path.split(".").pop() ?? "",
     size: 100,
     mtime: Date.now(),
+    ctime: Date.now(),
   };
 }
 

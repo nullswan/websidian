@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { VaultEntry } from "../types.js";
 
-type SortMode = "name" | "mtime";
+type SortMode = "name" | "mtime" | "ctime";
 
 const SORT_KEY = "filetree-sort";
 
 function loadSortMode(): SortMode {
   try {
     const v = localStorage.getItem(SORT_KEY);
-    if (v === "name" || v === "mtime") return v;
+    if (v === "name" || v === "mtime" || v === "ctime") return v;
   } catch {}
   return "name";
 }
@@ -20,6 +20,9 @@ function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry
     if (aDir !== bDir) return aDir - bDir;
     if (mode === "mtime" && a.kind === "file" && b.kind === "file") {
       return (b.mtime ?? 0) - (a.mtime ?? 0);
+    }
+    if (mode === "ctime" && a.kind === "file" && b.kind === "file") {
+      return (b.ctime ?? 0) - (a.ctime ?? 0);
     }
     const aName = (a.path.split("/").pop() ?? a.path).toLowerCase();
     const bName = (b.path.split("/").pop() ?? b.path).toLowerCase();
@@ -374,35 +377,36 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
         />
         <button
-          title={sortMode === "name" ? "Sort by name (click for modified)" : "Sort by modified (click for name)"}
+          title={`Sort: ${sortMode} (click to cycle)`}
           onClick={() => {
-            const next: SortMode = sortMode === "name" ? "mtime" : "name";
+            const modes: SortMode[] = ["name", "mtime", "ctime"];
+            const next = modes[(modes.indexOf(sortMode) + 1) % modes.length];
             setSortMode(next);
             localStorage.setItem(SORT_KEY, next);
           }}
           style={{
             background: "none",
             border: "none",
-            color: sortMode === "mtime" ? "var(--accent-color)" : "var(--text-faint)",
+            color: sortMode !== "name" ? "var(--accent-color)" : "var(--text-faint)",
             cursor: "pointer",
             padding: "2px 4px",
             borderRadius: 3,
             display: "flex",
             alignItems: "center",
+            gap: 3,
             flexShrink: 0,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
             {sortMode === "name" ? (
-              <>
-                <path d="M2 4h12M2 8h8M2 12h4" />
-              </>
+              <path d="M2 4h12M2 8h8M2 12h4" />
+            ) : sortMode === "mtime" ? (
+              <path d="M2 4h4M2 8h8M2 12h12" />
             ) : (
-              <>
-                <path d="M2 4h4M2 8h8M2 12h12" />
-              </>
+              <><circle cx="8" cy="8" r="5" /><path d="M8 5.5V8l2 1.5" /></>
             )}
           </svg>
+          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : "new"}</span>}
         </button>
       </div>
       <ul

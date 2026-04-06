@@ -16,6 +16,8 @@ export interface VaultFile {
   size: number;
   /** Last modified timestamp (ms since epoch) */
   mtime: number;
+  /** Creation timestamp (ms since epoch) */
+  ctime: number;
 }
 
 /** A folder within the vault */

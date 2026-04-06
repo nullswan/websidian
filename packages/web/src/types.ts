@@ -8,6 +8,7 @@ export interface VaultFileEntry {
   extension: string;
   size: number;
   mtime: number;
+  ctime: number;
 }
 
 export interface VaultFolderEntry {
