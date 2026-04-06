@@ -125,8 +125,37 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
   const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i));
   const activeVisiblePos = visibleIndices.indexOf(activeIdx);
 
+  const collapseAll = () => {
+    const allWithChildren = new Set<number>();
+    hasChildren.forEach((has, i) => { if (has) allWithChildren.add(i); });
+    setCollapsed(allWithChildren);
+  };
+  const expandAll = () => setCollapsed(new Set());
+  const someCollapsed = collapsed.size > 0;
+
   return (
     <div style={{ padding: "4px 12px 8px" }}>
+      {headings.length > 3 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4, gap: 4 }}>
+          <button
+            onClick={someCollapsed ? expandAll : collapseAll}
+            title={someCollapsed ? "Expand all" : "Collapse all"}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-faint)",
+              cursor: "pointer",
+              fontSize: 11,
+              padding: "1px 4px",
+              borderRadius: 3,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+          >
+            {someCollapsed ? "▼ Expand" : "▲ Collapse"}
+          </button>
+        </div>
+      )}
       <ul style={{ listStyle: "none", padding: 0, margin: 0, position: "relative" }}>
         {/* Position indicator track */}
         {visibleIndices.length > 1 && activeVisiblePos >= 0 && (
