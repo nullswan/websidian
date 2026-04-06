@@ -4640,6 +4640,39 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
               return true;
             }
           }
+          // Detect TSV (tab-separated values) — e.g. from spreadsheets
+          if (rawPaste.includes("\t") && lines.length >= 2) {
+            const tsvRows = lines.filter((l) => l.trim()).map((l) => l.split("\t"));
+            const colCount = tsvRows[0]?.length ?? 0;
+            // Validate: all rows should have similar column count
+            if (colCount >= 2 && tsvRows.every((r) => Math.abs(r.length - colCount) <= 1)) {
+              event.preventDefault();
+              // Pad rows to consistent column count
+              const maxCols = Math.max(...tsvRows.map((r) => r.length));
+              const padded = tsvRows.map((r) => {
+                const cells = r.map((c) => c.trim().replace(/\|/g, "\\|"));
+                while (cells.length < maxCols) cells.push("");
+                return cells;
+              });
+              // Compute column widths for alignment
+              const widths = Array.from({ length: maxCols }, (_, ci) =>
+                Math.max(3, ...padded.map((r) => r[ci]?.length ?? 0))
+              );
+              const mdRows: string[] = [];
+              padded.forEach((cells, ri) => {
+                mdRows.push("| " + cells.map((c, ci) => c.padEnd(widths[ci])).join(" | ") + " |");
+                if (ri === 0) {
+                  mdRows.push("| " + widths.map((w) => "-".repeat(w)).join(" | ") + " |");
+                }
+              });
+              const mdTable = mdRows.join("\n");
+              view.dispatch({
+                changes: { from: sel.from, insert: mdTable },
+                selection: { anchor: sel.from + mdTable.length },
+              });
+              return true;
+            }
+          }
         }
         return false;
       },
