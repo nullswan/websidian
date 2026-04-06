@@ -148,6 +148,25 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
 
     let cooling = 1;
 
+    // Compute folder colors once
+    const folderColorMap = new Map<string, string>();
+    const folders = new Set<string>();
+    for (const node of nodesRef.current) {
+      const parts = node.id.split("/");
+      folders.add(parts.length > 1 ? parts.slice(0, -1).join("/") : "(root)");
+    }
+    const folderList = [...folders].sort();
+    for (let i = 0; i < folderList.length; i++) {
+      const hue = (i * 360 / Math.max(folderList.length, 1)) % 360;
+      folderColorMap.set(folderList[i], `hsl(${hue}, 65%, 65%)`);
+    }
+
+    const getNodeColor = (id: string): string => {
+      const parts = id.split("/");
+      const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "(root)";
+      return folderColorMap.get(folder) ?? "#7f6df2";
+    };
+
     const tick = () => {
       const nodes = nodesRef.current;
       const edges = edgesRef.current;
@@ -272,6 +291,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
 
         ctx.beginPath();
         ctx.arc(nx, ny, radius, 0, Math.PI * 2);
+        const nodeColor = getNodeColor(node.id);
         ctx.fillStyle = isActive
           ? "#7f6df2"
           : isHovered
@@ -280,7 +300,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
               ? "#7f6df2"
               : isDimmed
                 ? "rgba(110, 110, 110, 0.3)"
-                : "#7f6df2";
+                : nodeColor;
         ctx.globalAlpha = isActive || isHovered ? 1 : isNeighbor ? 0.8 : isDimmed ? 0.4 : 0.6;
         ctx.fill();
         ctx.globalAlpha = 1;
