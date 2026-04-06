@@ -345,7 +345,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         if (langClass) {
           const label = document.createElement("span");
           label.textContent = langClass[1];
-          label.style.cssText = "position: absolute; top: 6px; left: 8px; font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; user-select: none;";
+          label.className = "code-lang-label";
+          label.style.cssText = "position: absolute; top: 6px; left: 8px; font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; user-select: none; opacity: 0; animation: code-label-in 0.3s ease 0.1s forwards;";
           pre.appendChild(label);
         }
 
@@ -401,7 +402,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         // Copy button
         const btn = document.createElement("button");
         btn.textContent = "Copy";
-        btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: var(--border-color); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
+        btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: var(--border-color); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; opacity: 0; transform: translateX(4px); transition: opacity 0.2s ease, transform 0.2s ease;";
         btn.addEventListener("click", () => {
           if (code) {
             navigator.clipboard.writeText(code.textContent || "");
@@ -410,8 +411,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
             setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "var(--text-secondary)"; }, 1500);
           }
         });
-        pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; if (runBtn) runBtn.style.opacity = "1"; });
-        pre.addEventListener("mouseleave", () => { btn.style.opacity = "0"; if (runBtn) runBtn.style.opacity = "0"; });
+        pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; btn.style.transform = "translateX(0)"; if (runBtn) { runBtn.style.opacity = "1"; runBtn.style.transform = "translateX(0)"; } });
+        pre.addEventListener("mouseleave", () => { btn.style.opacity = "0"; btn.style.transform = "translateX(4px)"; if (runBtn) { runBtn.style.opacity = "0"; runBtn.style.transform = "translateX(4px)"; } });
         pre.appendChild(btn);
 
         // Run button for JavaScript and HTML code blocks
@@ -420,7 +421,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         if (lang === "javascript" || lang === "js" || lang === "html" || lang === "typescript" || lang === "ts") {
           runBtn = document.createElement("button");
           runBtn.textContent = "▶ Run";
-          runBtn.style.cssText = "position: absolute; top: 6px; right: 60px; padding: 2px 8px; font-size: 11px; background: rgba(127,109,242,0.15); color: var(--accent-color); border: 1px solid rgba(127,109,242,0.3); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
+          runBtn.style.cssText = "position: absolute; top: 6px; right: 60px; padding: 2px 8px; font-size: 11px; background: rgba(127,109,242,0.15); color: var(--accent-color); border: 1px solid rgba(127,109,242,0.3); border-radius: 4px; cursor: pointer; opacity: 0; transform: translateX(4px); transition: opacity 0.2s ease, transform 0.2s ease;";
           const outputEl = document.createElement("div");
           outputEl.style.cssText = "display: none; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 4px; padding: 8px; font-size: 12px; font-family: monospace; max-height: 200px; overflow: auto; white-space: pre-wrap;";
           pre.parentElement?.insertBefore(outputEl, pre.nextSibling);
