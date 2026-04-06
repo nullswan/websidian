@@ -536,6 +536,11 @@ export function App() {
   const activeTab = activePane?.activeTabId ? tabsMap[activePane.activeTabId] ?? null : null;
   const workspaceRestored = useRef(false);
 
+  // Global navigation history (Alt+Left / Alt+Right)
+  const navHistory = useRef<string[]>([]);
+  const navIdx = useRef(-1);
+  const navIgnore = useRef(false);
+
   // Persist workspace to localStorage (debounced)
   useEffect(() => {
     if (!workspaceRestored.current) return;
@@ -1197,6 +1202,24 @@ ${rendered}
           return next;
         });
       }
+      // Alt+Left: navigate back
+      if (e.altKey && e.key === "ArrowLeft" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        if (navIdx.current > 0) {
+          navIdx.current--;
+          navIgnore.current = true;
+          openTab(navHistory.current[navIdx.current]);
+        }
+      }
+      // Alt+Right: navigate forward
+      if (e.altKey && e.key === "ArrowRight" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        if (navIdx.current < navHistory.current.length - 1) {
+          navIdx.current++;
+          navIgnore.current = true;
+          openTab(navHistory.current[navIdx.current]);
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -1219,6 +1242,20 @@ ${rendered}
     const name = activeTab?.path.replace(/\.md$/, "").split("/").pop();
     document.title = name ? `${name} - ${vaultName || "Obsidian Web"}` : "Obsidian Web";
   }, [activeTab?.path, vaultName]);
+
+  // Track navigation history for Alt+Left/Right
+  useEffect(() => {
+    if (!activeTab?.path) return;
+    if (navIgnore.current) { navIgnore.current = false; return; }
+    const h = navHistory.current;
+    // Don't push if same as current position
+    if (h[navIdx.current] === activeTab.path) return;
+    // Truncate forward history
+    navHistory.current = h.slice(0, navIdx.current + 1);
+    navHistory.current.push(activeTab.path);
+    if (navHistory.current.length > 50) navHistory.current.shift();
+    navIdx.current = navHistory.current.length - 1;
+  }, [activeTab?.path]);
 
   // Sync URL hash with active tab for deep linking
   useEffect(() => {
