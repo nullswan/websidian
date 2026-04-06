@@ -2098,6 +2098,45 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Scroll-to-top floating button
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scrollParent = container.closest("[style*='overflow']") as HTMLElement | null;
+    if (!scrollParent) return;
+
+    // Ensure parent is positioned for absolute child
+    if (getComputedStyle(scrollParent).position === "static") {
+      scrollParent.style.position = "relative";
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "scroll-to-top-btn";
+    btn.title = "Scroll to top";
+    btn.innerHTML = "↑";
+    btn.style.cssText = "position:fixed;bottom:60px;right:24px;width:36px;height:36px;border-radius:50%;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-muted);font-size:16px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity 0.2s,background 0.15s;z-index:100;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2);";
+
+    btn.addEventListener("mouseenter", () => { btn.style.background = "var(--bg-tertiary)"; btn.style.color = "var(--accent-color)"; });
+    btn.addEventListener("mouseleave", () => { btn.style.background = "var(--bg-secondary)"; btn.style.color = "var(--text-muted)"; });
+    btn.addEventListener("click", () => scrollParent.scrollTo({ top: 0, behavior: "smooth" }));
+
+    scrollParent.parentElement?.appendChild(btn);
+
+    const onScroll = () => {
+      const show = scrollParent.scrollTop > 300;
+      btn.style.opacity = show ? "1" : "0";
+      btn.style.pointerEvents = show ? "auto" : "none";
+    };
+
+    scrollParent.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => {
+      scrollParent.removeEventListener("scroll", onScroll);
+      btn.remove();
+    };
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
