@@ -4233,6 +4233,57 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return true;
           }},
         ]),
+        // Smart list indent/outdent: Tab/Shift-Tab on list lines adjusts nesting
+        keymap.of([
+          {
+            key: "Tab",
+            run: (view) => {
+              const sel = view.state.selection.main;
+              const line = view.state.doc.lineAt(sel.head);
+              if (!/^\s*(?:[-*+]|\d+\.)\s/.test(line.text)) return false;
+              const indent = view.state.facet(indentUnit);
+              // Indent all lines in selection
+              const fromLine = view.state.doc.lineAt(sel.from).number;
+              const toLine = view.state.doc.lineAt(sel.to).number;
+              const changes: { from: number; insert: string }[] = [];
+              for (let ln = fromLine; ln <= toLine; ln++) {
+                const l = view.state.doc.line(ln);
+                if (/^\s*(?:[-*+]|\d+\.)\s/.test(l.text)) {
+                  changes.push({ from: l.from, insert: indent });
+                }
+              }
+              if (changes.length === 0) return false;
+              view.dispatch({ changes });
+              return true;
+            },
+          },
+          {
+            key: "Shift-Tab",
+            run: (view) => {
+              const sel = view.state.selection.main;
+              const line = view.state.doc.lineAt(sel.head);
+              if (!/^\s*(?:[-*+]|\d+\.)\s/.test(line.text)) return false;
+              const indent = view.state.facet(indentUnit);
+              const fromLine = view.state.doc.lineAt(sel.from).number;
+              const toLine = view.state.doc.lineAt(sel.to).number;
+              const changes: { from: number; to: number }[] = [];
+              for (let ln = fromLine; ln <= toLine; ln++) {
+                const l = view.state.doc.line(ln);
+                if (/^\s*(?:[-*+]|\d+\.)\s/.test(l.text)) {
+                  const leading = l.text.match(/^\s*/)?.[0] ?? "";
+                  if (leading.startsWith(indent)) {
+                    changes.push({ from: l.from, to: l.from + indent.length });
+                  } else if (leading.length > 0) {
+                    changes.push({ from: l.from, to: l.from + leading.length });
+                  }
+                }
+              }
+              if (changes.length === 0) return false;
+              view.dispatch({ changes });
+              return true;
+            },
+          },
+        ]),
         tableTabKeymap,
         snippetKeymap,
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
