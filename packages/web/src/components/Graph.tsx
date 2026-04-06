@@ -857,9 +857,11 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
             zIndex: 1000,
             boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
             whiteSpace: "nowrap",
+            animation: "graph-tooltip-in 0.15s ease-out",
+            backdropFilter: "blur(8px)",
           }}
         >
-          <div style={{ fontWeight: 600, marginBottom: 2 }}>{tooltip.name}</div>
+          <div style={{ fontWeight: 600, marginBottom: 2, color: "var(--accent-color)" }}>{tooltip.name}</div>
           <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
             {tooltip.words.toLocaleString()} words · {tooltip.links} link{tooltip.links !== 1 ? "s" : ""}
           </div>
