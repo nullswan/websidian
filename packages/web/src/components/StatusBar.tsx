@@ -164,7 +164,7 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       {fileModified && <span title={`Modified: ${fileModified}`}>Modified {formatDate(fileModified)}</span>}
       {vaultStats && (
         <span title={`Vault: ${vaultStats.totalNotes.toLocaleString()} notes, ${vaultStats.totalWords.toLocaleString()} words`} style={{ opacity: 0.7 }}>
-          Vault: {vaultStats.totalWords.toLocaleString()}w
+          Vault: {vaultStats.totalNotes.toLocaleString()} notes · {vaultStats.totalWords.toLocaleString()}w
         </span>
       )}
       {lineWrap != null && (
