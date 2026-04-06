@@ -126,7 +126,9 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
           }} />
         </div>
       )}
-      <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>{children}</div>
+      <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>
+        <div key={tabId} className="note-content-fade">{children}</div>
+      </div>
     </div>
   );
 }
