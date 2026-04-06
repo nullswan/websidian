@@ -3579,7 +3579,9 @@ ${rendered}
                 label: "Close All",
                 action: () => {
                   const pane = panes[tabCtxMenu.paneIdx];
-                  for (const tid of [...pane.tabIds]) closeTab(tid, tabCtxMenu.paneIdx);
+                  for (const tid of [...pane.tabIds]) {
+                    if (!tabsMap[tid]?.pinned) closeTab(tid, tabCtxMenu.paneIdx);
+                  }
                 },
               },
               {
