@@ -1434,6 +1434,26 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
                     <td style={{ padding: "4px 12px", color: "var(--text-primary)" }}>{p.value}</td>
                   </tr>
                 ))}
+                {/* Computed metadata */}
+                {(() => {
+                  const text = body.replace(/```[\s\S]*?```/g, "");
+                  const words = text.trim().split(/\s+/).filter(Boolean).length;
+                  const links = (text.match(/\[\[[^\]]+\]\]/g) ?? []).length;
+                  const tags = (text.match(/#[\w/-]+/g) ?? []).length;
+                  const headings = (body.match(/^#{1,6}\s+.+$/gm) ?? []).length;
+                  const meta = [
+                    { key: "words", value: words.toLocaleString() },
+                    { key: "links", value: String(links) },
+                    { key: "tags", value: String(tags) },
+                    { key: "headings", value: String(headings) },
+                  ].filter(m => parseInt(m.value.replace(/,/g, "")) > 0);
+                  return meta.map((m) => (
+                    <tr key={`_${m.key}`} style={{ borderTop: "1px solid var(--border-color)" }}>
+                      <td style={{ padding: "4px 12px", color: "var(--text-faint)", width: 100, verticalAlign: "top", fontStyle: "italic" }}>{m.key}</td>
+                      <td style={{ padding: "4px 12px", color: "var(--text-muted)" }}>{m.value}</td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           )}
