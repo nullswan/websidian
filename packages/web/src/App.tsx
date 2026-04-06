@@ -668,7 +668,7 @@ export function App() {
   const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number } | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number; selectedWords?: number; cursors?: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toggleZenMode = useCallback(() => {

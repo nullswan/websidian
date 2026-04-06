@@ -3,7 +3,7 @@ import { useMemo } from "react";
 interface StatusBarProps {
   content: string;
   path: string;
-  cursorPos?: { line: number; col: number; selectedChars: number; cursors?: number } | null;
+  cursorPos?: { line: number; col: number; selectedChars: number; selectedWords?: number; cursors?: number } | null;
   saveStatus?: "idle" | "saving" | "saved";
   fileCreated?: string;
   fileModified?: string;
@@ -94,7 +94,7 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
           {(cursorPos.cursors ?? 1) > 1 && (
             <span style={{ color: "var(--accent-color)", marginRight: 8 }}>{cursorPos.cursors} cursors</span>
           )}
-          {cursorPos.selectedChars > 0 && `${cursorPos.selectedChars} selected  `}
+          {cursorPos.selectedChars > 0 && `${cursorPos.selectedChars} chars (${cursorPos.selectedWords ?? 0} words) selected  `}
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
       )}
