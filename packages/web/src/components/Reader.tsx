@@ -140,8 +140,14 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       if (headings.length > 0) {
         const minLevel = Math.min(...headings.map((h) => h.level));
         const tocHtml = `<nav class="inline-toc" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; margin: 12px 0;">
-          <div style="font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600;">Table of Contents</div>
-          ${headings.map((h) => `<div style="padding: 2px 0 2px ${(h.level - minLevel) * 16}px; font-size: 13px;"><a href="#${h.slug}" style="color: var(--accent-color); text-decoration: none;">${h.text}</a></div>`).join("")}
+          <div class="inline-toc-header" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+            <span class="inline-toc-chevron" style="display: inline-flex; transition: transform 0.2s;">▾</span>
+            Table of Contents
+            <span style="font-weight: 400; opacity: 0.7;">(${headings.length})</span>
+          </div>
+          <div class="inline-toc-body" style="margin-top: 6px; overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease;">
+            ${headings.map((h) => `<div style="padding: 2px 0 2px ${(h.level - minLevel) * 16}px; font-size: 13px;"><a href="#${h.slug}" style="color: var(--accent-color); text-decoration: none;">${h.text}</a></div>`).join("")}
+          </div>
         </nav>`;
         rendered = rendered.replace(tocPattern, tocHtml);
       }
@@ -163,6 +169,18 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         cb.disabled = false;
         cb.dataset.idx = String(idx);
         cb.style.cursor = "pointer";
+      });
+
+      // Wire up collapsible inline TOC
+      containerRef.current.querySelectorAll<HTMLElement>(".inline-toc-header").forEach((header) => {
+        header.addEventListener("click", () => {
+          const body = header.nextElementSibling as HTMLElement;
+          const chevron = header.querySelector(".inline-toc-chevron") as HTMLElement;
+          if (!body) return;
+          const collapsed = body.style.display === "none";
+          body.style.display = collapsed ? "" : "none";
+          if (chevron) chevron.style.transform = collapsed ? "" : "rotate(-90deg)";
+        });
       });
 
       // Add fold toggles and anchor links to headings
