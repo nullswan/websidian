@@ -1148,6 +1148,44 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       }
     }
 
+    // Handle footnote ref clicks — show popover instead of scrolling
+    const fnLink = (e.target as HTMLElement).closest<HTMLAnchorElement>("sup.footnote-ref a");
+    if (fnLink) {
+      e.preventDefault();
+      e.stopPropagation();
+      const href = fnLink.getAttribute("href"); // e.g. "#fn1"
+      if (href && containerRef.current) {
+        const fnEl = containerRef.current.querySelector<HTMLElement>(href);
+        if (fnEl) {
+          // Remove any existing popover
+          document.querySelectorAll(".fn-popover").forEach((el) => el.remove());
+          const popover = document.createElement("div");
+          popover.className = "fn-popover";
+          popover.style.cssText = "position:absolute;z-index:1000;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:8px 12px;max-width:350px;font-size:13px;color:var(--text-primary);box-shadow:0 4px 12px rgba(0,0,0,0.3);line-height:1.5;";
+          // Clone footnote content minus backref
+          const clone = fnEl.cloneNode(true) as HTMLElement;
+          clone.querySelectorAll("a.footnote-backref").forEach((a) => a.remove());
+          popover.innerHTML = clone.innerHTML;
+          // Position near the ref
+          const rect = fnLink.getBoundingClientRect();
+          const containerRect = containerRef.current.getBoundingClientRect();
+          popover.style.left = `${rect.left - containerRect.left}px`;
+          popover.style.top = `${rect.bottom - containerRect.top + 4}px`;
+          containerRef.current.style.position = "relative";
+          containerRef.current.appendChild(popover);
+          // Close on click outside
+          const close = (ev: MouseEvent) => {
+            if (!popover.contains(ev.target as Node)) {
+              popover.remove();
+              document.removeEventListener("click", close, true);
+            }
+          };
+          setTimeout(() => document.addEventListener("click", close, true), 0);
+        }
+      }
+      return;
+    }
+
     // Handle checkbox toggles
     const checkbox = e.target as HTMLInputElement;
     if (checkbox.tagName === "INPUT" && checkbox.type === "checkbox" && checkbox.dataset.idx && onSave) {
