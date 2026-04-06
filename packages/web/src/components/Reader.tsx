@@ -1894,6 +1894,24 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // Click to copy inline code
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "CODE" && !target.closest("pre")) {
+        navigator.clipboard.writeText(target.textContent || "");
+        const orig = target.style.outline;
+        target.style.outline = "1px solid var(--accent-color)";
+        target.style.outlineOffset = "1px";
+        setTimeout(() => { target.style.outline = orig; target.style.outlineOffset = ""; }, 400);
+      }
+    };
+    container.addEventListener("click", handler);
+    return () => container.removeEventListener("click", handler);
+  }, [html]);
+
   // Reader selection floating toolbar
   useEffect(() => {
     const container = containerRef.current;
