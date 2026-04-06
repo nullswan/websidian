@@ -23,7 +23,11 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<GraphNode[]>([]);
   const edgesRef = useRef<GraphEdge[]>([]);
+  const allNodesRef = useRef<GraphNode[]>([]);
+  const allEdgesRef = useRef<GraphEdge[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [graphFilter, setGraphFilter] = useState("");
+  const [showOrphans, setShowOrphans] = useState(true);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
@@ -53,11 +57,35 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
             };
           },
         );
+        allNodesRef.current = nodes;
+        allEdgesRef.current = data.edges ?? [];
         nodesRef.current = nodes;
         edgesRef.current = data.edges ?? [];
         setLoaded(true);
       });
   }, []);
+
+  // Apply filters when graphFilter or showOrphans changes
+  useEffect(() => {
+    if (!loaded) return;
+    const all = allNodesRef.current;
+    const allEdges = allEdgesRef.current;
+    const q = graphFilter.toLowerCase();
+
+    let filteredNodes = q ? all.filter((n) => n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)) : [...all];
+
+    if (!showOrphans) {
+      const connected = new Set<string>();
+      for (const e of allEdges) { connected.add(e.source); connected.add(e.target); }
+      filteredNodes = filteredNodes.filter((n) => connected.has(n.id));
+    }
+
+    const nodeIds = new Set(filteredNodes.map((n) => n.id));
+    const filteredEdges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+    nodesRef.current = filteredNodes;
+    edgesRef.current = filteredEdges;
+  }, [loaded, graphFilter, showOrphans]);
 
   // Screen to world coordinates
   const screenToWorld = useCallback((sx: number, sy: number, canvas: HTMLCanvasElement) => {
@@ -366,10 +394,24 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   }, [loaded, onNavigate, screenToWorld, findNodeAt]);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", background: "var(--bg-primary)" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", background: "var(--bg-primary)", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "6px 8px", display: "flex", gap: 6, alignItems: "center", borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
+        <input
+          type="text"
+          value={graphFilter}
+          onChange={(e) => setGraphFilter(e.target.value)}
+          placeholder="Filter..."
+          style={{ flex: 1, padding: "3px 6px", border: "1px solid var(--border-color)", borderRadius: 3, background: "var(--bg-tertiary)", color: "var(--text-primary)", fontSize: 11, outline: "none" }}
+        />
+        <label style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-muted)", cursor: "pointer", whiteSpace: "nowrap" }}>
+          <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} style={{ accentColor: "var(--accent-color)" }} />
+          Orphans
+        </label>
+        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{nodesRef.current.length} nodes</span>
+      </div>
       <canvas
         ref={canvasRef}
-        style={{ width: "100%", height: "100%", display: "block" }}
+        style={{ width: "100%", flex: 1, display: "block" }}
       />
       {!loaded && (
         <div
