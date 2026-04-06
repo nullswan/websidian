@@ -97,6 +97,59 @@ const headingPlugin = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 );
 
+// Gutter hover → highlight entire line
+const gutterHoverPlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet = Decoration.none;
+    hoveredLine = -1;
+
+    constructor(readonly view: EditorView) {
+      this.handleOver = this.handleOver.bind(this);
+      this.handleOut = this.handleOut.bind(this);
+      const gutters = view.dom.querySelector(".cm-gutters");
+      if (gutters) {
+        gutters.addEventListener("mouseover", this.handleOver);
+        gutters.addEventListener("mouseout", this.handleOut);
+      }
+    }
+
+    handleOver(e: Event) {
+      const target = e.target as HTMLElement;
+      const gutterEl = target.closest(".cm-gutterElement");
+      if (!gutterEl) return;
+      const rect = gutterEl.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const pos = this.view.posAtCoords({ x: rect.right + 10, y: midY });
+      if (pos == null) return;
+      const line = this.view.state.doc.lineAt(pos);
+      if (line.number !== this.hoveredLine) {
+        this.hoveredLine = line.number;
+        this.decorations = Decoration.set([
+          Decoration.line({ class: "cm-gutter-hover-line" }).range(line.from),
+        ]);
+        this.view.requestMeasure();
+      }
+    }
+
+    handleOut() {
+      if (this.hoveredLine !== -1) {
+        this.hoveredLine = -1;
+        this.decorations = Decoration.none;
+        this.view.requestMeasure();
+      }
+    }
+
+    destroy() {
+      const gutters = this.view.dom.querySelector(".cm-gutters");
+      if (gutters) {
+        gutters.removeEventListener("mouseover", this.handleOver);
+        gutters.removeEventListener("mouseout", this.handleOut);
+      }
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
+
 // Frontmatter Properties widget — replaces raw YAML with a structured panel
 class FrontmatterWidget extends WidgetType {
   properties: Array<{ key: string; value: string }>;
@@ -1381,6 +1434,9 @@ const livePreviewTheme = EditorView.theme({
     color: "var(--accent-color)",
     background: "rgba(127, 109, 242, 0.08)",
   },
+  ".cm-gutter-hover-line": {
+    background: "rgba(127, 109, 242, 0.06)",
+  },
   ".cm-foldGutter": {
     width: "16px",
   },
@@ -2266,6 +2322,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         syntaxHighlighting(classHighlighter),
         headingPlugin,
+        gutterHoverPlugin,
         frontmatterField,
         imagePreviewField,
         checkboxField,
