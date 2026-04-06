@@ -919,6 +919,15 @@ details.callout > div {
   background: rgba(127, 109, 242, 0.6) !important;
 }
 
+/* Smooth cursor blink — overrides CM6 default harsh blink */
+@keyframes smooth-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.cm-focused .cm-cursor {
+  animation: smooth-cursor-blink 1.1s ease-in-out infinite !important;
+}
+
 /* Print styles */
 @media print {
   body { background: white !important; color: black !important; }
