@@ -6,9 +6,10 @@ interface MinimapProps {
   scrollHeight: number;
   clientHeight: number;
   onSeek: (fraction: number) => void;
+  searchQuery?: string;
 }
 
-export function Minimap({ content, scrollTop, scrollHeight, clientHeight, onSeek }: MinimapProps) {
+export function Minimap({ content, scrollTop, scrollHeight, clientHeight, onSeek, searchQuery }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const height = 200;
   const width = 60;
@@ -64,6 +65,19 @@ export function Minimap({ content, scrollTop, scrollHeight, clientHeight, onSeek
       }
     }
 
+    // Draw search match markers
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const contentLines = content.split("\n");
+      ctx.fillStyle = "rgba(255, 180, 50, 0.7)";
+      for (let i = 0; i < contentLines.length; i++) {
+        if (contentLines[i].toLowerCase().includes(q)) {
+          const y = (i / totalLines) * height;
+          ctx.fillRect(width - 4, y, 4, Math.max(lineH, 2));
+        }
+      }
+    }
+
     // Draw viewport indicator
     if (scrollHeight > clientHeight) {
       const viewStart = (scrollTop / scrollHeight) * height;
@@ -74,7 +88,7 @@ export function Minimap({ content, scrollTop, scrollHeight, clientHeight, onSeek
       ctx.lineWidth = 1;
       ctx.strokeRect(0.5, viewStart + 0.5, width - 1, viewH - 1);
     }
-  }, [lines, scrollTop, scrollHeight, clientHeight]);
+  }, [lines, scrollTop, scrollHeight, clientHeight, content, searchQuery]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();

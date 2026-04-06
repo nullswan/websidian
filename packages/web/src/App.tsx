@@ -79,7 +79,7 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
@@ -88,6 +88,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
   noteContent?: string;
   showMinimap?: boolean;
   onProgressChange?: (progress: number) => void;
+  searchQuery?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
@@ -151,6 +152,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
             scrollTop={scrollMetrics.scrollTop}
             scrollHeight={scrollMetrics.scrollHeight}
             clientHeight={scrollMetrics.clientHeight}
+            searchQuery={searchQuery}
             onSeek={(fraction) => {
               if (ref.current) {
                 ref.current.scrollTop = fraction * (ref.current.scrollHeight - ref.current.clientHeight);
@@ -1933,7 +1935,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
