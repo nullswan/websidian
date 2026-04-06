@@ -20,6 +20,7 @@ import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
+import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
 import type { VaultEntry } from "./types.js";
 import "./styles.css";
 import "katex/dist/katex.min.css";
@@ -597,6 +598,11 @@ export function App() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
+  const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
+  // Refresh hotkey map when settings close (user may have changed hotkeys)
+  const refreshHotkeyMap = useCallback(() => {
+    hotkeyMapRef.current = buildHotkeyMap(loadHotkeyOverrides());
+  }, []);
   // Apply theme to document root
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", appSettings.theme);
@@ -1259,112 +1265,75 @@ ${rendered}
       .catch((e) => setError("Failed to open daily note: " + e.message));
   }, [openTab, refreshTree]);
 
-  // Global keyboard shortcuts
+  // Global keyboard shortcuts (driven by customizable hotkey map)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "n") {
-        e.preventDefault();
-        createNewNote();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "d") {
-        // Don't intercept Cmd+D when editor is focused (used for select next occurrence)
-        if (document.activeElement?.closest(".cm-editor")) return;
-        e.preventDefault();
-        openDailyNote();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "o") {
-        e.preventDefault();
-        setShowSwitcher(true);
-      }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "f") {
-        e.preventDefault();
-        setLeftPanel((p) => (p === "search" ? "files" : "search"));
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
-        e.preventDefault();
-        toggleMode();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "p") {
-        e.preventDefault();
-        setShowCommandPalette(true);
-      }
-      // Ctrl+G: Toggle graph view
-      if ((e.ctrlKey || e.metaKey) && e.key === "g") {
-        e.preventDefault();
-        setShowGraph((g) => !g);
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === "w") {
-        e.preventDefault();
-        if (activePane?.activeTabId) closeTab(activePane.activeTabId, activePaneIdx);
-      }
-      // Escape: close overlays
+      // Escape is always hardcoded (not remappable)
       if (e.key === "Escape") {
         if (showShortcuts) { setShowShortcuts(false); e.preventDefault(); return; }
         if (zenMode) { toggleZenMode(); e.preventDefault(); return; }
       }
-      // Ctrl+/: Show keyboard shortcuts
-      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
-        e.preventDefault();
-        setShowShortcuts((s) => !s);
+
+      // Check each registered hotkey action
+      const hkMap = hotkeyMapRef.current;
+      let matchedAction: string | null = null;
+      for (const [combo, actionId] of hkMap) {
+        if (matchesCombo(e, combo)) { matchedAction = actionId; break; }
       }
-      // Ctrl+\: Toggle left sidebar
-      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          setRightCollapsed((c) => !c);
-        } else {
-          setLeftCollapsed((c) => !c);
+      if (!matchedAction) return;
+
+      // Special: daily note should not intercept in editor (Cmd+D = select next occurrence)
+      if (matchedAction === "daily-note" && document.activeElement?.closest(".cm-editor")) return;
+
+      e.preventDefault();
+      switch (matchedAction) {
+        case "new-note": createNewNote(); break;
+        case "daily-note": openDailyNote(); break;
+        case "quick-switcher": setShowSwitcher(true); break;
+        case "search": setLeftPanel((p) => (p === "search" ? "files" : "search")); break;
+        case "toggle-mode": toggleMode(); break;
+        case "command-palette": setShowCommandPalette(true); break;
+        case "graph-view": setShowGraph((g) => !g); break;
+        case "close-tab":
+          if (activePane?.activeTabId) closeTab(activePane.activeTabId, activePaneIdx);
+          break;
+        case "shortcuts-help": setShowShortcuts((s) => !s); break;
+        case "toggle-left-sidebar": setLeftCollapsed((c) => !c); break;
+        case "toggle-right-sidebar": setRightCollapsed((c) => !c); break;
+        case "zen-mode": toggleZenMode(); break;
+        case "settings": setShowSettings((s) => !s); break;
+        case "undo-close-tab": {
+          const path = closedTabsStack.current.pop();
+          if (path) openTab(path);
+          break;
         }
-      }
-      // Ctrl+Shift+Z: Toggle zen mode
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "Z" || e.key === "z")) {
-        e.preventDefault();
-        toggleZenMode();
-        return;
-      }
-      // Ctrl+,: Open settings
-      if ((e.ctrlKey || e.metaKey) && e.key === ",") {
-        e.preventDefault();
-        setShowSettings((s) => !s);
-      }
-      // Ctrl+Shift+T: undo close tab
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "T" || e.key === "t")) {
-        e.preventDefault();
-        const path = closedTabsStack.current.pop();
-        if (path) openTab(path);
-        return;
-      }
-      // Ctrl+Tab / Ctrl+Shift+Tab: cycle tabs
-      if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
-        e.preventDefault();
-        const tabIds = activePane?.tabIds ?? [];
-        if (tabIds.length <= 1) return;
-        const currentIdx = activePane?.activeTabId ? tabIds.indexOf(activePane.activeTabId) : 0;
-        const delta = e.shiftKey ? -1 : 1;
-        const nextIdx = (currentIdx + delta + tabIds.length) % tabIds.length;
-        setPanes((prev) => {
-          const next = [...prev];
-          next[activePaneIdx] = { ...prev[activePaneIdx], activeTabId: tabIds[nextIdx] };
-          return next;
-        });
-      }
-      // Alt+Left: navigate back
-      if (e.altKey && e.key === "ArrowLeft" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        e.preventDefault();
-        if (navIdx.current > 0) {
-          navIdx.current--;
-          navIgnore.current = true;
-          openTab(navHistory.current[navIdx.current]);
+        case "next-tab": case "prev-tab": {
+          const tabIds = activePane?.tabIds ?? [];
+          if (tabIds.length <= 1) return;
+          const currentIdx = activePane?.activeTabId ? tabIds.indexOf(activePane.activeTabId) : 0;
+          const delta = matchedAction === "prev-tab" ? -1 : 1;
+          const nextIdx = (currentIdx + delta + tabIds.length) % tabIds.length;
+          setPanes((prev) => {
+            const next = [...prev];
+            next[activePaneIdx] = { ...prev[activePaneIdx], activeTabId: tabIds[nextIdx] };
+            return next;
+          });
+          break;
         }
-      }
-      // Alt+Right: navigate forward
-      if (e.altKey && e.key === "ArrowRight" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        e.preventDefault();
-        if (navIdx.current < navHistory.current.length - 1) {
-          navIdx.current++;
-          navIgnore.current = true;
-          openTab(navHistory.current[navIdx.current]);
-        }
+        case "navigate-back":
+          if (navIdx.current > 0) {
+            navIdx.current--;
+            navIgnore.current = true;
+            openTab(navHistory.current[navIdx.current]);
+          }
+          break;
+        case "navigate-forward":
+          if (navIdx.current < navHistory.current.length - 1) {
+            navIdx.current++;
+            navIgnore.current = true;
+            openTab(navHistory.current[navIdx.current]);
+          }
+          break;
       }
     };
     window.addEventListener("keydown", handler);
@@ -2883,49 +2852,51 @@ ${rendered}
       )}
 
       {/* Command Palette modal */}
-      {showCommandPalette && (
-        <CommandPalette
+      {showCommandPalette && (() => {
+        const hko = loadHotkeyOverrides();
+        const hk = (id: string) => getHotkey(id, hko);
+        return <CommandPalette
           commands={[
             {
               id: "new-note",
               name: "New Note",
-              shortcut: "Ctrl+N",
+              shortcut: hk("new-note"),
               action: createNewNote,
             },
             {
               id: "daily-note",
               name: "Open Daily Note",
-              shortcut: "Ctrl+D",
+              shortcut: hk("daily-note"),
               action: openDailyNote,
             },
             {
               id: "toggle-mode",
               name: activeTab?.mode === "edit" ? "Switch to Read Mode" : "Switch to Edit Mode",
-              shortcut: "Ctrl+E",
+              shortcut: hk("toggle-mode"),
               action: toggleMode,
             },
             {
               id: "quick-switcher",
               name: "Open Quick Switcher",
-              shortcut: "Ctrl+O",
+              shortcut: hk("quick-switcher"),
               action: () => setShowSwitcher(true),
             },
             {
               id: "toggle-search",
               name: leftPanel === "search" ? "Show File Tree" : "Show Search",
-              shortcut: "Ctrl+Shift+F",
+              shortcut: hk("search"),
               action: () => setLeftPanel((p) => (p === "search" ? "files" : "search")),
             },
             {
               id: "close-tab",
               name: "Close Active Tab",
-              shortcut: "Ctrl+W",
+              shortcut: hk("close-tab"),
               action: () => { if (activePane?.activeTabId) closeTab(activePane.activeTabId, activePaneIdx); },
             },
             {
               id: "undo-close-tab",
               name: "Undo Close Tab",
-              shortcut: "Ctrl+Shift+T",
+              shortcut: hk("undo-close-tab"),
               action: () => {
                 const path = closedTabsStack.current.pop();
                 if (path) openTab(path);
@@ -2934,7 +2905,7 @@ ${rendered}
             {
               id: "toggle-graph",
               name: showGraph ? "Close Graph View" : "Open Graph View",
-              shortcut: "Ctrl+G",
+              shortcut: hk("graph-view"),
               action: () => setShowGraph((g) => !g),
             },
             {
@@ -2954,25 +2925,25 @@ ${rendered}
             {
               id: "toggle-left-sidebar",
               name: leftCollapsed ? "Expand Left Sidebar" : "Collapse Left Sidebar",
-              shortcut: "Ctrl+\\",
+              shortcut: hk("toggle-left-sidebar"),
               action: () => setLeftCollapsed((c) => !c),
             },
             {
               id: "toggle-right-sidebar",
               name: rightCollapsed ? "Expand Right Sidebar" : "Collapse Right Sidebar",
-              shortcut: "Ctrl+Shift+\\",
+              shortcut: hk("toggle-right-sidebar"),
               action: () => setRightCollapsed((c) => !c),
             },
             {
               id: "toggle-zen-mode",
               name: zenMode ? "Exit Zen Mode" : "Enter Zen Mode",
-              shortcut: "Ctrl+Shift+Z",
+              shortcut: hk("zen-mode"),
               action: toggleZenMode,
             },
             {
               id: "open-settings",
               name: "Open Settings",
-              shortcut: "Ctrl+,",
+              shortcut: hk("settings"),
               action: () => setShowSettings(true),
             },
             {
@@ -3096,8 +3067,8 @@ ${rendered}
                 }]),
           ]}
           onClose={() => setShowCommandPalette(false)}
-        />
-      )}
+        />;
+      })()}
       {/* Tab context menu */}
       {tabCtxMenu && (
         <div
@@ -3325,20 +3296,23 @@ ${rendered}
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 16 }}>
               Keyboard Shortcuts
             </div>
-            {([
+            {(() => {
+              const hko = loadHotkeyOverrides();
+              const hk = (id: string) => getHotkey(id, hko);
+              return [
               ["Navigation", [
-                ["Ctrl+O", "Quick switcher"],
-                ["Ctrl+P", "Command palette"],
-                ["Ctrl+E", "Toggle read/edit mode"],
-                ["Ctrl+Tab", "Next tab"],
-                ["Ctrl+Shift+Tab", "Previous tab"],
-                ["Ctrl+G", "Toggle graph view"],
+                [hk("quick-switcher"), "Quick switcher"],
+                [hk("command-palette"), "Command palette"],
+                [hk("toggle-mode"), "Toggle read/edit mode"],
+                [hk("next-tab"), "Next tab"],
+                [hk("prev-tab"), "Previous tab"],
+                [hk("graph-view"), "Toggle graph view"],
               ]],
               ["Files", [
-                ["Ctrl+N", "New note"],
-                ["Ctrl+D", "Open daily note"],
-                ["Ctrl+W", "Close active tab"],
-                ["Ctrl+Shift+T", "Undo close tab"],
+                [hk("new-note"), "New note"],
+                [hk("daily-note"), "Open daily note"],
+                [hk("close-tab"), "Close active tab"],
+                [hk("undo-close-tab"), "Undo close tab"],
                 ["Ctrl+Shift+N", "Extract selection to note"],
               ]],
               ["Editing", [
@@ -3360,14 +3334,15 @@ ${rendered}
                 ["[[", "Auto-close wikilink brackets"],
               ]],
               ["Interface", [
-                ["Ctrl+\\", "Toggle left sidebar"],
-                ["Ctrl+Shift+\\", "Toggle right sidebar"],
-                ["Ctrl+Shift+F", "Toggle search"],
-                ["Ctrl+Shift+Z", "Toggle zen mode"],
-                ["Ctrl+,", "Open settings"],
-                ["Ctrl+/", "Keyboard shortcuts"],
+                [hk("toggle-left-sidebar"), "Toggle left sidebar"],
+                [hk("toggle-right-sidebar"), "Toggle right sidebar"],
+                [hk("search"), "Toggle search"],
+                [hk("zen-mode"), "Toggle zen mode"],
+                [hk("settings"), "Open settings"],
+                [hk("shortcuts-help"), "Keyboard shortcuts"],
               ]],
-            ] as [string, string[][]][]).map(([group, shortcuts]) => (
+            ] as [string, string[][]][];
+            })().map(([group, shortcuts]) => (
               <div key={group}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 0 4px", marginTop: 4 }}>
                   {group}
@@ -3413,7 +3388,7 @@ ${rendered}
         <Settings
           settings={appSettings}
           onUpdate={setAppSettings}
-          onClose={() => setShowSettings(false)}
+          onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
         />
       )}
 

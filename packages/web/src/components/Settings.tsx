@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { HOTKEY_ACTIONS, type HotkeyOverrides, loadHotkeyOverrides, saveHotkeyOverrides, getHotkey, eventToCombo } from "../lib/hotkeys.js";
 
 export interface AppSettings {
   theme: "dark" | "light";
@@ -54,7 +55,7 @@ interface SettingsProps {
   onClose: () => void;
 }
 
-type SettingsSection = "appearance" | "editor" | "about";
+type SettingsSection = "appearance" | "editor" | "hotkeys" | "about";
 
 interface VaultStats {
   totalNotes: number;
@@ -67,6 +68,9 @@ interface VaultStats {
 export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
   const [section, setSection] = useState<SettingsSection>("appearance");
   const [stats, setStats] = useState<VaultStats | null>(null);
+  const [hotkeyOverrides, setHotkeyOverrides] = useState<HotkeyOverrides>(loadHotkeyOverrides);
+  const [hotkeyFilter, setHotkeyFilter] = useState("");
+  const [recordingAction, setRecordingAction] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -94,6 +98,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
   const sections: { id: SettingsSection; label: string }[] = [
     { id: "appearance", label: "Appearance" },
     { id: "editor", label: "Editor" },
+    { id: "hotkeys", label: "Hotkeys" },
     { id: "about", label: "About" },
   ];
 
@@ -376,6 +381,83 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
             </div>
           )}
 
+          {section === "hotkeys" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Filter hotkeys..."
+                value={hotkeyFilter}
+                onChange={(e) => setHotkeyFilter(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  padding: "8px 12px",
+                  marginBottom: 8,
+                }}
+              />
+              {HOTKEY_ACTIONS
+                .filter((a) => !hotkeyFilter || a.name.toLowerCase().includes(hotkeyFilter.toLowerCase()))
+                .map((action) => {
+                  const currentKey = getHotkey(action.id, hotkeyOverrides);
+                  const isRecording = recordingAction === action.id;
+                  const isCustom = action.id in hotkeyOverrides;
+                  return (
+                    <div
+                      key={action.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "6px 0",
+                        borderBottom: "1px solid var(--bg-tertiary)",
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{action.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        {isCustom && (
+                          <button
+                            onClick={() => {
+                              const next = { ...hotkeyOverrides };
+                              delete next[action.id];
+                              setHotkeyOverrides(next);
+                              saveHotkeyOverrides(next);
+                            }}
+                            title="Reset to default"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "var(--text-faint)",
+                              cursor: "pointer",
+                              fontSize: 11,
+                              padding: "2px 4px",
+                            }}
+                          >
+                            ↺
+                          </button>
+                        )}
+                        <HotkeyRecorder
+                          currentKey={currentKey}
+                          isRecording={isRecording}
+                          isCustom={isCustom}
+                          onStartRecording={() => setRecordingAction(action.id)}
+                          onRecord={(combo) => {
+                            const next = { ...hotkeyOverrides, [action.id]: combo };
+                            setHotkeyOverrides(next);
+                            saveHotkeyOverrides(next);
+                            setRecordingAction(null);
+                          }}
+                          onCancel={() => setRecordingAction(null)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              {HOTKEY_ACTIONS.filter((a) => !hotkeyFilter || a.name.toLowerCase().includes(hotkeyFilter.toLowerCase())).length === 0 && (
+                <div style={{ color: "var(--text-faint)", fontSize: 13, padding: 8 }}>No matching hotkeys</div>
+              )}
+            </div>
+          )}
+
           {section === "about" && (
             <div style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6 }}>
               <p style={{ margin: "0 0 12px" }}>
@@ -458,6 +540,69 @@ function StatItem({ label, value }: { label: string; value: string }) {
       <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{label}</span>
       <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{value}</span>
     </div>
+  );
+}
+
+const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+function formatCombo(combo: string): string {
+  if (!isMac) return combo;
+  return combo
+    .replace(/Ctrl\+Shift\+/g, "⌃⇧")
+    .replace(/Ctrl\+Alt\+/g, "⌃⌥")
+    .replace(/Ctrl\+/g, "⌘")
+    .replace(/Alt\+/g, "⌥")
+    .replace(/Shift\+/g, "⇧");
+}
+
+function HotkeyRecorder({
+  currentKey,
+  isRecording,
+  isCustom,
+  onStartRecording,
+  onRecord,
+  onCancel,
+}: {
+  currentKey: string;
+  isRecording: boolean;
+  isCustom: boolean;
+  onStartRecording: () => void;
+  onRecord: (combo: string) => void;
+  onCancel: () => void;
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") { onCancel(); return; }
+      const combo = eventToCombo(e);
+      if (combo) onRecord(combo);
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [isRecording, onRecord, onCancel]);
+
+  return (
+    <button
+      ref={btnRef}
+      onClick={onStartRecording}
+      style={{
+        background: isRecording ? "rgba(127,109,242,0.2)" : "var(--bg-primary)",
+        border: isRecording ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
+        borderRadius: 4,
+        padding: "3px 10px",
+        color: isCustom ? "var(--accent-color)" : "var(--text-muted)",
+        fontSize: 12,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        minWidth: 80,
+        textAlign: "center",
+      }}
+    >
+      {isRecording ? "Press keys..." : formatCombo(currentKey)}
+    </button>
   );
 }
 
