@@ -184,6 +184,82 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
+  // Footnote hover preview — show footnote content on hover over [^n] references
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const refs = container.querySelectorAll<HTMLElement>("sup.footnote-ref");
+    if (refs.length === 0) return;
+
+    let previewEl: HTMLDivElement | null = null;
+    let activeRef: HTMLElement | null = null;
+
+    const removePreview = () => {
+      previewEl?.remove();
+      previewEl = null;
+      activeRef = null;
+    };
+
+    const handleMouseEnter = (e: Event) => {
+      const sup = (e.currentTarget as HTMLElement);
+      const anchor = sup.querySelector("a[href^='#fn']");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+      const fnId = href.replace("#", "");
+      const fnLi = container.querySelector(`li#${fnId}`);
+      if (!fnLi) return;
+
+      removePreview();
+      activeRef = sup;
+      previewEl = document.createElement("div");
+      previewEl.className = "hover-preview";
+      // Clone footnote content, removing backref links
+      const clone = fnLi.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll(".footnote-backref").forEach((el) => el.remove());
+      previewEl.innerHTML = clone.innerHTML;
+
+      const rect = sup.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      previewEl.style.position = "absolute";
+      previewEl.style.left = `${rect.left - containerRect.left}px`;
+      previewEl.style.top = `${rect.bottom - containerRect.top + 4}px`;
+      container.appendChild(previewEl);
+
+      // Flip up if below viewport
+      const previewRect = previewEl.getBoundingClientRect();
+      if (previewRect.bottom > window.innerHeight - 20) {
+        previewEl.style.top = `${rect.top - containerRect.top - previewRect.height - 4}px`;
+      }
+    };
+
+    const handleMouseLeave = (e: Event) => {
+      const related = (e as MouseEvent).relatedTarget as HTMLElement | null;
+      if (related && (related.closest(".hover-preview") || related.closest("sup.footnote-ref"))) return;
+      removePreview();
+    };
+
+    for (const ref of refs) {
+      ref.addEventListener("mouseenter", handleMouseEnter);
+      ref.addEventListener("mouseleave", handleMouseLeave);
+    }
+
+    // Also dismiss when leaving the preview itself
+    const containerLeave = (e: Event) => {
+      const related = (e as MouseEvent).relatedTarget as HTMLElement | null;
+      if (related && (related.closest(".hover-preview") || related.closest("sup.footnote-ref"))) return;
+      removePreview();
+    };
+
+    return () => {
+      removePreview();
+      for (const ref of refs) {
+        ref.removeEventListener("mouseenter", handleMouseEnter);
+        ref.removeEventListener("mouseleave", handleMouseLeave);
+      }
+    };
+  }, [html]);
+
   // Hydrate note embeds after html is set
   useEffect(() => {
     const container = containerRef.current;
