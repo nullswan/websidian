@@ -3871,6 +3871,47 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return true;
           }
         }
+        // Smart paste: multi-line code detection
+        const rawPaste = event.clipboardData?.getData("text/plain") ?? "";
+        if (rawPaste.includes("\n") && sel.from === sel.to) {
+          const lines = rawPaste.split("\n");
+          // Detect code-like content (indented, has brackets/semicolons, or looks like JSON/XML)
+          const codeIndicators = lines.filter((l) => /[{};]$|^\s{2,}\S|<\/?\w+>|^\s*\/\/|^\s*#\s/.test(l)).length;
+          if (codeIndicators > lines.length * 0.3 && lines.length >= 3) {
+            event.preventDefault();
+            const fenced = "```\n" + rawPaste + "\n```";
+            view.dispatch({
+              changes: { from: sel.from, insert: fenced },
+              selection: { anchor: sel.from + fenced.length },
+            });
+            return true;
+          }
+          // Detect HTML table
+          const htmlTable = event.clipboardData?.getData("text/html") ?? "";
+          if (htmlTable.includes("<table") || htmlTable.includes("<tr")) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlTable, "text/html");
+            const rows = doc.querySelectorAll("tr");
+            if (rows.length >= 2) {
+              event.preventDefault();
+              const mdRows: string[] = [];
+              rows.forEach((row, ri) => {
+                const cells = row.querySelectorAll("td, th");
+                const values = [...cells].map((c) => (c.textContent ?? "").trim().replace(/\|/g, "\\|"));
+                mdRows.push("| " + values.join(" | ") + " |");
+                if (ri === 0) {
+                  mdRows.push("| " + values.map(() => "---").join(" | ") + " |");
+                }
+              });
+              const mdTable = mdRows.join("\n");
+              view.dispatch({
+                changes: { from: sel.from, insert: mdTable },
+                selection: { anchor: sel.from + mdTable.length },
+              });
+              return true;
+            }
+          }
+        }
         return false;
       },
       drop: (event, view) => {
