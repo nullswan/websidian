@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { isDemoMode } from "../demoApi.js";
+import { FocusTimer } from "./FocusTimer.js";
 
 interface StatusBarProps {
   content: string;
@@ -230,6 +231,7 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       </span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>UTF-8</span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>Markdown</span>
+      <FocusTimer />
       {isDemoMode() && (
         <span
           title="Running in demo mode with an embedded vault. Run npx websidian /path/to/vault to use your own."
