@@ -21,51 +21,74 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
   const [dragIdx, setDragIdx] = useState(-1);
   const [dropIdx, setDropIdx] = useState(-1);
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  // Track which heading is currently visible in the reader
+  // Track which heading is currently visible in the reader using scroll events
+  // This is more reliable than IntersectionObserver: it finds the last heading
+  // that has scrolled past the top of the scroll container, which matches
+  // Obsidian's behavior.
   useEffect(() => {
     if (headings.length === 0) return;
 
-    // Small delay to let the reader render
-    const timer = setTimeout(() => {
+    let raf = 0;
+    const OFFSET = 80; // px below top of container to consider "current"
+
+    const update = () => {
       const readerHeadings = document.querySelectorAll(
         ".reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6",
       );
       if (readerHeadings.length === 0) return;
 
-      // Build a map from DOM heading to outline index
-      const headingToIdx = new Map<Element, number>();
+      // Build ordered array of (element, outlineIdx)
+      const mapped: { el: Element; idx: number }[] = [];
       let outlineIdx = 0;
       for (const el of readerHeadings) {
         const text = el.textContent?.replace(/^▶/, "").trim();
         if (outlineIdx < headings.length && text === headings[outlineIdx].text) {
-          headingToIdx.set(el, outlineIdx);
+          mapped.push({ el, idx: outlineIdx });
           outlineIdx++;
         }
       }
+      if (mapped.length === 0) return;
 
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          // Find the topmost visible heading
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              const idx = headingToIdx.get(entry.target);
-              if (idx !== undefined) setActiveIdx(idx);
-            }
-          }
-        },
-        { rootMargin: "-10% 0px -80% 0px" },
-      );
+      // Find scroll container (parent with overflow)
+      const container = mapped[0].el.closest(".scroll-container") || mapped[0].el.closest("[style*='overflow']");
+      const containerTop = container ? container.getBoundingClientRect().top : 0;
 
-      for (const el of headingToIdx.keys()) {
-        observerRef.current.observe(el);
+      // Find last heading that is above the threshold line
+      let best = -1;
+      for (const { el, idx } of mapped) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top - containerTop <= OFFSET) {
+          best = idx;
+        }
       }
+      // If no heading is above threshold, pick the first one if it's close
+      if (best === -1 && mapped.length > 0) {
+        const firstRect = mapped[0].el.getBoundingClientRect();
+        if (firstRect.top - containerTop < 300) best = mapped[0].idx;
+      }
+      setActiveIdx(best);
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+
+    // Initial update after render
+    const timer = setTimeout(() => {
+      update();
+      // Attach scroll listener to all scroll containers
+      document.querySelectorAll(".scroll-container").forEach((el) => {
+        el.addEventListener("scroll", onScroll, { passive: true });
+      });
     }, 200);
 
     return () => {
       clearTimeout(timer);
-      observerRef.current?.disconnect();
+      cancelAnimationFrame(raf);
+      document.querySelectorAll(".scroll-container").forEach((el) => {
+        el.removeEventListener("scroll", onScroll);
+      });
     };
   }, [headings, content]);
 
@@ -120,6 +143,14 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
       return next;
     });
   };
+
+  // Auto-scroll outline to keep active heading visible
+  const activeItemRef = useRef<HTMLLIElement | null>(null);
+  useEffect(() => {
+    if (activeIdx >= 0 && activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [activeIdx]);
 
   // Compute visible item indices for position indicator
   const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i));
@@ -199,7 +230,7 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
         {headings.map((h, i) => {
           if (!isVisible(i)) return null;
           return (
-          <li key={i}>
+          <li key={i} ref={i === activeIdx ? activeItemRef : undefined}>
             <div
               draggable={!!onReorderSection}
               onDragStart={(e) => {
@@ -239,7 +270,7 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
                 marginLeft: -2,
                 opacity: dragIdx === i ? 0.4 : 1,
                 borderTop: dropIdx === i && dragIdx !== i ? "2px solid var(--accent-color)" : "2px solid transparent",
-                transition: "opacity 0.15s",
+                transition: "opacity 0.15s, color 0.2s ease, font-weight 0.2s ease, border-color 0.2s ease",
               }}
               onClick={() => {
                 const flashEl = (el: Element) => {
