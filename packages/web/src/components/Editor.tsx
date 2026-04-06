@@ -2588,6 +2588,45 @@ function sortSelectedLines(view: EditorView, reverse: boolean): boolean {
   return true;
 }
 
+// Snippet expansion: trigger + Tab expands to template
+const SNIPPETS: Record<string, string> = {
+  "td": new Date().toISOString().slice(0, 10),
+  "now": new Date().toISOString().slice(0, 16).replace("T", " "),
+  "cb": "```\n\n```",
+  "task": "- [ ] ",
+  "link": "[text](url)",
+  "img": "![alt](url)",
+  "tbl": "| Header | Header |\n| --- | --- |\n|  |  |",
+  "fn": "[^1]: ",
+  "hr": "---\n",
+  "meta": "---\ntitle: \ntags: []\ndate: " + new Date().toISOString().slice(0, 10) + "\n---\n",
+};
+
+function expandSnippet(view: EditorView): boolean {
+  const sel = view.state.selection.main;
+  if (sel.from !== sel.to) return false;
+  const line = view.state.doc.lineAt(sel.head);
+  const textBefore = line.text.slice(0, sel.head - line.from);
+  // Find the word right before cursor
+  const wordMatch = /(\w+)$/.exec(textBefore);
+  if (!wordMatch) return false;
+  const trigger = wordMatch[1].toLowerCase();
+  // Re-evaluate dynamic snippets
+  let expansion: string | undefined;
+  if (trigger === "td") expansion = new Date().toISOString().slice(0, 10);
+  else if (trigger === "now") expansion = new Date().toISOString().slice(0, 16).replace("T", " ");
+  else expansion = SNIPPETS[trigger];
+  if (!expansion) return false;
+  const from = sel.head - wordMatch[1].length;
+  view.dispatch({
+    changes: { from, to: sel.head, insert: expansion },
+    selection: { anchor: from + expansion.length },
+  });
+  return true;
+}
+
+const snippetKeymap = keymap.of([{ key: "Tab", run: expandSnippet }]);
+
 function formatMarkdownTable(view: EditorView): boolean {
   const state = view.state;
   const cursorLine = state.doc.lineAt(state.selection.main.head);
@@ -3705,6 +3744,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           { key: "Shift-Alt-s", run: (view: EditorView) => sortSelectedLines(view, false) },
           { key: "Shift-Alt-r", run: (view: EditorView) => sortSelectedLines(view, true) },
         ]),
+        snippetKeymap,
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
