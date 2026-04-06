@@ -1974,6 +1974,21 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return true;
           }
         }
+        // Paste URL as markdown link when text is selected
+        const sel = view.state.selection.main;
+        if (sel.from !== sel.to) {
+          const pastedText = event.clipboardData?.getData("text/plain")?.trim();
+          if (pastedText && /^https?:\/\/\S+$/.test(pastedText)) {
+            event.preventDefault();
+            const selectedText = view.state.sliceDoc(sel.from, sel.to);
+            const linkMarkdown = `[${selectedText}](${pastedText})`;
+            view.dispatch({
+              changes: { from: sel.from, to: sel.to, insert: linkMarkdown },
+              selection: { anchor: sel.from + linkMarkdown.length },
+            });
+            return true;
+          }
+        }
         return false;
       },
       drop: (event, view) => {
