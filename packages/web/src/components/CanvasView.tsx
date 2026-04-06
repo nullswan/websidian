@@ -135,7 +135,10 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
         width: "100%",
         height: "100%",
         overflow: "hidden",
-        background: "var(--bg-primary)",
+        background: `var(--bg-primary)`,
+        backgroundImage: `radial-gradient(circle, rgba(127,127,127,0.15) 1px, transparent 1px)`,
+        backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+        backgroundPosition: `${pan.x % (20 * zoom)}px ${pan.y % (20 * zoom)}px`,
         position: "relative",
         cursor: isPanning.current ? "grabbing" : "grab",
       }}
@@ -154,74 +157,136 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
           pointerEvents: "none",
         }}
       >
+        <defs>
+          <marker id="canvas-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6" fill="none" stroke="rgba(127, 109, 242, 0.6)" strokeWidth="1.5" />
+          </marker>
+        </defs>
         {data.edges.map((edge) => {
           const fromNode = nodeMap.get(edge.fromNode);
           const toNode = nodeMap.get(edge.toNode);
           if (!fromNode || !toNode) return null;
           const from = getSidePoint(fromNode, edge.fromSide, pan);
           const to = getSidePoint(toNode, edge.toSide, pan);
+          const x1 = from.x * zoom + pan.x * (1 - zoom);
+          const y1 = from.y * zoom + pan.y * (1 - zoom);
+          const x2 = to.x * zoom + pan.x * (1 - zoom);
+          const y2 = to.y * zoom + pan.y * (1 - zoom);
           return (
-            <line
-              key={edge.id}
-              x1={from.x * zoom + pan.x * (1 - zoom)}
-              y1={from.y * zoom + pan.y * (1 - zoom)}
-              x2={to.x * zoom + pan.x * (1 - zoom)}
-              y2={to.y * zoom + pan.y * (1 - zoom)}
-              stroke="rgba(127, 109, 242, 0.5)"
-              strokeWidth={2}
-            />
+            <g key={edge.id}>
+              <line
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="rgba(127, 109, 242, 0.5)"
+                strokeWidth={2}
+                markerEnd="url(#canvas-arrow)"
+              />
+              {edge.label && (
+                <text
+                  x={(x1 + x2) / 2}
+                  y={(y1 + y2) / 2 - 6}
+                  fill="var(--text-faint)"
+                  fontSize={11 * zoom}
+                  textAnchor="middle"
+                >
+                  {edge.label}
+                </text>
+              )}
+            </g>
           );
         })}
       </svg>
 
-      {data.nodes.map((node) => (
-        <div
-          key={node.id}
-          style={{
-            position: "absolute",
-            left: pan.x + node.x * zoom,
-            top: pan.y + node.y * zoom,
-            width: node.width * zoom,
-            height: node.height * zoom,
-            background: node.color ?? "#2a2a2a",
-            border: "1px solid var(--border-color)",
-            borderRadius: 6,
-            padding: 8 * zoom,
-            color: "var(--text-primary)",
-            fontSize: 13 * zoom,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            cursor: node.type === "file" ? "pointer" : "default",
-          }}
-          onClick={() => {
-            if (node.type === "file" && node.file) {
-              onNavigate(node.file);
-            }
-          }}
-        >
-          {node.type === "file" && (
-            <div
-              style={{
-                fontSize: 10 * zoom,
-                color: "var(--accent-color)",
-                marginBottom: 4 * zoom,
+      {data.nodes.map((node) => {
+        const isGroup = node.type === "group";
+        return (
+          <div
+            key={node.id}
+            className="canvas-node"
+            style={{
+              position: "absolute",
+              left: pan.x + node.x * zoom,
+              top: pan.y + node.y * zoom,
+              width: node.width * zoom,
+              height: node.height * zoom,
+              background: isGroup
+                ? (node.color ? node.color + "20" : "rgba(127,109,242,0.06)")
+                : (node.color ?? "var(--bg-secondary)"),
+              border: isGroup
+                ? `2px dashed ${node.color || "rgba(127,109,242,0.3)"}`
+                : "1px solid var(--border-color)",
+              borderRadius: isGroup ? 8 : 6,
+              padding: 8 * zoom,
+              color: "var(--text-primary)",
+              fontSize: 13 * zoom,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              cursor: node.type === "file" || node.type === "link" ? "pointer" : "default",
+              transition: "box-shadow 0.15s",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            }}
+            onClick={() => {
+              if (node.type === "file" && node.file) {
+                onNavigate(node.file);
+              } else if (node.type === "link" && node.url) {
+                window.open(node.url, "_blank", "noopener,noreferrer");
+              }
+            }}
+          >
+            {node.type === "file" && (
+              <div
+                style={{
+                  fontSize: 10 * zoom,
+                  color: "var(--accent-color)",
+                  marginBottom: 4 * zoom,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {node.file}
+              </div>
+            )}
+            {node.type === "link" && (
+              <div
+                style={{
+                  fontSize: 10 * zoom,
+                  color: "var(--accent-color)",
+                  marginBottom: 4 * zoom,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {node.url}
+              </div>
+            )}
+            {node.text && (
+              <div style={{ lineHeight: 1.4, overflow: "hidden" }}>{node.text}</div>
+            )}
+            {node.type === "file" && !node.text && (
+              <div style={{ color: "var(--text-muted)", fontSize: 11 * zoom }}>
+                Click to open
+              </div>
+            )}
+            {isGroup && node.text && (
+              <div style={{
+                position: "absolute",
+                top: -14 * zoom,
+                left: 8 * zoom,
+                fontSize: 11 * zoom,
+                color: node.color || "var(--accent-color)",
                 fontWeight: 600,
-              }}
-            >
-              {node.file}
-            </div>
-          )}
-          {node.text && (
-            <div style={{ lineHeight: 1.4 }}>{node.text}</div>
-          )}
-          {node.type === "file" && !node.text && (
-            <div style={{ color: "var(--text-muted)", fontSize: 11 * zoom }}>
-              Click to open
-            </div>
-          )}
-        </div>
-      ))}
+                background: "var(--bg-primary)",
+                padding: "0 4px",
+              }}>
+                {node.text}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
