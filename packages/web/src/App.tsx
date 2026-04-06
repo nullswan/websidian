@@ -2995,6 +2995,22 @@ ${rendered}
                     {recentFiles.map((path) => {
                       const name = path.replace(/\.md$/, "").split("/").pop() ?? path;
                       const isActive = activeTab?.path === path;
+                      // Find mtime from flat entries
+                      const findMtime = (entries: VaultEntry[]): number | undefined => {
+                        for (const e of entries) {
+                          if (e.kind === "file" && e.path === path) return e.mtime;
+                          if (e.kind === "folder") { const m = findMtime(e.children); if (m) return m; }
+                        }
+                        return undefined;
+                      };
+                      const mtime = findMtime(tree);
+                      const relTime = mtime ? (() => {
+                        const diff = Date.now() - mtime;
+                        if (diff < 60000) return "just now";
+                        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+                        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+                        return `${Math.floor(diff / 86400000)}d ago`;
+                      })() : null;
                       return (
                         <li key={path}>
                           <div
@@ -3015,11 +3031,9 @@ ${rendered}
                             title={path}
                           >
                             <span>{name}</span>
-                            {path.includes("/") && (
-                              <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto" }}>
-                                {path.split("/").slice(0, -1).join("/")}
-                              </span>
-                            )}
+                            <span style={{ fontSize: 10, color: "var(--text-faint)", marginLeft: "auto", whiteSpace: "nowrap" }}>
+                              {relTime ?? (path.includes("/") ? path.split("/").slice(0, -1).join("/") : "")}
+                            </span>
                           </div>
                         </li>
                       );
