@@ -145,12 +145,22 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
     });
   };
 
-  // Auto-scroll outline to keep active heading visible
+  // Auto-scroll outline to keep active heading visible + flash on change
   const activeItemRef = useRef<HTMLLIElement | null>(null);
+  const prevActiveIdx = useRef(-1);
   useEffect(() => {
     if (activeIdx >= 0 && activeItemRef.current) {
       activeItemRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      // Brief highlight flash when active heading changes from scrolling
+      if (prevActiveIdx.current !== activeIdx && prevActiveIdx.current !== -1) {
+        const el = activeItemRef.current.firstElementChild as HTMLElement | null;
+        if (el) {
+          el.style.background = "rgba(127,109,242,0.15)";
+          setTimeout(() => { el.style.background = ""; }, 600);
+        }
+      }
     }
+    prevActiveIdx.current = activeIdx;
   }, [activeIdx]);
 
   // Compute visible item indices for position indicator
