@@ -28,7 +28,10 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       const goalMatch = fmMatch[1].match(/wordGoal:\s*(\d+)/i);
       if (goalMatch) wordGoal = parseInt(goalMatch[1], 10);
     }
-    return { words, chars, readingTime, wordGoal };
+    // Task checkboxes
+    const totalTasks = (content.match(/^[\t ]*- \[[ x]\]/gm) ?? []).length;
+    const doneTasks = (content.match(/^[\t ]*- \[x\]/gm) ?? []).length;
+    return { words, chars, readingTime, wordGoal, totalTasks, doneTasks };
   }, [content]);
 
   const fileName = path.split("/").pop() ?? path;
@@ -73,6 +76,11 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       })()}
       <span>{stats.chars.toLocaleString()} characters</span>
       <span>{stats.readingTime} min read</span>
+      {stats.totalTasks > 0 && (
+        <span style={{ color: stats.doneTasks === stats.totalTasks ? "#4caf50" : undefined }}>
+          {stats.doneTasks}/{stats.totalTasks} tasks
+        </span>
+      )}
       {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
       {fileModified && <span title={`Modified: ${fileModified}`}>Modified {formatDate(fileModified)}</span>}
       {saveStatus === "saving" && (
