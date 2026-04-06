@@ -520,32 +520,31 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         const linkTarget = target.dataset.target;
         if (!linkTarget) return;
 
+        // Show loading preview immediately
+        previewEl = document.createElement("div");
+        previewEl.className = "hover-preview";
+        previewEl.innerHTML = '<div style="padding:8px;color:var(--text-faint);font-size:12px;">Loading...</div>';
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        previewEl.style.position = "absolute";
+        previewEl.style.left = `${rect.left - containerRect.left}px`;
+        previewEl.style.top = `${rect.bottom - containerRect.top + 4}px`;
+        container.appendChild(previewEl);
+
         fetch(`/api/vault/resolve?target=${encodeURIComponent(linkTarget)}&from=${encodeURIComponent(filePath)}`, { credentials: "include" })
           .then(r => r.json())
           .then(data => {
-            if (!data.resolved || currentLink !== target) return;
+            if (!data.resolved || currentLink !== target || !previewEl) return;
             return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" })
               .then(r => r.json())
               .then(fileData => {
-                if (fileData.error || currentLink !== target) return;
+                if (fileData.error || currentLink !== target || !previewEl) return;
                 let previewContent = fileData.content;
                 const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(previewContent);
                 if (fmMatch) previewContent = previewContent.slice(fmMatch[0].length);
-                // Truncate to first ~800 chars for preview
                 if (previewContent.length > 800) previewContent = previewContent.slice(0, 800) + "\n\n...";
 
-                const previewHtml = md.render(previewContent);
-                previewEl = document.createElement("div");
-                previewEl.className = "hover-preview";
-                previewEl.innerHTML = previewHtml;
-
-                // Position near the link
-                const rect = target.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
-                previewEl.style.position = "absolute";
-                previewEl.style.left = `${rect.left - containerRect.left}px`;
-                previewEl.style.top = `${rect.bottom - containerRect.top + 4}px`;
-                container.appendChild(previewEl);
+                previewEl.innerHTML = md.render(previewContent);
 
                 // Flip up if it goes below viewport
                 const previewRect = previewEl.getBoundingClientRect();
@@ -554,7 +553,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
                 }
               });
           })
-          .catch(() => {});
+          .catch(() => { if (previewEl) previewEl.innerHTML = '<div style="padding:8px;color:var(--text-faint);font-size:12px;">Preview unavailable</div>'; });
       }, 300);
     };
 
