@@ -378,14 +378,14 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
-  // Image captions: title attribute → <figcaption> below image
+  // Image captions: title or alt attribute → <figcaption> below image
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const imgs = container.querySelectorAll<HTMLImageElement>("img[title]");
+    const imgs = container.querySelectorAll<HTMLImageElement>("img");
     imgs.forEach((img) => {
-      const title = img.getAttribute("title");
-      if (!title) return;
+      const title = img.getAttribute("title") || img.getAttribute("alt");
+      if (!title || title === img.getAttribute("src")) return;
       // Wrap in figure if not already
       if (img.parentElement?.tagName === "FIGURE") return;
       const figure = document.createElement("figure");
