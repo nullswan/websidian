@@ -1865,6 +1865,35 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => cleanups.forEach((fn) => fn());
   }, [html]);
 
+  // Callout copy button
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const callouts = container.querySelectorAll<HTMLElement>(".callout");
+    callouts.forEach((callout) => {
+      callout.style.position = "relative";
+      const btn = document.createElement("button");
+      btn.textContent = "Copy";
+      btn.title = "Copy callout content";
+      btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 10px; background: var(--bg-secondary); color: var(--text-faint); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s; z-index: 1;";
+      callout.appendChild(btn);
+      const show = () => { btn.style.opacity = "1"; };
+      const hide = () => { btn.style.opacity = "0"; };
+      callout.addEventListener("mouseenter", show);
+      callout.addEventListener("mouseleave", hide);
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Get content div (skip title/summary)
+        const contentDiv = callout.querySelector<HTMLElement>("details > div, .callout > div:last-child");
+        const text = (contentDiv || callout).textContent?.trim() || "";
+        navigator.clipboard.writeText(text);
+        btn.textContent = "Copied!";
+        btn.style.color = "var(--accent-color)";
+        setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "var(--text-faint)"; }, 1500);
+      });
+    });
+  }, [html]);
+
   // Reader selection floating toolbar
   useEffect(() => {
     const container = containerRef.current;
