@@ -19,6 +19,7 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
   const [activeIdx, setActiveIdx] = useState(-1);
   const [dragIdx, setDragIdx] = useState(-1);
   const [dropIdx, setDropIdx] = useState(-1);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Track which heading is currently visible in the reader
@@ -71,6 +72,39 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
 
   const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
 
+  // Determine which headings have children (next heading has higher level)
+  const hasChildren = headings.map((h, i) => {
+    for (let j = i + 1; j < headings.length; j++) {
+      if (headings[j].level <= h.level) break;
+      if (headings[j].level > h.level) return true;
+    }
+    return false;
+  });
+
+  // Determine visibility: a heading is hidden if any ancestor is collapsed
+  const isVisible = (idx: number): boolean => {
+    const h = headings[idx];
+    // Walk backwards to find parent headings at lower levels
+    for (let j = idx - 1; j >= 0; j--) {
+      if (headings[j].level < h.level) {
+        // This is a potential parent
+        if (collapsed.has(j)) return false;
+        // Check if this parent itself is hidden
+        return isVisible(j);
+      }
+    }
+    return true;
+  };
+
+  const toggleCollapse = (idx: number) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div style={{ padding: "4px 12px 8px" }}>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, position: "relative" }}>
@@ -87,7 +121,9 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
             pointerEvents: "none",
           }} />
         ))}
-        {headings.map((h, i) => (
+        {headings.map((h, i) => {
+          if (!isVisible(i)) return null;
+          return (
           <li key={i}>
             <div
               draggable={!!onReorderSection}
@@ -164,13 +200,20 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
                 }
               }}
             >
+              {hasChildren[i] && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); toggleCollapse(i); }}
+                  style={{ width: 12, fontSize: 9, color: "var(--text-faint)", cursor: "pointer", flexShrink: 0, textAlign: "center", marginRight: 2 }}
+                >{collapsed.has(i) ? "▸" : "▾"}</span>
+              )}
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.text}</span>
               {h.wordCount > 0 && (
                 <span style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 4, flexShrink: 0 }}>{h.wordCount}w</span>
               )}
             </div>
           </li>
-        ))}
+        );
+        })}
       </ul>
     </div>
   );
