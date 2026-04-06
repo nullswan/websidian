@@ -878,6 +878,12 @@ details.callout > div {
   animation: note-fade-in 0.15s ease-out;
 }
 
+/* Cursor trail effect */
+@keyframes cursor-trail-fade {
+  from { opacity: 0.6; transform: scaleY(1); }
+  to { opacity: 0; transform: scaleY(0.3); }
+}
+
 /* Auto-save status animations */
 @keyframes save-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }

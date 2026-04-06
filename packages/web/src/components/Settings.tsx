@@ -23,6 +23,7 @@ export interface AppSettings {
   trimTrailingWhitespace: boolean;
   rulerColumns: number[];
   rainbowBrackets: boolean;
+  cursorTrail: boolean;
   customCSS: string;
 }
 
@@ -48,6 +49,7 @@ const DEFAULTS: AppSettings = {
   trimTrailingWhitespace: true,
   rulerColumns: [],
   rainbowBrackets: true,
+  cursorTrail: false,
   customCSS: "",
 };
 
@@ -410,6 +412,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Color-code matching bracket pairs by nesting depth"
               >
                 <Toggle checked={settings.rainbowBrackets} onChange={(v) => update("rainbowBrackets", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Cursor trail"
+                description="Show fading trail effect when cursor moves"
+              >
+                <Toggle checked={settings.cursorTrail} onChange={(v) => update("cursorTrail", v)} />
               </SettingItem>
 
               <SettingItem

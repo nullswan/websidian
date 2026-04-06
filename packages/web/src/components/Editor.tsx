@@ -37,6 +37,7 @@ interface EditorProps {
   cursorBlinkRate?: number;
   rulerColumns?: number[];
   rainbowBrackets?: boolean;
+  cursorTrail?: boolean;
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
   initialLine?: number | null;
@@ -3359,6 +3360,56 @@ const indentGuidePlugin = ViewPlugin.fromClass(class {
   }
 }, { decorations: (v) => v.decorations });
 
+// Cursor trail effect — fading dots following cursor movement
+const cursorTrailPlugin = ViewPlugin.fromClass(class {
+  container: HTMLDivElement;
+  lastPos: { x: number; y: number } | null = null;
+  particles: HTMLDivElement[] = [];
+
+  constructor(view: EditorView) {
+    this.container = document.createElement("div");
+    this.container.style.cssText = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 3; overflow: hidden;";
+    view.scrollDOM.style.position = "relative";
+    view.scrollDOM.appendChild(this.container);
+  }
+
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (!update.selectionSet) return;
+    const head = update.state.selection.main.head;
+    const coords = update.view.coordsAtPos(head);
+    if (!coords) return;
+
+    const scrollRect = update.view.scrollDOM.getBoundingClientRect();
+    const x = coords.left - scrollRect.left + update.view.scrollDOM.scrollLeft;
+    const y = coords.top - scrollRect.top + update.view.scrollDOM.scrollTop;
+
+    if (this.lastPos && Math.abs(x - this.lastPos.x) < 2 && Math.abs(y - this.lastPos.y) < 2) return;
+
+    const dot = document.createElement("div");
+    dot.style.cssText = `position: absolute; left: ${x - 3}px; top: ${y}px; width: 6px; height: 16px; border-radius: 3px; background: var(--accent-color); opacity: 0.6; pointer-events: none; animation: cursor-trail-fade 0.5s ease-out forwards;`;
+    this.container.appendChild(dot);
+    this.particles.push(dot);
+    this.lastPos = { x, y };
+
+    // Cleanup old particles
+    setTimeout(() => {
+      dot.remove();
+      const idx = this.particles.indexOf(dot);
+      if (idx >= 0) this.particles.splice(idx, 1);
+    }, 500);
+
+    // Safety cap
+    if (this.particles.length > 30) {
+      const old = this.particles.shift();
+      old?.remove();
+    }
+  }
+
+  destroy() {
+    this.container.remove();
+  }
+});
+
 // Scrollbar selection/match indicators — colored ticks on the right edge
 const scrollbarIndicatorPlugin = ViewPlugin.fromClass(class {
   container: HTMLDivElement;
@@ -3591,7 +3642,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3611,6 +3662,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const cursorBlinkComp = useRef(new Compartment());
   const rulerComp = useRef(new Compartment());
   const rainbowComp = useRef(new Compartment());
+  const cursorTrailComp = useRef(new Compartment());
 
   // Compute backlink line numbers from backlinks prop
   useEffect(() => {
@@ -4408,6 +4460,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         bracketMatching(),
         matchingTagPlugin,
         rainbowComp.current.of(rainbowBrackets ? rainbowBracketPlugin : []),
+        cursorTrailComp.current.of(cursorTrail ? cursorTrailPlugin : []),
         history(),
         pairDeletionKeymap,
         tableNavigationKeymap,
@@ -4855,9 +4908,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         }) : []),
         rulerComp.current.reconfigure(rulerExtension(rulerColumns)),
         rainbowComp.current.reconfigure(rainbowBrackets ? rainbowBracketPlugin : []),
+        cursorTrailComp.current.reconfigure(cursorTrail ? cursorTrailPlugin : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets, cursorTrail]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

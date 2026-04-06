@@ -2576,6 +2576,7 @@ ${rendered}
                 cursorBlinkRate={appSettings.cursorBlinkRate}
                 rulerColumns={appSettings.rulerColumns}
                 rainbowBrackets={appSettings.rainbowBrackets}
+                cursorTrail={appSettings.cursorTrail}
                 sourceMode={paneTab.mode === "source"}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
@@ -3479,6 +3480,7 @@ ${rendered}
                             cursorBlinkRate={appSettings.cursorBlinkRate}
                             rulerColumns={appSettings.rulerColumns}
                 rainbowBrackets={appSettings.rainbowBrackets}
+                cursorTrail={appSettings.cursorTrail}
                             sourceMode={tab.mode === "source"}
                           />
                         ) : (
