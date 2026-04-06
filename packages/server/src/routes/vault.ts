@@ -602,6 +602,38 @@ export async function vaultRoutes(app: FastifyInstance) {
     return { nodes, edges };
   });
 
+  // GET /api/vault/stats — vault statistics
+  app.get("/stats", async () => {
+    const tree = await scanVault(vaultRoot);
+    const files = flattenFiles(tree);
+    let totalNotes = 0;
+    let totalAttachments = 0;
+    let totalWords = 0;
+    let totalSize = 0;
+
+    for (const file of files) {
+      totalSize += file.size;
+      if (file.extension === "md") {
+        totalNotes++;
+        try {
+          const content = await readFile(join(vaultRoot, file.path), "utf-8");
+          const body = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
+          totalWords += body.split(/\s+/).filter(Boolean).length;
+        } catch { /* ignore */ }
+      } else {
+        totalAttachments++;
+      }
+    }
+
+    return {
+      totalNotes,
+      totalAttachments,
+      totalWords,
+      totalSize,
+      totalFiles: files.length,
+    };
+  });
+
   // GET /api/vault/tags — all tags across the vault with note paths
   app.get("/tags", async () => {
     const tree = await scanVault(vaultRoot);

@@ -54,8 +54,17 @@ interface SettingsProps {
 
 type SettingsSection = "appearance" | "editor" | "about";
 
+interface VaultStats {
+  totalNotes: number;
+  totalAttachments: number;
+  totalWords: number;
+  totalSize: number;
+  totalFiles: number;
+}
+
 export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
   const [section, setSection] = useState<SettingsSection>("appearance");
+  const [stats, setStats] = useState<VaultStats | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -70,6 +79,15 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
     onUpdate(next);
     saveSettings(next);
   };
+
+  useEffect(() => {
+    if (section === "about" && !stats) {
+      fetch("/api/vault/stats", { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => setStats(data))
+        .catch(() => {});
+    }
+  }, [section, stats]);
 
   const sections: { id: SettingsSection; label: string }[] = [
     { id: "appearance", label: "Appearance" },
@@ -351,6 +369,17 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
               <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--text-faint)" }}>
                 Built with React, CodeMirror 6, Fastify, and markdown-it
               </p>
+              {stats && (
+                <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 12, marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Vault Statistics</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
+                    <StatItem label="Notes" value={stats.totalNotes.toLocaleString()} />
+                    <StatItem label="Attachments" value={stats.totalAttachments.toLocaleString()} />
+                    <StatItem label="Total words" value={stats.totalWords.toLocaleString()} />
+                    <StatItem label="Vault size" value={formatSize(stats.totalSize)} />
+                  </div>
+                </div>
+              )}
               <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 12, fontSize: 12, color: "var(--text-faint)" }}>
                 Keyboard shortcuts: Ctrl+/ &middot; Quick switcher: Ctrl+O &middot; Command palette: Ctrl+P
               </div>
@@ -403,4 +432,20 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       />
     </button>
   );
+}
+
+function StatItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{value}</span>
+    </div>
+  );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
+  return `${(bytes / 1073741824).toFixed(1)} GB`;
 }
