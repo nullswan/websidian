@@ -265,6 +265,19 @@ details.callout > div {
   font-size: 13px;
 }
 
+/* Mermaid diagrams */
+.reader-view .mermaid-rendered {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.reader-view .mermaid-rendered svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .hover-preview {
   max-width: 400px;
   max-height: 300px;
