@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveL
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
-import { search, searchKeymap, selectNextOccurrence } from "@codemirror/search";
+import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
@@ -1869,6 +1869,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       },
       // Select next occurrence (multi-cursor)
       { key: "Mod-d", run: selectNextOccurrence },
+      { key: "Mod-Shift-l", run: selectSelectionMatches },
       // Move line up/down
       { key: "Alt-ArrowUp", run: moveLineUp },
       { key: "Alt-ArrowDown", run: moveLineDown },
