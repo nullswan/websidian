@@ -122,7 +122,7 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath, syncScrollRef, onSyncScroll }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
@@ -133,12 +133,20 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
   onProgressChange?: (progress: number) => void;
   searchQuery?: string;
   notePath?: string;
+  syncScrollRef?: (el: HTMLDivElement | null) => void;
+  onSyncScroll?: (fraction: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(0);
   const [scrollMetrics, setScrollMetrics] = useState({ scrollTop: 0, scrollHeight: 1, clientHeight: 1 });
+
+  // Register scroll ref for sync scroll
+  useEffect(() => {
+    syncScrollRef?.(ref.current);
+    return () => syncScrollRef?.(null);
+  }, [syncScrollRef]);
 
   useEffect(() => {
     const el = ref.current;
@@ -159,6 +167,8 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
       const p = max > 0 ? el.scrollTop / max : 0;
       setProgress(p);
       onProgressChange?.(p);
+      // Emit sync scroll fraction
+      onSyncScroll?.(p);
       // Persist max reading progress per note
       if (notePath) {
         try {
@@ -744,6 +754,9 @@ export function App() {
   const [leftWidth, setLeftWidth] = useState(260);
   const [rightWidth, setRightWidth] = useState(240);
   const [splitRatio, setSplitRatio] = useState(0.5);
+  const [syncScroll, setSyncScroll] = useState(false);
+  const syncScrollRefs = useRef<(HTMLDivElement | null)[]>([null, null]);
+  const syncScrollLock = useRef(false);
   const [showGraph, setShowGraph] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -2207,7 +2220,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined} notePath={paneTab?.path}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined} notePath={paneTab?.path} syncScrollRef={(el) => { syncScrollRefs.current[paneIdx] = el; }} onSyncScroll={syncScroll && isSplit ? (fraction) => { const otherIdx = paneIdx === 0 ? 1 : 0; const other = syncScrollRefs.current[otherIdx]; if (other && !syncScrollLock.current) { syncScrollLock.current = true; const max = other.scrollHeight - other.clientHeight; other.scrollTop = fraction * max; requestAnimationFrame(() => { syncScrollLock.current = false; }); } } : undefined}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
@@ -3307,11 +3320,39 @@ ${rendered}
             panes.map((pane, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && (
-                  <div
-                    ref={splitDivRef}
-                    className="split-divider"
-                    onMouseDown={handleSplitDrag}
-                  />
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <div
+                      ref={splitDivRef}
+                      className="split-divider"
+                      onMouseDown={handleSplitDrag}
+                    />
+                    <button
+                      title={syncScroll ? "Disable sync scroll" : "Enable sync scroll"}
+                      onClick={() => setSyncScroll((s) => !s)}
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        zIndex: 20,
+                        width: 20,
+                        height: 20,
+                        borderRadius: 3,
+                        border: "1px solid var(--border-color)",
+                        background: syncScroll ? "var(--accent-color)" : "var(--bg-tertiary)",
+                        color: syncScroll ? "#fff" : "var(--text-faint)",
+                        cursor: "pointer",
+                        fontSize: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ⇅
+                    </button>
+                  </div>
                 )}
                 {renderPaneContent(pane, idx)}
               </React.Fragment>
@@ -4354,11 +4395,18 @@ ${rendered}
                   name: "Split Right",
                   action: splitRight,
                 }]
-              : [{
-                  id: "close-split",
-                  name: "Close Split Pane",
-                  action: closeSplit,
-                }]),
+              : [
+                  {
+                    id: "close-split",
+                    name: "Close Split Pane",
+                    action: closeSplit,
+                  },
+                  {
+                    id: "sync-scroll",
+                    name: syncScroll ? "Disable Sync Scroll" : "Enable Sync Scroll",
+                    action: () => setSyncScroll((s) => !s),
+                  },
+                ]),
           ]}
           onClose={() => setShowCommandPalette(false)}
         />;
