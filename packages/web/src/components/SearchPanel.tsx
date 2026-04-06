@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 
 interface SearchResult {
   path: string;
-  matches: Array<{ line: number; text: string }>;
+  matches: Array<{ line: number; text: string; before?: string[]; after?: string[] }>;
   mtime?: string;
 }
 
@@ -26,6 +26,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [regexError, setRegexError] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [contextLines, setContextLines] = useState(0);
   const [sortMode, setSortMode] = useState<"relevance" | "modified" | "name">("relevance");
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -81,6 +82,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
       const params = new URLSearchParams({ q: effectiveQuery });
       if (regex) params.set("regex", "true");
       if (cs) params.set("caseSensitive", "true");
+      if (contextLines > 0) params.set("context", String(contextLines));
       fetch(`/api/vault/search?${params}`)
         .then((r) => r.json())
         .then((data) => {
@@ -106,7 +108,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
         })
         .catch(() => setSearching(false));
     },
-    [],
+    [contextLines],
   );
 
   // Search-as-you-type with debounce
@@ -362,6 +364,13 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
           >
             Aa
           </span>
+          <span
+            title={`Context lines: ${contextLines}`}
+            onClick={() => setContextLines((v) => (v + 1) % 4)}
+            style={toggleBtnStyle(contextLines > 0)}
+          >
+            C{contextLines}
+          </span>
           {results.length > 0 && (
             <>
               <select
@@ -484,20 +493,31 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                 </span>
               </div>
               {!isCollapsed && (expanded.has(r.path) ? r.matches : r.matches.slice(0, 5)).map((m) => (
-                <div
-                  key={m.line}
-                  style={{
-                    padding: "2px 12px 2px 28px",
-                    color: "var(--text-secondary)",
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => onNavigate(r.path, query, m.line)}
-                >
-                  <span style={{ color: "var(--text-faint)", marginRight: 6 }}>
-                    {m.line}:
-                  </span>
-                  {highlightMatch(trimContext(m.text, query, caseSensitive, 80), query, useRegex, caseSensitive)}
+                <div key={m.line}>
+                  {m.before?.map((line, bi) => (
+                    <div key={`b${bi}`} style={{ padding: "1px 12px 1px 28px", color: "var(--text-faint)", fontSize: 11, opacity: 0.6 }}>
+                      <span style={{ marginRight: 6 }}>{m.line - (m.before!.length - bi)}:</span>{line}
+                    </div>
+                  ))}
+                  <div
+                    style={{
+                      padding: "2px 12px 2px 28px",
+                      color: "var(--text-secondary)",
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => onNavigate(r.path, query, m.line)}
+                  >
+                    <span style={{ color: "var(--text-faint)", marginRight: 6 }}>
+                      {m.line}:
+                    </span>
+                    {highlightMatch(trimContext(m.text, query, caseSensitive, 80), query, useRegex, caseSensitive)}
+                  </div>
+                  {m.after?.map((line, ai) => (
+                    <div key={`a${ai}`} style={{ padding: "1px 12px 1px 28px", color: "var(--text-faint)", fontSize: 11, opacity: 0.6 }}>
+                      <span style={{ marginRight: 6 }}>{m.line + ai + 1}:</span>{line}
+                    </div>
+                  ))}
                 </div>
               ))}
               {!isCollapsed && r.matches.length > 5 && !expanded.has(r.path) && (

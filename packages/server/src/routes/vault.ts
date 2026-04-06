@@ -449,7 +449,7 @@ export async function vaultRoutes(app: FastifyInstance) {
   );
 
   // GET /api/vault/search?q=...&regex=true — full-text search across vault
-  app.get<{ Querystring: { q: string; regex?: string; caseSensitive?: string } }>(
+  app.get<{ Querystring: { q: string; regex?: string; caseSensitive?: string; context?: string } }>(
     "/search",
     async (request, reply) => {
       const query = request.query.q?.trim();
@@ -459,6 +459,7 @@ export async function vaultRoutes(app: FastifyInstance) {
 
       const isRegex = request.query.regex === "true";
       const caseSensitive = request.query.caseSensitive === "true";
+      const contextCount = Math.min(Math.max(parseInt(request.query.context ?? "0", 10) || 0, 0), 5);
 
       let re: RegExp | null = null;
       if (isRegex) {
@@ -474,7 +475,7 @@ export async function vaultRoutes(app: FastifyInstance) {
 
       const results: Array<{
         path: string;
-        matches: Array<{ line: number; text: string }>;
+        matches: Array<{ line: number; text: string; before?: string[]; after?: string[] }>;
         mtime: string;
       }> = [];
 
@@ -482,7 +483,7 @@ export async function vaultRoutes(app: FastifyInstance) {
         if (file.extension !== "md") continue;
         const content = await readFile(join(vaultRoot, file.path), "utf-8");
         const lines = content.split("\n");
-        const matches: Array<{ line: number; text: string }> = [];
+        const matches: Array<{ line: number; text: string; before?: string[]; after?: string[] }> = [];
 
         for (let i = 0; i < lines.length; i++) {
           let isMatch = false;
@@ -495,10 +496,15 @@ export async function vaultRoutes(app: FastifyInstance) {
             isMatch = lines[i].toLowerCase().includes(query.toLowerCase());
           }
           if (isMatch) {
-            matches.push({
+            const m: { line: number; text: string; before?: string[]; after?: string[] } = {
               line: i + 1,
               text: lines[i].trim().slice(0, 200),
-            });
+            };
+            if (contextCount > 0) {
+              m.before = lines.slice(Math.max(0, i - contextCount), i).map((l) => l.trim().slice(0, 200));
+              m.after = lines.slice(i + 1, Math.min(lines.length, i + 1 + contextCount)).map((l) => l.trim().slice(0, 200));
+            }
+            matches.push(m);
           }
         }
 
