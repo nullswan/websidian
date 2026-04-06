@@ -636,6 +636,7 @@ function FileTreeNode({
             fontSize: 13,
             outline: isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
           }}
+          title={`${entry.path}\n${entry.size < 1024 ? entry.size + " B" : entry.size < 1048576 ? (entry.size / 1024).toFixed(1) + " KB" : (entry.size / 1048576).toFixed(1) + " MB"} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
           onClick={() => onFileSelect(entry.path)}
           onContextMenu={(e) => {
             const parentPath = entry.path.includes("/")
