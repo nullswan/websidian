@@ -27,6 +27,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   const [regexError, setRegexError] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [sortMode, setSortMode] = useState<"relevance" | "modified" | "name">("relevance");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,7 +87,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   }, [initialQuery, doSearch, useRegex, caseSensitive]);
 
   // Reset selection when results change
-  useEffect(() => { setSelectedIdx(-1); }, [results]);
+  useEffect(() => { setSelectedIdx(-1); setExpanded(new Set()); }, [results]);
 
   const sortedResults = [...results].sort((a, b) => {
     if (sortMode === "relevance") {
@@ -375,7 +376,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   {r.matches.length}
                 </span>
               </div>
-              {!isCollapsed && r.matches.slice(0, 5).map((m) => (
+              {!isCollapsed && (expanded.has(r.path) ? r.matches : r.matches.slice(0, 5)).map((m) => (
                 <div
                   key={m.line}
                   style={{
@@ -392,7 +393,20 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   {highlightMatch(trimContext(m.text, query, caseSensitive, 80), query, useRegex, caseSensitive)}
                 </div>
               ))}
-              {!isCollapsed && r.matches.length > 5 && (
+              {!isCollapsed && r.matches.length > 5 && !expanded.has(r.path) && (
+                <div
+                  style={{
+                    padding: "2px 12px 4px 28px",
+                    color: "var(--accent-color)",
+                    fontSize: 11,
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setExpanded((prev) => { const next = new Set(prev); next.add(r.path); return next; })}
+                >
+                  Show {r.matches.length - 5} more match{r.matches.length - 5 !== 1 ? "es" : ""}...
+                </div>
+              )}
+              {!isCollapsed && expanded.has(r.path) && r.matches.length > 5 && (
                 <div
                   style={{
                     padding: "2px 12px 4px 28px",
@@ -400,9 +414,9 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                     fontSize: 11,
                     cursor: "pointer",
                   }}
-                  onClick={() => onNavigate(r.path, query, r.matches[0].line)}
+                  onClick={() => setExpanded((prev) => { const next = new Set(prev); next.delete(r.path); return next; })}
                 >
-                  +{r.matches.length - 5} more
+                  Show less
                 </div>
               )}
             </div>
