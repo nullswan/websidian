@@ -2148,6 +2148,78 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
+// Format markdown table: align pipes and pad cells
+function formatMarkdownTable(view: EditorView): boolean {
+  const state = view.state;
+  const cursorLine = state.doc.lineAt(state.selection.main.head);
+
+  // Find table boundaries (contiguous lines starting with |)
+  let startLine = cursorLine.number;
+  let endLine = cursorLine.number;
+  const totalLines = state.doc.lines;
+
+  // Check if current line is a table line
+  const isTableLine = (lineNum: number) => {
+    const line = state.doc.line(lineNum);
+    return /^\s*\|/.test(line.text) && line.text.trim().endsWith("|");
+  };
+
+  if (!isTableLine(cursorLine.number)) return false;
+
+  while (startLine > 1 && isTableLine(startLine - 1)) startLine--;
+  while (endLine < totalLines && isTableLine(endLine + 1)) endLine++;
+
+  // Parse rows into cells
+  const rows: string[][] = [];
+  for (let i = startLine; i <= endLine; i++) {
+    const line = state.doc.line(i).text.trim();
+    const cells = line.slice(1, -1).split("|").map(c => c.trim());
+    rows.push(cells);
+  }
+  if (rows.length < 2) return false;
+
+  // Compute max column widths
+  const colCount = Math.max(...rows.map(r => r.length));
+  const widths: number[] = Array(colCount).fill(3); // minimum 3 chars
+  for (const row of rows) {
+    for (let c = 0; c < colCount; c++) {
+      const cell = row[c] ?? "";
+      // Separator row uses dashes — min width 3
+      if (/^[-:]+$/.test(cell)) continue;
+      widths[c] = Math.max(widths[c], cell.length);
+    }
+  }
+
+  // Rebuild table
+  const formatted: string[] = [];
+  for (let r = 0; r < rows.length; r++) {
+    const cells = rows[r];
+    const padded: string[] = [];
+    for (let c = 0; c < colCount; c++) {
+      const cell = cells[c] ?? "";
+      if (/^[-:]+$/.test(cell)) {
+        // Separator: preserve alignment markers
+        const left = cell.startsWith(":");
+        const right = cell.endsWith(":");
+        const dashes = "-".repeat(widths[c]);
+        padded.push(left && right ? `:${dashes.slice(1, -1)}:` : left ? `:${dashes.slice(1)}` : right ? `${dashes.slice(0, -1)}:` : dashes);
+      } else {
+        padded.push(cell.padEnd(widths[c]));
+      }
+    }
+    formatted.push(`| ${padded.join(" | ")} |`);
+  }
+
+  const from = state.doc.line(startLine).from;
+  const to = state.doc.line(endLine).to;
+  const newText = formatted.join("\n");
+
+  if (newText === state.doc.sliceString(from, to)) return false; // already formatted
+
+  view.dispatch({ changes: { from, to, insert: newText } });
+  return true;
+}
+
 // Pair deletion: Backspace between paired delimiters removes both sides
 const pairDeletionKeymap = keymap.of([{
   key: "Backspace",
@@ -2691,6 +2763,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         bracketMatching(),
         history(),
         pairDeletionKeymap,
+        keymap.of([{ key: "Shift-Alt-f", run: formatMarkdownTable }]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
