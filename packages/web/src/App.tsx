@@ -2623,53 +2623,74 @@ ${rendered}
             <div style={{ fontSize: 16, fontWeight: 600, color: "#ddd", marginBottom: 16 }}>
               Keyboard Shortcuts
             </div>
-            {[
-              ["Ctrl+N", "New note"],
-              ["Ctrl+D", "Open daily note"],
-              ["Ctrl+O", "Quick switcher"],
-              ["Ctrl+P", "Command palette"],
-              ["Ctrl+E", "Toggle read/edit mode"],
-              ["Ctrl+W", "Close active tab"],
-              ["Ctrl+Shift+T", "Undo close tab"],
-              ["Ctrl+Tab", "Next tab"],
-              ["Ctrl+Shift+Tab", "Previous tab"],
-              ["Ctrl+Shift+F", "Toggle search"],
-              ["Ctrl+G", "Toggle graph view"],
-              ["Ctrl+\\", "Toggle left sidebar"],
-              ["Ctrl+Shift+\\", "Toggle right sidebar"],
-              ["Ctrl+Shift+Z", "Toggle zen mode"],
-              ["Ctrl+,", "Open settings"],
-              ["Ctrl+/", "Keyboard shortcuts"],
-              ["Ctrl+F", "Find in editor"],
-              ["Ctrl+B", "Bold"],
-              ["Ctrl+I", "Italic"],
-              ["Ctrl+K", "Insert link"],
-            ].map(([key, desc]) => (
-              <div
-                key={key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "6px 0",
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                <span style={{ color: "#bbb", fontSize: 13 }}>{desc}</span>
-                <kbd
-                  style={{
-                    background: "#1e1e1e",
-                    border: "1px solid #555",
-                    borderRadius: 4,
-                    padding: "2px 8px",
-                    fontSize: 12,
-                    color: "#ccc",
-                    fontFamily: "system-ui, monospace",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {key}
-                </kbd>
+            {([
+              ["Navigation", [
+                ["Ctrl+O", "Quick switcher"],
+                ["Ctrl+P", "Command palette"],
+                ["Ctrl+E", "Toggle read/edit mode"],
+                ["Ctrl+Tab", "Next tab"],
+                ["Ctrl+Shift+Tab", "Previous tab"],
+                ["Ctrl+G", "Toggle graph view"],
+              ]],
+              ["Files", [
+                ["Ctrl+N", "New note"],
+                ["Ctrl+D", "Open daily note"],
+                ["Ctrl+W", "Close active tab"],
+                ["Ctrl+Shift+T", "Undo close tab"],
+                ["Ctrl+Shift+N", "Extract selection to note"],
+              ]],
+              ["Editing", [
+                ["Ctrl+F", "Find in editor"],
+                ["Ctrl+H", "Find & replace"],
+                ["Ctrl+B", "Bold"],
+                ["Ctrl+I", "Italic"],
+                ["Ctrl+K", "Insert link"],
+                ["Ctrl+`", "Inline code"],
+                ["Ctrl+Shift+X", "Strikethrough"],
+                ["Ctrl+Shift+[", "Fold heading"],
+                ["Ctrl+Shift+]", "Unfold heading"],
+              ]],
+              ["Interface", [
+                ["Ctrl+\\", "Toggle left sidebar"],
+                ["Ctrl+Shift+\\", "Toggle right sidebar"],
+                ["Ctrl+Shift+F", "Toggle search"],
+                ["Ctrl+Shift+Z", "Toggle zen mode"],
+                ["Ctrl+,", "Open settings"],
+                ["Ctrl+/", "Keyboard shortcuts"],
+              ]],
+            ] as [string, string[][]][]).map(([group, shortcuts]) => (
+              <div key={group}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 0 4px", marginTop: 4 }}>
+                  {group}
+                </div>
+                {shortcuts.map(([key, desc]) => (
+                  <div
+                    key={key}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "5px 0",
+                      borderBottom: "1px solid #2a2a2a",
+                    }}
+                  >
+                    <span style={{ color: "#bbb", fontSize: 13 }}>{desc}</span>
+                    <kbd
+                      style={{
+                        background: "#1e1e1e",
+                        border: "1px solid #555",
+                        borderRadius: 4,
+                        padding: "2px 8px",
+                        fontSize: 12,
+                        color: "#ccc",
+                        fontFamily: "system-ui, monospace",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {key}
+                    </kbd>
+                  </div>
+                ))}
               </div>
             ))}
             <div style={{ marginTop: 12, fontSize: 11, color: "#555", textAlign: "center" }}>
