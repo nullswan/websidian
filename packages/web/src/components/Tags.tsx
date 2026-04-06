@@ -105,6 +105,18 @@ function buildTagTree(tags: TagInfo[]): TagTreeNode[] {
     }
   }
 
+  // Compute cumulative counts: parent count includes all descendant counts
+  function accumulateCounts(nodes: TagTreeNode[]): number {
+    let total = 0;
+    for (const node of nodes) {
+      const childTotal = accumulateCounts(node.children);
+      node.count += childTotal;
+      total += node.count;
+    }
+    return total;
+  }
+  accumulateCounts(root);
+
   return root;
 }
 
