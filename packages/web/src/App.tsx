@@ -1310,13 +1310,25 @@ export function App() {
         refreshTree();
         openTab(name);
         showToast(`Created ${name}`);
-        // Switch to edit mode for the new note
+        // Switch to edit mode for the new note and focus inline title
         setTimeout(() => {
           setTabsMap((prev) => {
             const entry = Object.entries(prev).find(([, t]) => t.path === name);
             if (!entry) return prev;
             return { ...prev, [entry[0]]: { ...entry[1], mode: "edit" } };
           });
+          // Focus and select-all in inline title for immediate renaming
+          setTimeout(() => {
+            const titleEl = document.querySelector(".pane-active .inline-title") as HTMLElement | null;
+            if (titleEl) {
+              titleEl.focus();
+              const range = document.createRange();
+              range.selectNodeContents(titleEl);
+              const sel = window.getSelection();
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+            }
+          }, 150);
         }, 100);
       })
       .catch((e) => setError("Failed to create note: " + e.message));
