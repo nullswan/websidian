@@ -594,6 +594,13 @@ details.callout > div {
   border-radius: 2px;
 }
 
+.cm-editor .cm-rainbow-0 { color: #e6994a; }
+.cm-editor .cm-rainbow-1 { color: #c98ce6; }
+.cm-editor .cm-rainbow-2 { color: #4ec9b0; }
+.cm-editor .cm-rainbow-3 { color: #56b6e6; }
+.cm-editor .cm-rainbow-4 { color: #e05252; }
+.cm-editor .cm-rainbow-5 { color: #dcdcaa; }
+
 .cm-editor .cm-matchingTag {
   background: rgba(78, 201, 176, 0.2);
   outline: 1px solid rgba(78, 201, 176, 0.4);

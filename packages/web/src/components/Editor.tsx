@@ -1743,6 +1743,51 @@ class ColorSwatchWidget extends WidgetType {
   ignoreEvent() { return false; }
 }
 
+// Rainbow brackets: color-code matching bracket pairs by depth
+const rainbowColors = [
+  Decoration.mark({ class: "cm-rainbow-0" }),
+  Decoration.mark({ class: "cm-rainbow-1" }),
+  Decoration.mark({ class: "cm-rainbow-2" }),
+  Decoration.mark({ class: "cm-rainbow-3" }),
+  Decoration.mark({ class: "cm-rainbow-4" }),
+  Decoration.mark({ class: "cm-rainbow-5" }),
+];
+const rainbowBracketPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = this.build(view); }
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) this.decorations = this.build(update.view);
+  }
+  build(view: EditorView): DecorationSet {
+    const openers = new Set(["(", "[", "{"]);
+    const closers: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
+    const widgets: Array<import("@codemirror/state").Range<Decoration>> = [];
+    for (const { from, to } of view.visibleRanges) {
+      const text = view.state.sliceDoc(from, to);
+      let depth = 0;
+      // Pre-scan for initial depth from document start to visible start
+      if (from > 0) {
+        const prefix = view.state.sliceDoc(0, from);
+        for (const ch of prefix) {
+          if (openers.has(ch)) depth++;
+          else if (ch in closers) depth = Math.max(0, depth - 1);
+        }
+      }
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (openers.has(ch)) {
+          widgets.push(rainbowColors[depth % rainbowColors.length].range(from + i, from + i + 1));
+          depth++;
+        } else if (ch in closers) {
+          depth = Math.max(0, depth - 1);
+          widgets.push(rainbowColors[depth % rainbowColors.length].range(from + i, from + i + 1));
+        }
+      }
+    }
+    return Decoration.set(widgets, true);
+  }
+}, { decorations: (v) => v.decorations });
+
 // Matching HTML tag highlight
 const matchingTagMark = Decoration.mark({ class: "cm-matchingTag" });
 const matchingTagPlugin = ViewPlugin.fromClass(class {
@@ -4360,6 +4405,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         highlightTrailingWhitespace(),
         bracketMatching(),
         matchingTagPlugin,
+        rainbowBracketPlugin,
         history(),
         pairDeletionKeymap,
         tableNavigationKeymap,
