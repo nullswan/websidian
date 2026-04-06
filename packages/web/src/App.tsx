@@ -1578,6 +1578,8 @@ ${rendered}
     const paneIsCanvas = paneTab?.path.endsWith(".canvas");
     const paneIsPdf = paneTab?.path.endsWith(".pdf");
     const paneIsImage = /\.(png|jpe?g|gif|svg|webp|bmp|avif|ico)$/i.test(paneTab?.path ?? "");
+    const paneIsAudio = /\.(mp3|wav|ogg|m4a|flac|aac|webm)$/i.test(paneTab?.path ?? "");
+    const paneIsVideo = /\.(mp4|webm|ogv|mov)$/i.test(paneTab?.path ?? "");
     const isActive = paneIdx === activePaneIdx;
 
     return (
@@ -2010,6 +2012,23 @@ ${rendered}
                   src={`/api/vault/raw?path=${encodeURIComponent(paneTab.path)}`}
                   alt={paneTab.path.split("/").pop() ?? ""}
                   style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 4 }}
+                />
+              </div>
+            ) : paneIsAudio ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 16, background: "var(--bg-primary)" }}>
+                <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{paneTab.path.split("/").pop()}</div>
+                <audio
+                  controls
+                  src={`/api/vault/raw?path=${encodeURIComponent(paneTab.path)}`}
+                  style={{ width: "min(400px, 80%)" }}
+                />
+              </div>
+            ) : paneIsVideo ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: 20, background: "var(--bg-primary)" }}>
+                <video
+                  controls
+                  src={`/api/vault/raw?path=${encodeURIComponent(paneTab.path)}`}
+                  style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 4 }}
                 />
               </div>
             ) : paneIsMarkdown && paneTab.mode === "read" ? (
