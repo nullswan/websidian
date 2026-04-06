@@ -171,6 +171,9 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
 
   const [sortMode, setSortMode] = useState<SortMode>(loadSortMode);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [newFolderDragOver, setNewFolderDragOver] = useState(false);
+  const [dragToFolder, setDragToFolder] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const treeRef = useRef<HTMLUListElement>(null);
   const [hoverPreview, setHoverPreview] = useState<{ path: string; content: string; x: number; y: number } | null>(null);
@@ -457,6 +460,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 13, outline: "none" }}
         onKeyDown={handleTreeKeyDown}
         onContextMenu={(e) => handleContextMenu(e, null, "")}
+        onDragStart={() => setDragging(true)}
+        onDragEnd={() => { setDragging(false); setNewFolderDragOver(false); }}
         onDragOver={(e) => { e.preventDefault(); setDropTarget("__root__"); }}
         onDragLeave={() => setDropTarget(null)}
         onDrop={(e) => {
@@ -495,6 +500,68 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               defaultValue={creating.kind === "file" ? "Untitled.md" : "New Folder"}
               onSubmit={handleCreateSubmit}
               onCancel={() => setCreating(null)}
+              depth={1}
+            />
+          </li>
+        )}
+        {dragging && (
+          <li
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setNewFolderDragOver(true); setDropTarget(null); }}
+            onDragLeave={() => setNewFolderDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setNewFolderDragOver(false);
+              setDragging(false);
+              const src = e.dataTransfer.getData("text/plain");
+              if (src) setDragToFolder(src);
+            }}
+            style={{
+              padding: "6px 12px",
+              margin: "4px 8px",
+              border: `1px dashed ${newFolderDragOver ? "var(--accent-color)" : "var(--border-color)"}`,
+              borderRadius: 4,
+              color: newFolderDragOver ? "var(--accent-color)" : "var(--text-faint)",
+              fontSize: 12,
+              textAlign: "center",
+              transition: "all 0.15s",
+              background: newFolderDragOver ? "rgba(127,109,242,0.08)" : "transparent",
+            }}
+          >
+            + Drop here to create folder
+          </li>
+        )}
+        {dragToFolder && (
+          <li style={{ padding: "2px 8px" }}>
+            <InlineInput
+              defaultValue="New Folder"
+              onSubmit={async (name) => {
+                if (!name.trim()) { setDragToFolder(null); return; }
+                const folderPath = name;
+                const placeholder = `${folderPath}/.gitkeep`;
+                await fetch("/api/vault/file", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ path: placeholder, content: "" }),
+                });
+                // Move the file into the new folder
+                const fileName = dragToFolder.split("/").pop()!;
+                const newPath = `${folderPath}/${fileName}`;
+                const res = await fetch("/api/vault/rename", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ from: dragToFolder, to: newPath }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  onFileRenamed?.(dragToFolder, newPath, data.updatedFiles ?? []);
+                }
+                setDragToFolder(null);
+                onMutate?.();
+              }}
+              onCancel={() => setDragToFolder(null)}
               depth={1}
             />
           </li>
