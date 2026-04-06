@@ -213,6 +213,37 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           }
         }
 
+        // Collapsible long code blocks (>15 lines)
+        if (code) {
+          const lineCount = (code.textContent ?? "").split("\n").length;
+          if (lineCount > 15) {
+            pre.style.maxHeight = "240px";
+            pre.style.overflow = "hidden";
+            pre.style.transition = "max-height 0.3s ease";
+            const expandBtn = document.createElement("button");
+            expandBtn.textContent = `Show all ${lineCount} lines`;
+            expandBtn.style.cssText = "position: absolute; bottom: 0; left: 0; right: 0; padding: 6px; font-size: 11px; background: linear-gradient(transparent, var(--bg-secondary) 40%); color: var(--accent-color); border: none; cursor: pointer; text-align: center; height: 40px; display: flex; align-items: flex-end; justify-content: center;";
+            let expanded = false;
+            expandBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              expanded = !expanded;
+              if (expanded) {
+                pre.style.maxHeight = "none";
+                expandBtn.textContent = "Show less";
+                expandBtn.style.background = "var(--bg-secondary)";
+                expandBtn.style.position = "relative";
+                expandBtn.style.height = "auto";
+                expandBtn.style.padding = "4px";
+              } else {
+                pre.style.maxHeight = "240px";
+                expandBtn.textContent = `Show all ${lineCount} lines`;
+                expandBtn.style.cssText = "position: absolute; bottom: 0; left: 0; right: 0; padding: 6px; font-size: 11px; background: linear-gradient(transparent, var(--bg-secondary) 40%); color: var(--accent-color); border: none; cursor: pointer; text-align: center; height: 40px; display: flex; align-items: flex-end; justify-content: center;";
+              }
+            });
+            pre.appendChild(expandBtn);
+          }
+        }
+
         // Copy button
         const btn = document.createElement("button");
         btn.textContent = "Copy";
