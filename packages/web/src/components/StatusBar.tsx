@@ -53,6 +53,29 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
     return { words, chars, readingTime, wordGoal, totalTasks, doneTasks, internalLinks, externalLinks };
   }, [content]);
 
+  // Track word count history for sparkline
+  const wordHistory = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(`wc-history:${path}`);
+      return raw ? (JSON.parse(raw) as number[]) : [];
+    } catch { return []; }
+  }, [path, saveStatus]);
+
+  useEffect(() => {
+    if (saveStatus !== "saved" || !stats.words) return;
+    try {
+      const key = `wc-history:${path}`;
+      const raw = localStorage.getItem(key);
+      const history: number[] = raw ? JSON.parse(raw) : [];
+      // Only append if different from last entry
+      if (history.length === 0 || history[history.length - 1] !== stats.words) {
+        history.push(stats.words);
+        if (history.length > 20) history.splice(0, history.length - 20);
+        localStorage.setItem(key, JSON.stringify(history));
+      }
+    } catch {}
+  }, [saveStatus, path, stats.words]);
+
   const fileName = path.split("/").pop() ?? path;
 
   return (
@@ -71,7 +94,24 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       }}
     >
       <span>{fileName}</span>
-      <span>{stats.words.toLocaleString()} words</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        {stats.words.toLocaleString()} words
+        {wordHistory.length >= 3 && (() => {
+          const h = wordHistory;
+          const min = Math.min(...h);
+          const max = Math.max(...h);
+          const range = max - min || 1;
+          const w = 40;
+          const ht = 12;
+          const points = h.map((v, i) => `${(i / (h.length - 1)) * w},${ht - ((v - min) / range) * ht}`).join(" ");
+          const trend = h[h.length - 1] >= h[0] ? "#4ec9b0" : "#e05252";
+          return (
+            <svg width={w} height={ht} viewBox={`0 0 ${w} ${ht}`} style={{ opacity: 0.7 }}>
+              <polyline points={points} fill="none" stroke={trend} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          );
+        })()}
+      </span>
       {stats.wordGoal > 0 && (() => {
         const pct = Math.min(stats.words / stats.wordGoal, 1);
         const r = 7;
