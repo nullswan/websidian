@@ -267,6 +267,12 @@ details.callout > div {
   color: var(--text-muted);
 }
 
+.reader-view li.task-list-item:has(input[type="checkbox"]:checked) {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
 .reader-view li.task-list-item .alt-checkbox {
   flex-shrink: 0;
 }
