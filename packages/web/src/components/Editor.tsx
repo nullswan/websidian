@@ -9,6 +9,7 @@ import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
+import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
 
 interface EditorProps {
@@ -1124,6 +1125,14 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
+        indentationMarkers({
+          colors: {
+            light: "rgba(127, 109, 242, 0.1)",
+            dark: "rgba(127, 109, 242, 0.1)",
+            activeLight: "rgba(127, 109, 242, 0.25)",
+            activeDark: "rgba(127, 109, 242, 0.25)",
+          },
+        }),
         search(),
         codeFolding(),
         markdownHeadingFold,
