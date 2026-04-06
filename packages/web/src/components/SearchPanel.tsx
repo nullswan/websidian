@@ -62,16 +62,23 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
       }
       setSearching(true);
       setRegexError(null);
-      // Extract path: filter prefix
-      const pathMatch = q.match(/^path:(\S+)\s+(.*)/);
-      const pathFilter = pathMatch ? pathMatch[1] : null;
-      const searchQuery = pathMatch ? pathMatch[2] : q;
-      if (!searchQuery.trim()) {
+      // Extract filter prefixes: path:, tag:, ext:
+      let remaining = q;
+      let pathFilter: string | null = null;
+      let tagFilter: string | null = null;
+      let extFilter: string | null = null;
+      remaining = remaining.replace(/\bpath:(\S+)/g, (_m, v) => { pathFilter = v; return ""; });
+      remaining = remaining.replace(/\btag:(\S+)/g, (_m, v) => { tagFilter = v.replace(/^#/, ""); return ""; });
+      remaining = remaining.replace(/\bext:(\S+)/g, (_m, v) => { extFilter = v.replace(/^\./, ""); return ""; });
+      const searchQuery = remaining.trim();
+      // If only filters (no text query), search for tag in content or list all
+      const effectiveQuery = searchQuery || (tagFilter ? `#${tagFilter}` : "");
+      if (!effectiveQuery) {
         setResults([]);
         setSearching(false);
         return;
       }
-      const params = new URLSearchParams({ q: searchQuery });
+      const params = new URLSearchParams({ q: effectiveQuery });
       if (regex) params.set("regex", "true");
       if (cs) params.set("caseSensitive", "true");
       fetch(`/api/vault/search?${params}`)
@@ -83,7 +90,15 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
           } else {
             let filtered = data.results ?? [];
             if (pathFilter) {
-              filtered = filtered.filter((r: SearchResult) => r.path.startsWith(pathFilter));
+              filtered = filtered.filter((r: SearchResult) => r.path.startsWith(pathFilter!));
+            }
+            if (extFilter) {
+              filtered = filtered.filter((r: SearchResult) => r.path.endsWith(`.${extFilter!}`));
+            }
+            if (tagFilter && searchQuery) {
+              filtered = filtered.filter((r: SearchResult) =>
+                r.matches.some((m) => m.text.includes(`#${tagFilter!}`))
+              );
             }
             setResults(filtered);
           }
@@ -533,7 +548,9 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
             <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>.*</span> toggle for regex patterns</div>
             <div style={{ marginBottom: 4 }}>• Use <span style={{ color: "var(--accent-color)" }}>Aa</span> toggle for case-sensitive</div>
             <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>#tag</code> to search by tag</div>
-            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>path:folder/ query</code> to filter by path</div>
+            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>path:folder/</code> filter by path</div>
+            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>tag:#name</code> filter by tag</div>
+            <div style={{ marginBottom: 4 }}>• <code style={{ fontSize: 11, background: "var(--bg-tertiary)", padding: "1px 3px", borderRadius: 2 }}>ext:canvas</code> filter by file type</div>
             <div>• Press <kbd style={{ fontSize: 10, background: "var(--bg-tertiary)", padding: "1px 4px", borderRadius: 2, border: "1px solid var(--border-color)" }}>Esc</kbd> to close</div>
           </div>
         )}
