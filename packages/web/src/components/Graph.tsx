@@ -47,6 +47,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
+  const zoomTargetRef = useRef(1);
   const dragRef = useRef<{ node: GraphNode | null; offsetX: number; offsetY: number }>({
     node: null,
     offsetX: 0,
@@ -362,6 +363,14 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       ctx.fillStyle = bgPrimary;
       ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
+      // Smooth zoom lerp toward target
+      const zDiff = zoomTargetRef.current - zoomRef.current;
+      if (Math.abs(zDiff) > 0.001) {
+        zoomRef.current += zDiff * 0.15;
+      } else {
+        zoomRef.current = zoomTargetRef.current;
+      }
+
       const cx = canvas.clientWidth / 2 + panRef.current.x;
       const cy = canvas.clientHeight / 2 + panRef.current.y;
       const zoom = zoomRef.current;
@@ -512,7 +521,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       const factor = e.deltaY > 0 ? 0.9 : 1.1;
-      zoomRef.current = Math.max(0.2, Math.min(5, zoomRef.current * factor));
+      zoomTargetRef.current = Math.max(0.2, Math.min(5, zoomTargetRef.current * factor));
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -799,18 +808,18 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           Scroll zoom · Drag · Dbl-click open · Alt+Click path
         </span>
         <button
-          onClick={() => { zoomRef.current = Math.min(3, zoomRef.current * 1.3); }}
+          onClick={() => { zoomTargetRef.current = Math.min(3, zoomTargetRef.current * 1.3); }}
           style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
           title="Zoom in"
         >+</button>
         <button
-          onClick={() => { zoomRef.current = Math.max(0.2, zoomRef.current / 1.3); }}
+          onClick={() => { zoomTargetRef.current = Math.max(0.2, zoomTargetRef.current / 1.3); }}
           style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
           title="Zoom out"
         >−</button>
         <button
           onClick={() => {
-            zoomRef.current = 1;
+            zoomTargetRef.current = 1;
             panRef.current = { x: 0, y: 0 };
           }}
           style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
