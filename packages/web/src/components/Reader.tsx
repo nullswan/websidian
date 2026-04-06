@@ -1020,7 +1020,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               html += '<div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">';
               for (const r of shown) {
                 const name = (r.path as string).replace(/\.md$/, "").split("/").pop();
-                html += `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>`;
+                html += `<div class="tag-popover-link" data-path="${(r.path as string).replace(/"/g, "&quot;")}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:1px 0;" onmouseenter="this.style.color='var(--accent-color)'" onmouseleave="this.style.color='var(--text-secondary)'">${name}</div>`;
               }
               if (count > 8) html += `<div style="color:var(--text-faint);">+${count - 8} more</div>`;
               html += "</div>";
@@ -1174,6 +1174,13 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     const tag = (e.target as HTMLElement).closest<HTMLSpanElement>("span.tag[data-tag]");
     if (tag && tag.dataset.tag && onTagClick) {
       onTagClick(tag.dataset.tag);
+      return;
+    }
+
+    // Handle tag popover link clicks
+    const tagPopoverLink = (e.target as HTMLElement).closest<HTMLElement>(".tag-popover-link[data-path]");
+    if (tagPopoverLink && tagPopoverLink.dataset.path) {
+      onNavigate(tagPopoverLink.dataset.path);
       return;
     }
 
