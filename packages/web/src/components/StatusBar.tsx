@@ -136,11 +136,19 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       })()}
       <span>{stats.chars.toLocaleString()} characters</span>
       <span>{stats.readingTime} min read</span>
-      {stats.totalTasks > 0 && (
-        <span style={{ color: stats.doneTasks === stats.totalTasks ? "#4caf50" : undefined }}>
-          {stats.doneTasks}/{stats.totalTasks} tasks
-        </span>
-      )}
+      {stats.totalTasks > 0 && (() => {
+        const pct = stats.doneTasks / stats.totalTasks;
+        const done = stats.doneTasks === stats.totalTasks;
+        const barColor = done ? "#4caf50" : "var(--accent-color)";
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: done ? "#4caf50" : undefined }}>
+            <span style={{ display: "inline-block", width: 40, height: 4, background: "var(--border-color)", borderRadius: 2, overflow: "hidden" }}>
+              <span style={{ display: "block", width: `${pct * 100}%`, height: "100%", background: barColor, borderRadius: 2, transition: "width 0.3s" }} />
+            </span>
+            {stats.doneTasks}/{stats.totalTasks} tasks
+          </span>
+        );
+      })()}
       {(stats.internalLinks > 0 || stats.externalLinks > 0) && (
         <span title={`${stats.internalLinks} internal, ${stats.externalLinks} external links`}>
           {stats.internalLinks > 0 && <>{stats.internalLinks} links</>}
