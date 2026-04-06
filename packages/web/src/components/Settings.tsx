@@ -22,6 +22,7 @@ export interface AppSettings {
   cursorBlinkRate: number;
   trimTrailingWhitespace: boolean;
   rulerColumns: number[];
+  rainbowBrackets: boolean;
   customCSS: string;
 }
 
@@ -46,6 +47,7 @@ const DEFAULTS: AppSettings = {
   cursorBlinkRate: 1200,
   trimTrailingWhitespace: true,
   rulerColumns: [],
+  rainbowBrackets: true,
   customCSS: "",
 };
 
@@ -401,6 +403,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Remove trailing spaces from lines when saving"
               >
                 <Toggle checked={settings.trimTrailingWhitespace} onChange={(v) => update("trimTrailingWhitespace", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Rainbow brackets"
+                description="Color-code matching bracket pairs by nesting depth"
+              >
+                <Toggle checked={settings.rainbowBrackets} onChange={(v) => update("rainbowBrackets", v)} />
               </SettingItem>
 
               <SettingItem

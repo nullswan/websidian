@@ -36,6 +36,7 @@ interface EditorProps {
   showWhitespace?: boolean;
   cursorBlinkRate?: number;
   rulerColumns?: number[];
+  rainbowBrackets?: boolean;
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
   initialLine?: number | null;
@@ -3590,7 +3591,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], sourceMode = false, backlinks = [], initialLine }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3609,6 +3610,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const whitespaceComp = useRef(new Compartment());
   const cursorBlinkComp = useRef(new Compartment());
   const rulerComp = useRef(new Compartment());
+  const rainbowComp = useRef(new Compartment());
 
   // Compute backlink line numbers from backlinks prop
   useEffect(() => {
@@ -4405,7 +4407,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         highlightTrailingWhitespace(),
         bracketMatching(),
         matchingTagPlugin,
-        rainbowBracketPlugin,
+        rainbowComp.current.of(rainbowBrackets ? rainbowBracketPlugin : []),
         history(),
         pairDeletionKeymap,
         tableNavigationKeymap,
@@ -4852,9 +4854,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         rulerComp.current.reconfigure(rulerExtension(rulerColumns)),
+        rainbowComp.current.reconfigure(rainbowBrackets ? rainbowBracketPlugin : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
