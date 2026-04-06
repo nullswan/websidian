@@ -517,7 +517,44 @@ function kbd(shortcut: string): string {
     .replace(/Shift\+/g, "⇧");
 }
 
+function SharePage({ shareId }: { shareId: string }) {
+  const [note, setNote] = useState<{ name: string; content: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const md = useMemo(() => createMarkdownRenderer(), []);
+
+  useEffect(() => {
+    fetch(`/share/${shareId}`)
+      .then((r) => { if (!r.ok) throw new Error("Not found"); return r.json(); })
+      .then((data) => setNote(data))
+      .catch(() => setError("Shared note not found"));
+  }, [shareId]);
+
+  if (error) return <div style={{ padding: 48, color: "#f88", fontSize: 18 }}>{error}</div>;
+  if (!note) return <div style={{ padding: 48, color: "var(--text-faint)" }}>Loading...</div>;
+
+  const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(note.content);
+  const body = fmMatch ? note.content.slice(fmMatch[0].length) : note.content;
+  const html = md.render(body);
+
+  return (
+    <div style={{ maxWidth: 750, margin: "0 auto", padding: "32px 48px" }}>
+      <h1 style={{ fontSize: "2em", marginBottom: 8, color: "var(--heading-color)" }}>{note.name}</h1>
+      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 24 }}>Shared from Websidian</div>
+      <div className="reader-view" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}
+
 export function App() {
+  // Detect share route
+  const [shareId] = useState(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith("#/share/")) return hash.slice("#/share/".length);
+    return null;
+  });
+
+  if (shareId) return <SharePage shareId={shareId} />;
+
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [tree, setTree] = useState<VaultEntry[]>([]);
@@ -3073,6 +3110,27 @@ ${rendered}
                     navigator.clipboard.writeText(`[[${name}]]`).catch(() => {});
                     showToast(`Copied [[${name}]]`);
                   }
+                },
+              },
+              {
+                label: "Share Note",
+                action: () => {
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (!tab) return;
+                  fetch("/api/vault/share", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ path: tab.path }),
+                  })
+                    .then((r) => r.json())
+                    .then((data) => {
+                      if (data.url) {
+                        const shareUrl = `${window.location.origin}/#/share/${data.id}`;
+                        navigator.clipboard.writeText(shareUrl).catch(() => {});
+                        showToast(`Share link copied!`);
+                      }
+                    });
                 },
               },
               {

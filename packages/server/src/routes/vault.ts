@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { readFile, writeFile, mkdir, readdir, unlink, rename, stat } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir, unlink, rename, stat, access } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { join, dirname } from "node:path";
 import {
   loadVaultConfig,
@@ -815,4 +816,79 @@ export async function vaultRoutes(app: FastifyInstance) {
       return { path: `Attachments/${finalName}`, filename: finalName };
     },
   );
+
+  // --- Share / Publish ---
+
+  const sharedFile = join(vaultRoot, ".obsidian", "shared.json");
+
+  async function loadShared(): Promise<Record<string, { path: string; createdAt: string }>> {
+    try {
+      await access(sharedFile);
+      return JSON.parse(await readFile(sharedFile, "utf8"));
+    } catch {
+      return {};
+    }
+  }
+
+  async function saveShared(data: Record<string, { path: string; createdAt: string }>) {
+    await writeFile(sharedFile, JSON.stringify(data, null, 2));
+  }
+
+  // POST /api/vault/share — create a share link for a note
+  app.post<{ Body: { path: string } }>(
+    "/share",
+    async (request) => {
+      const { path: notePath } = request.body as { path: string };
+      if (!notePath) return { error: "path required" };
+
+      const shared = await loadShared();
+      // Check if already shared
+      for (const [id, entry] of Object.entries(shared)) {
+        if (entry.path === notePath) return { id, url: `/share/${id}` };
+      }
+
+      const id = randomBytes(8).toString("hex");
+      shared[id] = { path: notePath, createdAt: new Date().toISOString() };
+      await saveShared(shared);
+      return { id, url: `/share/${id}` };
+    },
+  );
+
+  // DELETE /api/vault/share — unshare a note
+  app.delete<{ Querystring: { id: string } }>(
+    "/share",
+    async (request) => {
+      const { id } = request.query;
+      const shared = await loadShared();
+      if (!shared[id]) return { error: "not found" };
+      delete shared[id];
+      await saveShared(shared);
+      return { ok: true };
+    },
+  );
+
+  // GET /api/vault/share/:id — get shared note content (public, no auth)
+  app.get<{ Params: { id: string } }>(
+    "/share/:id",
+    async (request, reply) => {
+      const { id } = request.params;
+      const shared = await loadShared();
+      const entry = shared[id];
+      if (!entry) return reply.status(404).send({ error: "not found" });
+
+      try {
+        const content = await readFile(join(vaultRoot, entry.path), "utf8");
+        const name = entry.path.replace(/\.md$/, "").split("/").pop() ?? entry.path;
+        return { name, content, path: entry.path };
+      } catch {
+        return reply.status(404).send({ error: "file not found" });
+      }
+    },
+  );
+
+  // GET /api/vault/shares — list all shared notes
+  app.get("/shares", async () => {
+    const shared = await loadShared();
+    return { shares: Object.entries(shared).map(([id, entry]) => ({ id, ...entry })) };
+  });
 }

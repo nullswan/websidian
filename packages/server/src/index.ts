@@ -2,7 +2,8 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import session from "@fastify/session";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { readFile, access } from "node:fs/promises";
 import { vaultRoutes } from "./routes/vault.js";
 import { authRoutes, requireAuth } from "./auth.js";
 
@@ -49,6 +50,23 @@ app.get("/api/health", async () => {
 
 // Auth routes (always available)
 await app.register(authRoutes, { prefix: "/api/auth" });
+
+// Public share route (no auth required)
+app.get<{ Params: { id: string } }>("/share/:id", async (request, reply) => {
+  const { id } = request.params;
+  const sharedFile = join(VAULT_ROOT, ".obsidian", "shared.json");
+  try {
+    await access(sharedFile);
+    const shared = JSON.parse(await readFile(sharedFile, "utf8"));
+    const entry = shared[id];
+    if (!entry) return reply.status(404).send({ error: "not found" });
+    const content = await readFile(join(VAULT_ROOT, entry.path), "utf8");
+    const name = entry.path.replace(/\.md$/, "").split("/").pop() ?? entry.path;
+    return { name, content, path: entry.path };
+  } catch {
+    return reply.status(404).send({ error: "not found" });
+  }
+});
 
 // Vault routes (optionally protected)
 if (AUTH_ENABLED) {
