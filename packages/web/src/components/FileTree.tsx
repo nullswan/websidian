@@ -158,6 +158,30 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const treeRef = useRef<HTMLUListElement>(null);
+  const [hoverPreview, setHoverPreview] = useState<{ path: string; content: string; x: number; y: number } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleFileHover = useCallback((e: React.MouseEvent, path: string) => {
+    if (!path.endsWith(".md")) return;
+    clearTimeout(hoverTimer.current);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    hoverTimer.current = setTimeout(() => {
+      fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error) return;
+          const body = data.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim();
+          const preview = body.split("\n").slice(0, 8).join("\n").slice(0, 400);
+          setHoverPreview({ path, content: preview, x: rect.right + 8, y: rect.top });
+        })
+        .catch(() => {});
+    }, 500);
+  }, []);
+
+  const clearHoverPreview = useCallback(() => {
+    clearTimeout(hoverTimer.current);
+    setHoverPreview(null);
+  }, []);
 
   const handleDrop = async (sourcePath: string, targetFolder: string) => {
     setDropTarget(null);
@@ -444,6 +468,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             onDrop={handleDrop}
             sortMode={sortMode}
             backlinkCounts={backlinkCounts}
+            onFileHover={handleFileHover}
+            onClearHover={clearHoverPreview}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -472,6 +498,34 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           parentPath={contextMenu.parentPath}
         />
       )}
+      {hoverPreview && (
+        <div
+          style={{
+            position: "fixed",
+            left: Math.min(hoverPreview.x, window.innerWidth - 320),
+            top: Math.min(hoverPreview.y, window.innerHeight - 200),
+            width: 300,
+            maxHeight: 180,
+            overflow: "hidden",
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 6,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+            padding: "8px 12px",
+            fontSize: 12,
+            color: "var(--text-secondary)",
+            lineHeight: 1.5,
+            whiteSpace: "pre-wrap",
+            zIndex: 1000,
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
+            {hoverPreview.path.replace(/\.md$/, "").split("/").pop()}
+          </div>
+          {hoverPreview.content || <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>Empty note</span>}
+        </div>
+      )}
     </>
   );
 }
@@ -494,6 +548,8 @@ function FileTreeNode({
   onDrop,
   sortMode,
   backlinkCounts,
+  onFileHover,
+  onClearHover,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -512,6 +568,8 @@ function FileTreeNode({
   onDrop: (sourcePath: string, targetFolder: string) => void;
   sortMode: SortMode;
   backlinkCounts?: Record<string, number>;
+  onFileHover?: (e: React.MouseEvent, path: string) => void;
+  onClearHover?: () => void;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -590,6 +648,8 @@ function FileTreeNode({
                 onDrop={onDrop}
                 sortMode={sortMode}
                 backlinkCounts={backlinkCounts}
+                onFileHover={onFileHover}
+                onClearHover={onClearHover}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -659,8 +719,14 @@ function FileTreeNode({
               : "";
             onContextMenu(e, entry, parentPath);
           }}
-          onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
-          onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          onMouseEnter={(e) => {
+            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+            if (onFileHover && entry.path.endsWith(".md")) onFileHover(e, entry.path);
+          }}
+          onMouseLeave={(e) => {
+            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent";
+            if (onClearHover) onClearHover();
+          }}
         >
           <FileIcon name={name} />
           <span style={{ flex: 1 }}>{name}</span>
