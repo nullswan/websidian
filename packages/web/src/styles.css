@@ -288,6 +288,20 @@ details.callout > div {
   margin: 24px 0;
 }
 
+/* KaTeX math styling */
+.reader-view .katex-error {
+  color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.85em;
+}
+.reader-view .math-display {
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
 .reader-view img {
   max-width: 100%;
   border-radius: 6px;
