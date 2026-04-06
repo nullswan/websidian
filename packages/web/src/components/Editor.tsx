@@ -1805,7 +1805,49 @@ const livePreviewTheme = EditorView.theme({
   },
 });
 
-// Wikilink autocomplete: triggers after [[
+// Frontmatter key autocomplete: triggers at start of line inside YAML frontmatter
+const FRONTMATTER_KEYS: Completion[] = [
+  { label: "tags", detail: "Note tags", apply: "tags: " },
+  { label: "aliases", detail: "Alternative names", apply: "aliases: " },
+  { label: "cssclass", detail: "Custom CSS class", apply: "cssclass: " },
+  { label: "publish", detail: "Publish flag", apply: "publish: true" },
+  { label: "date", detail: "Note date", apply: `date: ${new Date().toISOString().slice(0, 10)}` },
+  { label: "created", detail: "Creation date", apply: `created: ${new Date().toISOString().slice(0, 10)}` },
+  { label: "modified", detail: "Modified date", apply: `modified: ${new Date().toISOString().slice(0, 10)}` },
+  { label: "title", detail: "Note title", apply: "title: " },
+  { label: "author", detail: "Author name", apply: "author: " },
+  { label: "description", detail: "Note summary", apply: "description: " },
+  { label: "category", detail: "Note category", apply: "category: " },
+  { label: "wordGoal", detail: "Target word count", apply: "wordGoal: " },
+  { label: "status", detail: "Note status", apply: "status: " },
+  { label: "type", detail: "Note type", apply: "type: " },
+];
+
+function frontmatterCompletion(ctx: CompletionContext) {
+  const doc = ctx.state.doc;
+  // Check if cursor is inside frontmatter (between first --- and second ---)
+  if (doc.line(1).text.trim() !== "---") return null;
+  const pos = ctx.pos;
+  let fmEnd = -1;
+  for (let i = 2; i <= doc.lines; i++) {
+    if (doc.line(i).text.trim() === "---") { fmEnd = doc.line(i).from; break; }
+  }
+  if (fmEnd === -1 || pos > fmEnd) return null;
+
+  const line = doc.lineAt(pos);
+  const textBefore = line.text.slice(0, pos - line.from);
+  // Only trigger at start of line (optionally with partial key typed)
+  const match = /^(\w*)$/.exec(textBefore);
+  if (!match) return null;
+  if (!match[1] && !ctx.explicit) return null; // Need at least 1 char or explicit trigger
+
+  return {
+    from: line.from,
+    options: FRONTMATTER_KEYS,
+  };
+}
+
+// Tag autocomplete: triggers after #
 async function tagCompletion(ctx: CompletionContext) {
   const line = ctx.state.doc.lineAt(ctx.pos);
   const textBefore = line.text.slice(0, ctx.pos - line.from);
@@ -2683,7 +2725,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
+          override: [frontmatterCompletion, imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
