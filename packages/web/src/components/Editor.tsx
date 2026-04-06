@@ -3527,6 +3527,42 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       // Copy line up/down
       { key: "Alt-Shift-ArrowUp", run: copyLineUp },
       { key: "Alt-Shift-ArrowDown", run: copyLineDown },
+      // Toggle HTML comment
+      {
+        key: "Mod-/",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          const from = sel.from;
+          const to = sel.to;
+          const text = view.state.sliceDoc(from, to);
+          if (text.startsWith("<!-- ") && text.endsWith(" -->")) {
+            // Unwrap
+            const inner = text.slice(5, -4);
+            view.dispatch({
+              changes: { from, to, insert: inner },
+              selection: { anchor: from, head: from + inner.length },
+            });
+          } else if (from === to) {
+            // No selection — toggle whole line
+            const line = view.state.doc.lineAt(from);
+            const lineText = line.text;
+            if (lineText.trimStart().startsWith("<!-- ") && lineText.trimEnd().endsWith(" -->")) {
+              const stripped = lineText.replace(/^(\s*)<!-- /, "$1").replace(/ -->(\s*)$/, "$1");
+              view.dispatch({ changes: { from: line.from, to: line.to, insert: stripped } });
+            } else {
+              view.dispatch({ changes: { from: line.from, to: line.to, insert: `<!-- ${lineText} -->` } });
+            }
+          } else {
+            // Wrap selection
+            const wrapped = `<!-- ${text} -->`;
+            view.dispatch({
+              changes: { from, to, insert: wrapped },
+              selection: { anchor: from, head: from + wrapped.length },
+            });
+          }
+          return true;
+        },
+      },
       // Delete entire line
       {
         key: "Mod-Shift-k",
