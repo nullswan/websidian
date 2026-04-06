@@ -594,6 +594,12 @@ details.callout > div {
   border-radius: 2px;
 }
 
+.cm-editor .cm-matchingTag {
+  background: rgba(78, 201, 176, 0.2);
+  outline: 1px solid rgba(78, 201, 176, 0.4);
+  border-radius: 2px;
+}
+
 /* Properties panel */
 .properties-panel {
   border-bottom: 1px solid var(--border-color);

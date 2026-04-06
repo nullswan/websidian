@@ -1743,6 +1743,80 @@ class ColorSwatchWidget extends WidgetType {
   ignoreEvent() { return false; }
 }
 
+// Matching HTML tag highlight
+const matchingTagMark = Decoration.mark({ class: "cm-matchingTag" });
+const matchingTagPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = this.compute(view); }
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.selectionSet || update.docChanged) this.decorations = this.compute(update.view);
+  }
+  compute(view: EditorView): DecorationSet {
+    const pos = view.state.selection.main.head;
+    const doc = view.state.doc;
+    const line = doc.lineAt(pos);
+    const text = line.text;
+    const col = pos - line.from;
+    // Find if cursor is inside or adjacent to an HTML tag
+    const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+    let match: RegExpExecArray | null;
+    let curTag: { name: string; close: boolean; from: number; to: number } | null = null;
+    while ((match = tagRe.exec(text)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (col >= start && col <= end) {
+        curTag = { name: match[1].toLowerCase(), close: match[0].startsWith("</"), from: line.from + start, to: line.from + end };
+        break;
+      }
+    }
+    if (!curTag) return Decoration.none;
+    // Search for matching tag in document
+    const fullText = doc.toString();
+    const allTags: Array<{ name: string; close: boolean; from: number; to: number }> = [];
+    const allRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+    let m2: RegExpExecArray | null;
+    while ((m2 = allRe.exec(fullText)) !== null) {
+      allTags.push({ name: m2[1].toLowerCase(), close: m2[0].startsWith("</"), from: m2.index, to: m2.index + m2[0].length });
+    }
+    // Find matching pair
+    const curIdx = allTags.findIndex((t) => t.from === curTag!.from);
+    if (curIdx === -1) return Decoration.none;
+    let matchIdx = -1;
+    if (!curTag.close) {
+      // Forward search for closing tag
+      let depth = 0;
+      for (let i = curIdx + 1; i < allTags.length; i++) {
+        if (allTags[i].name !== curTag.name) continue;
+        if (!allTags[i].close) depth++;
+        else if (depth === 0) { matchIdx = i; break; }
+        else depth--;
+      }
+    } else {
+      // Backward search for opening tag
+      let depth = 0;
+      for (let i = curIdx - 1; i >= 0; i--) {
+        if (allTags[i].name !== curTag.name) continue;
+        if (allTags[i].close) depth++;
+        else if (depth === 0) { matchIdx = i; break; }
+        else depth--;
+      }
+    }
+    if (matchIdx === -1) return Decoration.none;
+    const matched = allTags[matchIdx];
+    const builder = new RangeSetBuilder<Decoration>();
+    const a = Math.min(curTag.from, matched.from);
+    const b = Math.max(curTag.from, matched.from);
+    if (a === curTag.from) {
+      builder.add(curTag.from, curTag.to, matchingTagMark);
+      builder.add(matched.from, matched.to, matchingTagMark);
+    } else {
+      builder.add(matched.from, matched.to, matchingTagMark);
+      builder.add(curTag.from, curTag.to, matchingTagMark);
+    }
+    return builder.finish();
+  }
+}, { decorations: (v) => v.decorations });
+
 // Bare URL highlighting: clickable links for bare http(s) URLs not inside markdown syntax
 const bareUrlMark = Decoration.mark({ class: "cm-bare-url" });
 const bareUrlPlugin = ViewPlugin.fromClass(class {
@@ -4231,6 +4305,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         highlightActiveLineGutter(),
         highlightTrailingWhitespace(),
         bracketMatching(),
+        matchingTagPlugin,
         history(),
         pairDeletionKeymap,
         tableNavigationKeymap,
