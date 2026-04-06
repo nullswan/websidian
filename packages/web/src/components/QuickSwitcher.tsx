@@ -4,12 +4,29 @@ interface Candidate {
   path: string;
   name: string;
   type: "file" | "alias" | "heading";
+  matches?: number[];
 }
 
 interface QuickSwitcherProps {
   onSelect: (path: string) => void;
   onClose: () => void;
   recentPaths?: string[];
+}
+
+function HighlightedName({ name, matches }: { name: string; matches?: number[] }) {
+  if (!matches || matches.length === 0) return <>{name}</>;
+  const matchSet = new Set(matches);
+  return (
+    <>
+      {name.split("").map((ch, i) =>
+        matchSet.has(i) ? (
+          <span key={i} style={{ color: "var(--accent-color)", fontWeight: 600 }}>{ch}</span>
+        ) : (
+          <span key={i}>{ch}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwitcherProps) {
@@ -122,6 +139,7 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
           {candidates.map((c, i) => (
             <div
               key={c.path + c.type + c.name}
+              ref={i === selectedIdx ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
               style={{
                 padding: "8px 16px",
                 cursor: "pointer",
@@ -136,15 +154,17 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
               }}
               onMouseEnter={() => setSelectedIdx(i)}
             >
-              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>{c.name}</span>
+              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>
+                <HighlightedName name={c.name} matches={c.matches} />
+              </span>
               {c.type === "alias" && (
                 <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
                   alias → {c.path.replace(/\.md$/, "")}
                 </span>
               )}
               {c.type === "file" && c.path.includes("/") && (
-                <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
-                  {c.path.split("/").slice(0, -1).join("/")}
+                <span style={{ color: "var(--text-faint)", fontSize: 12, marginLeft: "auto", flexShrink: 0 }}>
+                  {c.path.replace(/\.md$/, "").split("/").slice(0, -1).join("/")}
                 </span>
               )}
             </div>

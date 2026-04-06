@@ -446,11 +446,49 @@ export async function vaultRoutes(app: FastifyInstance) {
     },
   );
 
+  // Fuzzy match: characters in query must appear in order in target.
+  // Returns score (higher = better) or -1 if no match.
+  function fuzzyScore(query: string, target: string): number {
+    const q = query.toLowerCase();
+    const t = target.toLowerCase();
+    if (!q) return 0;
+    // Exact match bonus
+    if (t === q) return 100;
+    if (t.startsWith(q)) return 90;
+    if (t.includes(q)) return 80;
+
+    let qi = 0;
+    let score = 0;
+    let prevMatchIdx = -2;
+    let wordBoundary = true;
+
+    for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+      if (t[ti] === q[qi]) {
+        score += 10;
+        // Consecutive match bonus
+        if (ti === prevMatchIdx + 1) score += 5;
+        // Start-of-word bonus
+        if (wordBoundary) score += 8;
+        // First character bonus
+        if (ti === 0) score += 3;
+        prevMatchIdx = ti;
+        qi++;
+      }
+      wordBoundary = t[ti] === "/" || t[ti] === " " || t[ti] === "-" || t[ti] === "_";
+    }
+
+    // All query chars must be matched
+    if (qi < q.length) return -1;
+    // Penalize long targets (prefer shorter names)
+    score -= t.length * 0.5;
+    return score;
+  }
+
   // GET /api/vault/switcher?q=... — quick switcher (filenames + aliases + headings)
   app.get<{ Querystring: { q: string } }>(
     "/switcher",
     async (request, reply) => {
-      const query = request.query.q?.trim().toLowerCase() ?? "";
+      const query = request.query.q?.trim() ?? "";
 
       const tree = await scanVault(vaultRoot);
       const files = flattenFiles(tree);
@@ -461,24 +499,29 @@ export async function vaultRoutes(app: FastifyInstance) {
         name: string;
         type: "file" | "alias" | "heading";
         score: number;
+        matches?: number[];
       }> = [];
 
       for (const file of files) {
         if (file.extension !== "md") continue;
         const name = file.path.replace(/\.md$/, "");
-        const nameLower = name.toLowerCase();
 
-        // Score filename match
-        if (!query || nameLower.includes(query)) {
+        // Score against basename (what user sees) and full path
+        const basename = name.split("/").pop() ?? name;
+        const baseScore = fuzzyScore(query, basename);
+        const pathScore = fuzzyScore(query, name);
+        const bestScore = Math.max(baseScore, pathScore);
+
+        if (!query || bestScore >= 0) {
+          // Compute match indices for highlighting
+          const matchTarget = baseScore >= pathScore ? basename : name;
+          const matches = fuzzyMatchIndices(query.toLowerCase(), matchTarget.toLowerCase());
           candidates.push({
             path: file.path,
-            name,
+            name: basename,
             type: "file",
-            score: !query
-              ? 0
-              : nameLower.startsWith(query)
-                ? 2
-                : 1,
+            score: bestScore,
+            matches,
           });
         }
 
@@ -486,16 +529,14 @@ export async function vaultRoutes(app: FastifyInstance) {
         const note = notes.find((n) => n.path === file.path);
         if (note) {
           for (const alias of note.aliases) {
-            if (!query || alias.toLowerCase().includes(query)) {
+            const s = fuzzyScore(query, alias);
+            if (!query || s >= 0) {
               candidates.push({
                 path: file.path,
                 name: alias,
                 type: "alias",
-                score: !query
-                  ? 0
-                  : alias.toLowerCase().startsWith(query)
-                    ? 2
-                    : 1,
+                score: s,
+                matches: fuzzyMatchIndices(query.toLowerCase(), alias.toLowerCase()),
               });
             }
           }
@@ -508,6 +549,19 @@ export async function vaultRoutes(app: FastifyInstance) {
       return { query, candidates: candidates.slice(0, 20) };
     },
   );
+
+  // Compute match indices for fuzzy highlighting
+  function fuzzyMatchIndices(query: string, target: string): number[] {
+    const indices: number[] = [];
+    let qi = 0;
+    for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+      if (target[ti] === query[qi]) {
+        indices.push(ti);
+        qi++;
+      }
+    }
+    return qi === query.length ? indices : [];
+  }
 
   // GET /api/vault/graph — all notes and their resolved links for graph view
   app.get("/graph", async () => {
