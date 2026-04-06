@@ -1979,6 +1979,73 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html, onTagClick]);
 
+  // Double-click word highlight: highlight all occurrences of the double-clicked word
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let marks: HTMLElement[] = [];
+
+    const clearMarks = () => {
+      for (const m of marks) {
+        const parent = m.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(m.textContent || ""), m);
+          parent.normalize();
+        }
+      }
+      marks = [];
+    };
+
+    const handleDblClick = () => {
+      clearMarks();
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) return;
+      const word = sel.toString().trim();
+      if (!word || word.length < 2 || /\s/.test(word)) return;
+
+      // Walk text nodes and wrap matches
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+      const textNodes: Text[] = [];
+      let node: Node | null;
+      while ((node = walker.nextNode())) textNodes.push(node as Text);
+
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+
+      for (const tn of textNodes) {
+        const val = tn.nodeValue || "";
+        if (!regex.test(val)) continue;
+        regex.lastIndex = 0;
+        const frag = document.createDocumentFragment();
+        let lastIdx = 0;
+        let match: RegExpExecArray | null;
+        while ((match = regex.exec(val)) !== null) {
+          if (match.index > lastIdx) frag.appendChild(document.createTextNode(val.slice(lastIdx, match.index)));
+          const mark = document.createElement("mark");
+          mark.className = "dblclick-word-highlight";
+          mark.textContent = match[0];
+          frag.appendChild(mark);
+          marks.push(mark);
+          lastIdx = regex.lastIndex;
+        }
+        if (lastIdx < val.length) frag.appendChild(document.createTextNode(val.slice(lastIdx)));
+        tn.parentNode?.replaceChild(frag, tn);
+      }
+    };
+
+    const handleClick = () => {
+      if (marks.length > 0) clearMarks();
+    };
+
+    container.addEventListener("dblclick", handleDblClick);
+    container.addEventListener("click", handleClick);
+    return () => {
+      container.removeEventListener("dblclick", handleDblClick);
+      container.removeEventListener("click", handleClick);
+      clearMarks();
+    };
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
