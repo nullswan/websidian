@@ -289,9 +289,19 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
               const hashIdx = target.indexOf("#");
               if (hashIdx !== -1) {
-                const heading = target.slice(hashIdx + 1).replace(/\^.*$/, "");
-                if (heading) {
-                  embedContent = extractSection(embedContent, heading);
+                const fragment = target.slice(hashIdx + 1);
+                if (fragment.startsWith("^")) {
+                  // Block reference: find the line containing ^blockid
+                  const blockId = fragment.slice(1);
+                  const blockLine = embedContent.split("\n").find((l: string) => l.includes(`^${blockId}`));
+                  if (blockLine) {
+                    embedContent = blockLine.replace(/\s*\^[\w-]+\s*$/, "").trim();
+                  }
+                } else {
+                  const heading = fragment.replace(/\^.*$/, "");
+                  if (heading) {
+                    embedContent = extractSection(embedContent, heading);
+                  }
                 }
               }
 
