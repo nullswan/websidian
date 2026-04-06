@@ -13,6 +13,12 @@ function loadSortMode(): SortMode {
   return "name";
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry[] {
   return [...entries].sort((a, b) => {
     const aDir = a.kind === "folder" ? 0 : 1;
@@ -906,6 +912,15 @@ function ContextMenu({
           {item.label}
         </div>
       ))}
+      {entry && entry.kind === "file" && (
+        <div style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0 0", padding: "6px 12px 4px" }}>
+          <div style={{ fontSize: 10, color: "var(--text-faint)", lineHeight: 1.6 }}>
+            <div>{formatFileSize(entry.size)}</div>
+            {entry.mtime > 0 && <div>Modified: {new Date(entry.mtime).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</div>}
+            {entry.ctime > 0 && <div>Created: {new Date(entry.ctime).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
