@@ -1787,6 +1787,39 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       let sortCol = -1;
       let sortAsc = true;
 
+      // CSV export button
+      const exportBtn = document.createElement("button");
+      exportBtn.textContent = "⬇ CSV";
+      exportBtn.title = "Export table as CSV";
+      exportBtn.style.cssText = "position: absolute; top: -28px; right: 0; padding: 2px 8px; font-size: 10px; background: var(--bg-secondary); color: var(--text-faint); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s; z-index: 1;";
+      (table as HTMLElement).style.position = "relative";
+      table.prepend(exportBtn);
+      const showExport = () => { exportBtn.style.opacity = "1"; };
+      const hideExport = () => { exportBtn.style.opacity = "0"; };
+      table.addEventListener("mouseenter", showExport);
+      table.addEventListener("mouseleave", hideExport);
+      exportBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const rows: string[][] = [];
+        const headerCells = Array.from(ths).map((th) => th.textContent?.replace(/\s*[▲▼]$/, "").trim() || "");
+        rows.push(headerCells);
+        tbody.querySelectorAll("tr").forEach((tr) => {
+          rows.push(Array.from(tr.querySelectorAll("td")).map((td) => {
+            const text = (td.textContent || "").trim();
+            return text.includes(",") || text.includes('"') || text.includes("\n") ? `"${text.replace(/"/g, '""')}"` : text;
+          }));
+        });
+        const csv = rows.map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${filePath.replace(/\.md$/, "").split("/").pop() || "table"}-table.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      cleanups.push(() => { table.removeEventListener("mouseenter", showExport); table.removeEventListener("mouseleave", hideExport); });
+
       ths.forEach((th, colIdx) => {
         th.style.cursor = "pointer";
         th.style.userSelect = "none";
