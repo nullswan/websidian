@@ -1571,7 +1571,7 @@ ${rendered}
                           setRenamingTabId(tab.id);
                         }}
                       >
-                        {tab.dirty ? <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span> : justSavedTabId === tab.id ? <span style={{ color: "#4ec9b0", marginRight: 2, fontSize: 10 }}>✓</span> : null}
+                        {tab.dirty ? <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span> : justSavedTabId === tab.id ? <span style={{ color: "var(--color-green)", marginRight: 2, fontSize: 10 }}>✓</span> : null}
                         {tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path}
                         {(() => {
                           if (!tab.content) return null;
@@ -2136,7 +2136,6 @@ ${rendered}
       style={{
         display: "flex",
         height: "100vh",
-        fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
       {/* Ribbon + Left Sidebar */}
@@ -3463,7 +3462,7 @@ ${rendered}
                   )}
                   {loaded && (
                     <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-faint)" }}>
-                      <span style={{ color: "#4ec9b0" }}>+{addCount}</span> / <span style={{ color: "#e05252" }}>-{removeCount}</span>
+                      <span style={{ color: "var(--color-green)" }}>+{addCount}</span> / <span style={{ color: "var(--color-red)" }}>-{removeCount}</span>
                     </span>
                   )}
                   <button onClick={() => setDiffSource(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer", marginLeft: loaded ? 0 : "auto" }}>✕</button>

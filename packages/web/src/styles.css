@@ -20,6 +20,10 @@
   --reader-text: #dcddde;
   --code-bg: rgba(255,255,255,0.06);
   --shadow: rgba(0,0,0,0.3);
+  --color-green: #4ec9b0;
+  --color-red: #e05252;
+  --color-orange: #e6994a;
+  --color-yellow: #e5c07b;
 }
 
 [data-theme="light"] {
@@ -43,6 +47,10 @@
   --reader-text: #2e2e2e;
   --code-bg: rgba(0,0,0,0.04);
   --shadow: rgba(0,0,0,0.1);
+  --color-green: #2e8b57;
+  --color-red: #c0392b;
+  --color-orange: #d4820a;
+  --color-yellow: #b8860b;
 }
 
 /* Global reset */
