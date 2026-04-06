@@ -219,6 +219,12 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     if (/\.pdf$/i.test(target)) {
       return `<div class="embed embed-pdf" data-target="${escapeAttr(target)}"><iframe data-target="${escapeAttr(target)}" style="width: 100%; height: 600px; border: 1px solid var(--border-color); border-radius: 4px;" /></div>`;
     }
+    // Non-note file embeds: show file type badge with download link
+    const extMatch = target.match(/\.(\w+)$/i);
+    if (extMatch && !/\.md$/i.test(target)) {
+      const ext = extMatch[1].toUpperCase();
+      return `<div class="embed embed-file" data-target="${escapeAttr(target)}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); margin: 4px 0;"><span style="background: var(--accent-color); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px;">${ext}</span><span style="flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(target)}</span><a href="/api/vault/raw?path=${encodeURIComponent(target)}" download style="color: var(--accent-color); font-size: 12px; text-decoration: none;">Download ↓</a></div>`;
+    }
     return `<div class="embed embed-note" data-target="${escapeAttr(target)}"><span class="embed-label">${escapeHtml(target)}</span></div>`;
   };
 
