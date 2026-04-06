@@ -2341,6 +2341,41 @@ ${rendered}
         </aside>
       </div>
 
+      {/* Left resize handle */}
+      {!leftCollapsed && !isMobile && (
+        <div
+          style={{
+            width: 4,
+            cursor: "col-resize",
+            background: "transparent",
+            flexShrink: 0,
+            position: "relative",
+            zIndex: 10,
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = leftWidth;
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "col-resize";
+            const onMove = (ev: MouseEvent) => {
+              const newW = Math.max(140, Math.min(500, startW + ev.clientX - startX));
+              setLeftWidth(newW);
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              document.body.style.userSelect = "";
+              document.body.style.cursor = "";
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-color)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        />
+      )}
+
       {/* Main content area */}
       <div
         style={{
@@ -2399,6 +2434,41 @@ ${rendered}
         )}
         </div>
       </div>
+
+      {/* Right resize handle */}
+      {!rightCollapsed && !isMobile && activeTab && isMarkdown && (
+        <div
+          style={{
+            width: 4,
+            cursor: "col-resize",
+            background: "transparent",
+            flexShrink: 0,
+            position: "relative",
+            zIndex: 10,
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = rightWidth;
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "col-resize";
+            const onMove = (ev: MouseEvent) => {
+              const newW = Math.max(140, Math.min(500, startW - (ev.clientX - startX)));
+              setRightWidth(newW);
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              document.body.style.userSelect = "";
+              document.body.style.cursor = "";
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-color)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        />
+      )}
 
       {/* Right Sidebar */}
       <aside
