@@ -537,26 +537,38 @@ details.callout > div {
   width: 100%;
   margin: 12px 0;
   font-size: 14px;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .reader-view th,
 .reader-view td {
   border: 1px solid var(--border-color);
-  padding: 6px 12px;
+  padding: 8px 12px;
   text-align: left;
+  transition: background 0.15s ease;
 }
 
 .reader-view th {
   background: var(--bg-tertiary);
   font-weight: 600;
   color: var(--heading-color);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.reader-view tr:nth-child(even) {
+.reader-view tbody tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.02);
 }
-.reader-view tr:hover {
-  background: rgba(127, 109, 242, 0.06);
+.reader-view tbody tr {
+  transition: background 0.15s ease;
+}
+.reader-view tbody tr:hover {
+  background: rgba(127, 109, 242, 0.08);
+}
+.reader-view tbody tr:hover td {
+  color: var(--text-primary);
 }
 
 /* Definition lists */
