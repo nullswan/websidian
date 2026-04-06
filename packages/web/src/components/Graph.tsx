@@ -407,7 +407,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} style={{ accentColor: "var(--accent-color)" }} />
           Orphans
         </label>
-        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{nodesRef.current.length} nodes</span>
+        <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{nodesRef.current.length} notes · {edgesRef.current.length} links</span>
       </div>
       <canvas
         ref={canvasRef}
