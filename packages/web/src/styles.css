@@ -408,6 +408,22 @@ details.callout > div {
   color: var(--text-secondary);
 }
 
+/* Spoiler text */
+.reader-view .spoiler {
+  background: var(--text-primary);
+  color: transparent;
+  border-radius: 3px;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+.reader-view .spoiler.revealed {
+  background: rgba(127, 109, 242, 0.1);
+  color: inherit;
+  user-select: auto;
+}
+
 /* Abbreviations */
 .reader-view abbr {
   text-decoration: underline dotted var(--text-faint);

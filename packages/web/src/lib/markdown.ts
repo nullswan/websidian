@@ -250,6 +250,12 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     return `<mark>${escapeHtml(tokens[idx].content)}</mark>`;
   };
 
+  // Plugin: !!spoiler!! (blur text, reveal on click)
+  md.inline.ruler.push("spoiler_text", spoilerRule);
+  md.renderer.rules.spoiler_text = (tokens, idx) => {
+    return `<span class="spoiler" onclick="this.classList.toggle('revealed')">${escapeHtml(tokens[idx].content)}</span>`;
+  };
+
   // Plugin: inline tags #tag
   md.inline.ruler.push("obsidian_tag", tagRule);
   md.renderer.rules.obsidian_tag = (tokens, idx) => {
@@ -543,6 +549,29 @@ function highlightRule(state: StateInline, silent: boolean): boolean {
 
   if (!silent) {
     const token = state.push("highlight_mark", "", 0);
+    token.content = content;
+  }
+
+  state.pos = end + 2;
+  return true;
+}
+
+// --- Spoiler rule ---
+
+function spoilerRule(state: StateInline, silent: boolean): boolean {
+  const src = state.src;
+  const pos = state.pos;
+  if (src[pos] !== "!" || src[pos + 1] !== "!") return false;
+
+  const start = pos + 2;
+  let end = src.indexOf("!!", start);
+  if (end === -1) return false;
+
+  const content = src.slice(start, end);
+  if (!content) return false;
+
+  if (!silent) {
+    const token = state.push("spoiler_text", "", 0);
     token.content = content;
   }
 
