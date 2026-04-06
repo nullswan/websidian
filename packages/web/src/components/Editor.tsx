@@ -19,6 +19,7 @@ interface EditorProps {
   filePath: string;
   onSave: (content: string) => void;
   onNavigate?: (target: string) => void;
+  onTagClick?: (tag: string) => void;
   onCursorChange?: (info: { line: number; col: number; selectedChars: number }) => void;
   onExtractSelection?: (selectedText: string, replaceWith: (text: string) => void) => void;
   onDirty?: () => void;
@@ -871,10 +872,15 @@ class TagPillWidget extends WidgetType {
     const span = document.createElement("span");
     span.textContent = "#" + this.tag;
     span.style.cssText = "background: rgba(230, 153, 74, 0.15); color: #e6994a; padding: 1px 6px; border-radius: 4px; font-size: 0.85em; cursor: pointer;";
+    span.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      span.dispatchEvent(new CustomEvent("tag-click", { bubbles: true, detail: { tag: this.tag } }));
+    });
     return span;
   }
   eq(other: TagPillWidget) { return this.tag === other.tag; }
-  ignoreEvent() { return true; }
+  ignoreEvent(e: Event) { return e.type !== "mousedown" && e.type !== "mouseup" && e.type !== "click"; }
 }
 
 function buildTagDecorations(state: EditorState): DecorationSet {
@@ -1646,7 +1652,7 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2122,12 +2128,20 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         onNavigate(detail.target);
       }
     };
+    const handleTagClick = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.tag && onTagClick) {
+        onTagClick(detail.tag);
+      }
+    };
     viewRef.current.dom.addEventListener("wikilink-navigate", handleWikilinkNav);
+    viewRef.current.dom.addEventListener("tag-click", handleTagClick);
 
     return () => {
       contentDOM.removeEventListener("mousemove", handleMouseMove);
       contentDOM.removeEventListener("mouseleave", handleMouseLeave);
       viewRef.current?.dom.removeEventListener("wikilink-navigate", handleWikilinkNav);
+      viewRef.current?.dom.removeEventListener("tag-click", handleTagClick);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       removeHover();
       viewRef.current?.destroy();

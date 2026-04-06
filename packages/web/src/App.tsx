@@ -1697,6 +1697,10 @@ ${rendered}
                 filePath={paneTab.path}
                 onSave={handleSave}
                 onNavigate={handleNavigate}
+                onTagClick={(tag) => {
+                  setSearchQuery(`#${tag}`);
+                  setLeftPanel("search");
+                }}
                 onCursorChange={(info) => setCursorPos(info)}
                 onDirty={() => { if (paneTab && !paneTab.dirty) updateTab(paneTab.id, { dirty: true }); }}
                 onExtractSelection={(selectedText, replaceWith) => {
