@@ -7,7 +7,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveL
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap, foldAll, unfoldAll } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
-import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches } from "@codemirror/search";
+import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches, highlightSelectionMatches } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
@@ -3038,6 +3038,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           },
         }),
         search(),
+        highlightSelectionMatches({ minSelectionLength: 2 }),
         codeFolding(),
         markdownHeadingFold,
         stickyHeadingPlugin,
