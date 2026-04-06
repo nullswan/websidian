@@ -766,6 +766,16 @@ details.callout > div {
   border-radius: 3px;
 }
 
+/* Readable line length guide — subtle side borders */
+.reader-view {
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  border-image: linear-gradient(to bottom, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent) 1;
+}
+.wide-mode .reader-view {
+  border-image: none;
+}
+
 /* Wide mode — no readable line length constraint */
 .wide-mode .reader-view {
   max-width: none;
