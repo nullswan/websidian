@@ -20,7 +20,7 @@ interface EditorProps {
   onSave: (content: string) => void;
   onNavigate?: (target: string) => void;
   onTagClick?: (tag: string) => void;
-  onCursorChange?: (info: { line: number; col: number; selectedChars: number; selectedWords: number; cursors: number }) => void;
+  onCursorChange?: (info: { line: number; col: number; selectedChars: number; selectedWords: number; selectedLines: number; cursors: number }) => void;
   onExtractSelection?: (selectedText: string, replaceWith: (text: string) => void) => void;
   onDirty?: () => void;
   fontSize?: number;
@@ -4427,7 +4427,8 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             const selectedChars = Math.abs(sel.to - sel.from);
             const cursors = update.state.selection.ranges.length;
             const selectedWords = selectedChars > 0 ? update.state.doc.sliceString(sel.from, sel.to).trim().split(/\s+/).filter(Boolean).length : 0;
-            onCursorChange({ line: line.number, col: pos - line.from + 1, selectedChars, selectedWords, cursors });
+            const selectedLines = selectedChars > 0 ? update.state.doc.lineAt(sel.to).number - update.state.doc.lineAt(sel.from).number + 1 : 0;
+            onCursorChange({ line: line.number, col: pos - line.from + 1, selectedChars, selectedWords, selectedLines, cursors });
           }
         }),
       ],
