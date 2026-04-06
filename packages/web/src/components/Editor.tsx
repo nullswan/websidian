@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker } from "@codemirror/view";
+import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker, drawSelection } from "@codemirror/view";
 import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -34,6 +34,7 @@ interface EditorProps {
   vimMode?: boolean;
   lineWrap?: boolean;
   showWhitespace?: boolean;
+  cursorBlinkRate?: number;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -2591,7 +2592,7 @@ const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   }
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2607,6 +2608,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const vimComp = useRef(new Compartment());
   const lineWrapComp = useRef(new Compartment());
   const whitespaceComp = useRef(new Compartment());
+  const cursorBlinkComp = useRef(new Compartment());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -3233,6 +3235,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         vimComp.current.of(vimMode ? vim() : []),
         lineWrapComp.current.of(lineWrap ? EditorView.lineWrapping : []),
         whitespaceComp.current.of(showWhitespace ? highlightWhitespace() : []),
+        cursorBlinkComp.current.of(drawSelection({ cursorBlinkRate })),
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         focusModeComp.current.of(focusMode ? EditorView.theme({
           ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
@@ -3481,6 +3484,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         vimComp.current.reconfigure(vimMode ? vim() : []),
         lineWrapComp.current.reconfigure(lineWrap ? EditorView.lineWrapping : []),
         whitespaceComp.current.reconfigure(showWhitespace ? highlightWhitespace() : []),
+        cursorBlinkComp.current.reconfigure(drawSelection({ cursorBlinkRate })),
         typewriterComp.current.reconfigure(typewriterMode ? EditorView.updateListener.of((update) => {
           if (update.docChanged || update.selectionSet) {
             const head = update.state.selection.main.head;
@@ -3500,7 +3504,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         }) : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

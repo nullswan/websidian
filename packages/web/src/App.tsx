@@ -2218,6 +2218,7 @@ ${rendered}
                 vimMode={appSettings.vimMode}
                 lineWrap={appSettings.lineWrap}
                 showWhitespace={appSettings.showWhitespace}
+                cursorBlinkRate={appSettings.cursorBlinkRate}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
               />
@@ -2998,6 +2999,7 @@ ${rendered}
                             vimMode={appSettings.vimMode}
                             lineWrap={appSettings.lineWrap}
                             showWhitespace={appSettings.showWhitespace}
+                cursorBlinkRate={appSettings.cursorBlinkRate}
                           />
                         ) : (
                           <div style={{ padding: 20, color: "var(--text-muted)", fontSize: 13 }}>

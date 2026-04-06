@@ -19,6 +19,7 @@ export interface AppSettings {
   stackedTabs: boolean;
   headingNumbers: boolean;
   showWhitespace: boolean;
+  cursorBlinkRate: number;
 }
 
 const DEFAULTS: AppSettings = {
@@ -39,6 +40,7 @@ const DEFAULTS: AppSettings = {
   stackedTabs: false,
   headingNumbers: false,
   showWhitespace: false,
+  cursorBlinkRate: 1200,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -385,6 +387,23 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Render spaces and tabs as visible dots and arrows"
               >
                 <Toggle checked={settings.showWhitespace} onChange={(v) => update("showWhitespace", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Cursor blink rate"
+                description="Cursor blink speed in ms (0 = no blink)"
+              >
+                <select
+                  value={settings.cursorBlinkRate}
+                  onChange={(e) => update("cursorBlinkRate", Number(e.target.value))}
+                  style={inputStyle}
+                >
+                  <option value={0}>No blink</option>
+                  <option value={500}>Fast (500ms)</option>
+                  <option value={800}>Medium (800ms)</option>
+                  <option value={1200}>Default (1200ms)</option>
+                  <option value={2000}>Slow (2000ms)</option>
+                </select>
               </SettingItem>
 
               <SettingItem
