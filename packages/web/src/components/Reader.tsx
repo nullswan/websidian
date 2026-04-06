@@ -754,6 +754,20 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           )}
         </div>
       )}
+      {(() => {
+        const total = (body.match(/^[\t ]*- \[[ x]\]/gm) ?? []).length;
+        const done = (body.match(/^[\t ]*- \[x\]/gm) ?? []).length;
+        if (total === 0) return null;
+        const pct = Math.round((done / total) * 100);
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--text-muted)" }}>
+            <div style={{ flex: 1, height: 4, borderRadius: 2, background: "var(--bg-tertiary)", overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: pct === 100 ? "#4caf50" : "var(--accent-color)", borderRadius: 2, transition: "width 0.3s" }} />
+            </div>
+            <span>{done}/{total} tasks</span>
+          </div>
+        );
+      })()}
       <div
         ref={containerRef}
         className="reader-view"
