@@ -1383,6 +1383,22 @@ const livePreviewTheme = EditorView.theme({
     borderLeftColor: "#7f6df2",
     borderLeftWidth: "2px",
   },
+  ".cm-selectionBackground": {
+    background: "rgba(127, 109, 242, 0.25) !important",
+  },
+  "&.cm-focused .cm-selectionBackground": {
+    background: "rgba(127, 109, 242, 0.3) !important",
+  },
+  ".cm-matchingBracket": {
+    background: "rgba(127, 109, 242, 0.2)",
+    color: "#e0e0e0 !important",
+    outline: "1px solid rgba(127, 109, 242, 0.4)",
+    borderRadius: "2px",
+  },
+  ".cm-selectionMatch": {
+    background: "rgba(127, 109, 242, 0.15)",
+    borderRadius: "2px",
+  },
   // Dim the heading markers (# ## ###) — Obsidian fades these
   ".tok-heading .tok-meta": {
     color: "#555 !important",
