@@ -2827,6 +2827,28 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // Toggle heading level: Ctrl+1-6 sets heading, Ctrl+0 removes it
+      ...([1, 2, 3, 4, 5, 6] as const).map((level) => ({
+        key: `Mod-${level}`,
+        run: (view: EditorView) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          const stripped = line.text.replace(/^#{1,6}\s*/, "");
+          const prefix = "#".repeat(level) + " ";
+          view.dispatch({
+            changes: { from: line.from, to: line.to, insert: prefix + stripped },
+          });
+          return true;
+        },
+      })),
+      {
+        key: "Mod-0",
+        run: (view: EditorView) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          const stripped = line.text.replace(/^#{1,6}\s*/, "");
+          view.dispatch({ changes: { from: line.from, to: line.to, insert: stripped } });
+          return true;
+        },
+      },
       // Toggle task list: plain → - → - [ ] → - [x] → plain
       {
         key: "Mod-Enter",
