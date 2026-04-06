@@ -406,6 +406,22 @@ details.callout > div {
   font-size: 13px;
 }
 
+/* Embed note border animation */
+.reader-view .embed-note {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.reader-view .embed-note:hover {
+  border-color: var(--accent-color) !important;
+  box-shadow: -4px 0 8px -2px rgba(127, 109, 242, 0.3);
+}
+@keyframes embed-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 0.9; transform: translateY(0); }
+}
+.reader-view .embed-note[data-hydrated="true"] {
+  animation: embed-fade-in 0.3s ease forwards;
+}
+
 /* Mermaid diagrams */
 .reader-view .mermaid-rendered {
   display: flex;
