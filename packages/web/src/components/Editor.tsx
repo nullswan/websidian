@@ -3578,6 +3578,63 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // Join lines (merge current line with next)
+      {
+        key: "Mod-j",
+        run: (view) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          if (line.number >= view.state.doc.lines) return false;
+          const nextLine = view.state.doc.line(line.number + 1);
+          const trimmed = nextLine.text.trimStart();
+          view.dispatch({
+            changes: { from: line.to, to: nextLine.from + (nextLine.text.length - trimmed.length), insert: " " },
+          });
+          return true;
+        },
+      },
+      // Toggle checkbox with Cmd+Enter
+      {
+        key: "Mod-Enter",
+        run: (view) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          const text = line.text;
+          if (/^(\s*)- \[ \]/.test(text)) {
+            view.dispatch({ changes: { from: line.from, to: line.to, insert: text.replace("- [ ]", "- [x]") } });
+            return true;
+          }
+          if (/^(\s*)- \[x\]/i.test(text)) {
+            view.dispatch({ changes: { from: line.from, to: line.to, insert: text.replace(/- \[x\]/i, "- [ ]") } });
+            return true;
+          }
+          return false;
+        },
+      },
+      // Cycle list type: bullet → numbered → checkbox → none
+      {
+        key: "Mod-Shift-Enter",
+        run: (view) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          const text = line.text;
+          const indent = text.match(/^(\s*)/)?.[1] ?? "";
+          const content = text.trimStart();
+          let newText: string;
+          if (/^- \[[ x]\]\s/.test(content)) {
+            // checkbox → plain
+            newText = indent + content.replace(/^- \[[ x]\]\s/, "");
+          } else if (/^- /.test(content)) {
+            // bullet → numbered
+            newText = indent + content.replace(/^- /, "1. ");
+          } else if (/^\d+\.\s/.test(content)) {
+            // numbered → checkbox
+            newText = indent + content.replace(/^\d+\.\s/, "- [ ] ");
+          } else {
+            // plain → bullet
+            newText = indent + "- " + content;
+          }
+          view.dispatch({ changes: { from: line.from, to: line.to, insert: newText } });
+          return true;
+        },
+      },
       // Select current line (successive presses extend to next line)
       {
         key: "Mod-l",
