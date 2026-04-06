@@ -359,7 +359,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                   <span style={{ color: "var(--text-faint)", marginRight: 6 }}>
                     {m.line}:
                   </span>
-                  {highlightMatch(m.text, query, useRegex, caseSensitive)}
+                  {highlightMatch(trimContext(m.text, query, caseSensitive, 80), query, useRegex, caseSensitive)}
                 </div>
               ))}
               {!isCollapsed && r.matches.length > 5 && (
@@ -384,6 +384,21 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
       </div>
     </div>
   );
+}
+
+function trimContext(text: string, query: string, caseSensitive: boolean, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const searchStr = caseSensitive ? query : query.toLowerCase();
+  const textToSearch = caseSensitive ? text : text.toLowerCase();
+  const idx = textToSearch.indexOf(searchStr);
+  if (idx === -1) return text.slice(0, maxLen) + "...";
+  const pad = Math.floor((maxLen - query.length) / 2);
+  const start = Math.max(0, idx - pad);
+  const end = Math.min(text.length, idx + query.length + pad);
+  let result = text.slice(start, end);
+  if (start > 0) result = "..." + result;
+  if (end < text.length) result = result + "...";
+  return result;
 }
 
 function highlightMatch(text: string, query: string, isRegex: boolean, caseSensitive: boolean): React.ReactNode {
