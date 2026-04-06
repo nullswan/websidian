@@ -451,6 +451,17 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
       }
     } else if (e.key === "Escape") {
       setQuickPreviewPath(null);
+    } else if (e.key === "F2") {
+      e.preventDefault();
+      if (focusedPath) setRenaming(focusedPath);
+    } else if (e.key === "Delete") {
+      e.preventDefault();
+      if (focusedPath && confirm(`Move "${focusedPath}" to trash?`)) {
+        fetch(`/api/vault/file?path=${encodeURIComponent(focusedPath)}`, {
+          method: "DELETE",
+          credentials: "include",
+        }).then(() => onMutate?.());
+      }
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       if (!focusedPath) return;
@@ -463,7 +474,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         setFocusedPath(parentPath);
       }
     }
-  }, [flatPaths, focusedPath, entries, expandedPaths, toggleExpanded, onFileSelect, findEntry]);
+  }, [flatPaths, focusedPath, entries, expandedPaths, toggleExpanded, onFileSelect, findEntry, onMutate]);
 
   const handleFileClick = useCallback((path: string, e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {
