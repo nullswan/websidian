@@ -618,6 +618,89 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// External link widget for Live Preview — renders [text](url) as styled text
+class ExternalLinkWidget extends WidgetType {
+  text: string;
+  url: string;
+  constructor(text: string, url: string) {
+    super();
+    this.text = text;
+    this.url = url;
+  }
+  toDOM() {
+    const a = document.createElement("a");
+    a.textContent = this.text;
+    a.href = this.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.style.cssText = "color: #7f6df2; text-decoration: underline; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px; cursor: pointer;";
+    // Small external arrow
+    const arrow = document.createElement("span");
+    arrow.textContent = " ↗";
+    arrow.style.cssText = "font-size: 0.75em; opacity: 0.5;";
+    a.appendChild(arrow);
+    return a;
+  }
+  eq(other: ExternalLinkWidget) { return this.text === other.text && this.url === other.url; }
+  ignoreEvent() { return false; }
+}
+
+function buildHighlightAndLinkDecorations(state: EditorState): DecorationSet {
+  const ranges: Array<{ from: number; to: number; deco: Decoration }> = [];
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+
+    // ==highlight== — add mark decoration for yellow background (markers hidden by inlineMarkerField)
+    const hlRegex = /==([^=]+)==/g;
+    let m;
+    while ((m = hlRegex.exec(text)) !== null) {
+      const contentFrom = line.from + m.index + 2;
+      const contentTo = contentFrom + m[1].length;
+      ranges.push({
+        from: contentFrom,
+        to: contentTo,
+        deco: Decoration.mark({ attributes: { style: "background: rgba(255, 208, 0, 0.3); border-radius: 2px; padding: 1px 0;" } }),
+      });
+    }
+
+    // [text](url) — external links, not images (![...])
+    const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
+    while ((m = linkRegex.exec(text)) !== null) {
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      ranges.push({
+        from,
+        to,
+        deco: Decoration.replace({ widget: new ExternalLinkWidget(m[1], m[2]) }),
+      });
+    }
+  }
+
+  // Sort by position
+  ranges.sort((a, b) => a.from - b.from || a.to - b.to);
+
+  const builder = new RangeSetBuilder<Decoration>();
+  for (const r of ranges) {
+    builder.add(r.from, r.to, r.deco);
+  }
+  return builder.finish();
+}
+
+const highlightAndLinkField = StateField.define<DecorationSet>({
+  create(state) { return buildHighlightAndLinkDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildHighlightAndLinkDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Tag pill widget for Live Preview — renders #tag as styled badge
 class TagPillWidget extends WidgetType {
   tag: string;
@@ -1598,6 +1681,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         inlineMarkerField,
         wikilinkRenderField,
         tagRenderField,
+        highlightAndLinkField,
         mathField,
         codeBlockField,
         noteEmbedField,
