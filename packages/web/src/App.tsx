@@ -880,6 +880,9 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("heading-numbers-enabled", appSettings.headingNumbers);
   }, [appSettings.headingNumbers]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("reader-focus-active", appSettings.readerFocusMode);
+  }, [appSettings.readerFocusMode]);
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {

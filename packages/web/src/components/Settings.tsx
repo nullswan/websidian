@@ -12,6 +12,7 @@ export interface AppSettings {
   templatesFolder: string;
   typewriterMode: boolean;
   focusMode: boolean;
+  readerFocusMode: boolean;
   vimMode: boolean;
   accentColor: string;
   lineWrap: boolean;
@@ -41,6 +42,7 @@ const DEFAULTS: AppSettings = {
   templatesFolder: "Templates",
   typewriterMode: false,
   focusMode: false,
+  readerFocusMode: false,
   vimMode: false,
   accentColor: "#7f6df2",
   lineWrap: true,
@@ -379,10 +381,17 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
               </SettingItem>
 
               <SettingItem
-                title="Focus mode"
+                title="Editor focus mode"
                 description="Dim inactive lines to focus on the current line"
               >
                 <Toggle checked={settings.focusMode} onChange={(v) => update("focusMode", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Reader focus mode"
+                description="Dim non-hovered paragraphs in reading view for focused reading"
+              >
+                <Toggle checked={settings.readerFocusMode} onChange={(v) => update("readerFocusMode", v)} />
               </SettingItem>
 
               <SettingItem
