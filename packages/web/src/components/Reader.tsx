@@ -186,12 +186,17 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
         anchor.addEventListener("click", (e) => {
           e.stopPropagation();
-          const link = `[[${noteName}#${headingText}]]`;
+          const slug = headingText.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+          const link = e.shiftKey
+            ? `${location.origin}${location.pathname}#/note/${encodeURIComponent(filePath)}#${slug}`
+            : `[[${noteName}#${headingText}]]`;
           navigator.clipboard.writeText(link);
           anchor.textContent = "✓";
           anchor.style.color = "var(--accent-color)";
-          setTimeout(() => { anchor.textContent = "#"; anchor.style.color = "var(--text-faint)"; }, 1500);
+          anchor.title = e.shiftKey ? "URL copied!" : "Wikilink copied!";
+          setTimeout(() => { anchor.textContent = "#"; anchor.style.color = "var(--text-faint)"; anchor.title = `Copy link to ${headingText} (Shift+click for URL)`; }, 1500);
         });
+        anchor.title = `Copy link to ${headingText} (Shift+click for URL)`;
 
         // Show arrow and anchor on heading hover
         heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; anchor.style.opacity = "1"; });
