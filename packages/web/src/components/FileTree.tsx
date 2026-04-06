@@ -426,7 +426,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
 
   const handleDelete = async (path: string) => {
     closeMenu();
-    if (!confirm(`Delete "${path}"?`)) return;
+    if (!confirm(`Move "${path}" to trash?`)) return;
     await fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, {
       method: "DELETE",
       credentials: "include",

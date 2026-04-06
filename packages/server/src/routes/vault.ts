@@ -127,8 +127,8 @@ export async function vaultRoutes(app: FastifyInstance) {
     },
   );
 
-  // DELETE /api/vault/file?path=... — delete a file
-  app.delete<{ Querystring: { path: string } }>(
+  // DELETE /api/vault/file?path=...&permanent=true — soft-delete (move to .trash) or permanent delete
+  app.delete<{ Querystring: { path: string; permanent?: string } }>(
     "/file",
     async (request, reply) => {
       const filePath = request.query.path;
@@ -140,13 +140,82 @@ export async function vaultRoutes(app: FastifyInstance) {
       }
 
       try {
-        await unlink(join(vaultRoot, filePath));
+        if (request.query.permanent === "true") {
+          await unlink(join(vaultRoot, filePath));
+        } else {
+          // Soft delete: move to .trash/ preserving relative path
+          const trashDir = join(vaultRoot, ".trash");
+          const trashDest = join(trashDir, filePath);
+          await mkdir(dirname(trashDest), { recursive: true });
+          await rename(join(vaultRoot, filePath), trashDest);
+        }
         return { path: filePath, deleted: true };
       } catch {
         return reply.status(404).send({ error: "file not found" });
       }
     },
   );
+
+  // GET /api/vault/trash — list trashed files
+  app.get("/trash", async () => {
+    const trashDir = join(vaultRoot, ".trash");
+    const files: { path: string; deletedAt: string }[] = [];
+    async function walk(dir: string, rel: string) {
+      let entries;
+      try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+      for (const e of entries) {
+        const full = join(dir, e.name);
+        const rp = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) {
+          await walk(full, rp);
+        } else {
+          const s = await stat(full);
+          files.push({ path: rp, deletedAt: s.mtime.toISOString() });
+        }
+      }
+    }
+    await walk(trashDir, "");
+    return { files };
+  });
+
+  // POST /api/vault/trash/restore — restore a file from .trash back to vault
+  app.post<{ Body: { path: string } }>(
+    "/trash/restore",
+    async (request, reply) => {
+      const filePath = (request.body as any)?.path;
+      if (!filePath) return reply.status(400).send({ error: "path required" });
+      if (filePath.includes("..")) return reply.status(400).send({ error: "invalid path" });
+      const src = join(vaultRoot, ".trash", filePath);
+      const dest = join(vaultRoot, filePath);
+      try {
+        await mkdir(dirname(dest), { recursive: true });
+        await rename(src, dest);
+        return { path: filePath, restored: true };
+      } catch {
+        return reply.status(404).send({ error: "file not found in trash" });
+      }
+    },
+  );
+
+  // DELETE /api/vault/trash/empty — permanently delete all trashed files
+  app.delete("/trash/empty", async () => {
+    const trashDir = join(vaultRoot, ".trash");
+    async function rmrf(dir: string) {
+      let entries;
+      try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+      for (const e of entries) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) {
+          await rmrf(full);
+          try { const { rmdir } = await import("node:fs/promises"); await rmdir(full); } catch { /* ignore */ }
+        } else {
+          await unlink(full);
+        }
+      }
+    }
+    await rmrf(trashDir);
+    return { emptied: true };
+  });
 
   // POST /api/vault/rename — rename/move a file (with link auto-update)
   app.post<{ Body: { from: string; to: string; updateLinks?: boolean } }>(

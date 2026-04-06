@@ -714,7 +714,8 @@ export function App() {
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred" | "recent">("files");
+  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred" | "recent" | "trash">("files");
+  const [trashFiles, setTrashFiles] = useState<{ path: string; deletedAt: string }[]>([]);
   const [recentFiles, setRecentFiles] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("recent-files") ?? "[]"); } catch { return []; }
   });
@@ -995,6 +996,13 @@ export function App() {
     fetch("/api/vault/tree", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setTree(data.tree))
+      .catch(() => {});
+  }, []);
+
+  const refreshTrash = useCallback(() => {
+    fetch("/api/vault/trash", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setTrashFiles(data.files ?? []))
       .catch(() => {});
   }, []);
 
@@ -2463,6 +2471,16 @@ ${rendered}
                 </svg>
               ),
             },
+            {
+              id: "trash" as const,
+              title: "Trash",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              ),
+            },
           ].map((item) => (
             <button
               key={item.id}
@@ -2475,6 +2493,7 @@ ${rendered}
                 } else {
                   setLeftPanel(item.id);
                   setLeftCollapsed(false);
+                  if (item.id === "trash") refreshTrash();
                 }
               }}
               style={{
@@ -2646,7 +2665,7 @@ ${rendered}
               letterSpacing: "0.05em",
               color: "var(--text-muted)",
             }}>
-              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : leftPanel === "recent" ? "Recent" : "Plugins"}
+              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : leftPanel === "recent" ? "Recent" : leftPanel === "trash" ? "Trash" : "Plugins"}
             </span>
             {leftPanel === "files" && (
               <div style={{ display: "flex", gap: 2 }}>
@@ -2743,7 +2762,7 @@ ${rendered}
               </div>
             )}
           </div>
-          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" || leftPanel === "starred" || leftPanel === "recent" ? "4px 4px" : 0 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" || leftPanel === "starred" || leftPanel === "recent" || leftPanel === "trash" ? "4px 4px" : 0 }}>
             {leftPanel === "files" ? (
               tree.length > 0 ? (
                 <FileTree
@@ -2895,6 +2914,75 @@ ${rendered}
                               </span>
                             )}
                           </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : leftPanel === "trash" ? (
+              <div style={{ padding: "8px" }}>
+                {trashFiles.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (!confirm("Permanently delete all files in trash?")) return;
+                      fetch("/api/vault/trash/empty", { method: "DELETE", credentials: "include" })
+                        .then(() => { setTrashFiles([]); showToast("Trash emptied"); })
+                        .catch(() => {});
+                    }}
+                    style={{ padding: "4px 10px", fontSize: 12, background: "rgba(255,80,80,0.15)", color: "#f55", border: "1px solid rgba(255,80,80,0.3)", borderRadius: 4, cursor: "pointer", marginBottom: 8, width: "100%" }}
+                  >
+                    Empty Trash ({trashFiles.length})
+                  </button>
+                )}
+                {trashFiles.length === 0 ? (
+                  <div style={{ padding: 12, fontSize: 13, color: "var(--text-faint)" }}>
+                    Trash is empty
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {trashFiles.map((f) => {
+                      const name = f.path.split("/").pop() ?? f.path;
+                      return (
+                        <li key={f.path} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 4px", borderRadius: 3 }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                          <span style={{ flex: 1, fontSize: 13, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.path}>{name}</span>
+                          <button
+                            title="Restore"
+                            onClick={() => {
+                              fetch("/api/vault/trash/restore", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                credentials: "include",
+                                body: JSON.stringify({ path: f.path }),
+                              }).then(() => {
+                                setTrashFiles((prev) => prev.filter((x) => x.path !== f.path));
+                                refreshTree();
+                                showToast(`Restored ${name}`);
+                              }).catch(() => {});
+                            }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", padding: 2, lineHeight: 1, fontSize: 14 }}
+                          >
+                            ↩
+                          </button>
+                          <button
+                            title="Delete permanently"
+                            onClick={() => {
+                              fetch(`/api/vault/file?path=.trash/${encodeURIComponent(f.path)}&permanent=true`, {
+                                method: "DELETE",
+                                credentials: "include",
+                              }).then(() => {
+                                setTrashFiles((prev) => prev.filter((x) => x.path !== f.path));
+                                showToast(`Permanently deleted ${name}`);
+                              }).catch(() => {});
+                            }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", padding: 2, lineHeight: 1, fontSize: 14 }}
+                          >
+                            ×
+                          </button>
                         </li>
                       );
                     })}
