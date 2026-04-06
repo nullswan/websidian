@@ -299,6 +299,7 @@ details.callout > div {
 .reader-view li.task-list-item {
   list-style: none;
   margin-left: -20px;
+  transition: opacity 0.3s ease, color 0.3s ease;
 }
 
 .reader-view li.task-list-item input[type="checkbox"] {
