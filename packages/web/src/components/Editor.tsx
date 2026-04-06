@@ -618,6 +618,72 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Wikilink rendering widget for Live Preview — shows display text as styled link
+class WikilinkWidget extends WidgetType {
+  display: string;
+  target: string;
+  constructor(target: string, display: string) {
+    super();
+    this.target = target;
+    this.display = display;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.display;
+    span.style.cssText = "color: #7f6df2; cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
+    span.title = this.target;
+    return span;
+  }
+  eq(other: WikilinkWidget) { return this.target === other.target && this.display === other.display; }
+  ignoreEvent() { return true; }
+}
+
+function buildWikilinkDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+    // Skip lines that are embeds (![[...]])
+    if (text.match(/^!\[\[/)) continue;
+    // Find all [[...]] wikilinks on this line
+    const re = /\[\[([^\]]+)\]\]/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const inner = m[1];
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      // Parse target and display
+      let target: string;
+      let display: string;
+      if (inner.includes("|")) {
+        const parts = inner.split("|");
+        target = parts[0];
+        display = parts.slice(1).join("|");
+      } else {
+        target = inner;
+        // Show basename only (strip path and heading)
+        display = target.replace(/#.*$/, "").split("/").pop() || target;
+      }
+      builder.add(from, to, Decoration.replace({ widget: new WikilinkWidget(target, display) }));
+    }
+  }
+  return builder.finish();
+}
+
+const wikilinkRenderField = StateField.define<DecorationSet>({
+  create(state) { return buildWikilinkDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildWikilinkDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Math rendering widget for Live Preview
 class MathWidget extends WidgetType {
   latex: string;
@@ -1477,6 +1543,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         checkboxField,
         livePreviewWidgetsField,
         inlineMarkerField,
+        wikilinkRenderField,
         mathField,
         codeBlockField,
         noteEmbedField,
