@@ -2125,6 +2125,16 @@ ${rendered}
               <div style={{ fontSize: 28, fontWeight: 300, color: "var(--text-faint)", letterSpacing: "-0.5px" }}>
                 {vaultName}
               </div>
+              {tree.length > 0 && (() => {
+                const count = (entries: VaultEntry[]): number => entries.reduce((n, e) =>
+                  n + (e.kind === "file" && e.extension === "md" ? 1 : 0) + (e.kind === "folder" ? count(e.children) : 0), 0);
+                const notes = count(tree);
+                return (
+                  <div style={{ fontSize: 12, color: "var(--border-color)", marginTop: -8 }}>
+                    {notes} note{notes !== 1 ? "s" : ""}
+                  </div>
+                );
+              })()}
               <div style={{ display: "flex", gap: 12 }}>
                 {[
                   { label: "New Note", shortcut: "Ctrl+N", action: createNewNote },
