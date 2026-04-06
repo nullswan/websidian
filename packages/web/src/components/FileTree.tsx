@@ -8,10 +8,10 @@ const CUSTOM_ORDER_KEY = "filetree-custom-order";
 const COLOR_LABEL_KEY = "filetree-color-labels";
 
 const LABEL_COLORS: Record<string, string> = {
-  red: "#e05252",
-  orange: "#e6994a",
-  yellow: "#dcdcaa",
-  green: "#4ec9b0",
+  red: "var(--color-red)",
+  orange: "var(--color-orange)",
+  yellow: "var(--color-yellow)",
+  green: "var(--color-green)",
   blue: "#56b6e6",
   purple: "#c98ce6",
 };
@@ -117,9 +117,9 @@ function FileIcon({ name }: { name: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   let color = "var(--text-muted)";
   if (ext === "md") color = "var(--accent-color)";
-  else if (["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "bmp"].includes(ext)) color = "#4ec9b0";
-  else if (ext === "canvas") color = "#e6994a";
-  else if (ext === "pdf") color = "#e05252";
+  else if (["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "bmp"].includes(ext)) color = "var(--color-green)";
+  else if (ext === "canvas") color = "var(--color-orange)";
+  else if (ext === "pdf") color = "var(--color-red)";
   else if (["json", "jsonl"].includes(ext)) color = "#e6c84a";
   else if (["css", "scss"].includes(ext)) color = "#569cd6";
   else if (["js", "ts", "jsx", "tsx"].includes(ext)) color = "#dcdcaa";
@@ -1391,7 +1391,7 @@ function FileTreeNode({
           )}
           <span style={{ flex: 1 }}>{filterQuery ? highlightMatch(name, filterQuery) : name}</span>
           {entry.kind === "file" && Date.now() - entry.mtime < 3600000 && (
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ec9b0", flexShrink: 0 }} title="Recently modified" />
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-green)", flexShrink: 0 }} title="Recently modified" />
           )}
           {entry.kind === "file" && entry.path.endsWith(".md") && (() => {
             try {
@@ -1402,7 +1402,7 @@ function FileTreeNode({
                 <span title={`${Math.round(p * 100)}% read`} style={{ display: "inline-flex", flexShrink: 0 }}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <circle cx="5" cy="5" r="4" fill="none" stroke="var(--border-color)" strokeWidth="1.5" />
-                  <circle cx="5" cy="5" r="4" fill="none" stroke={done ? "#4ec9b0" : "var(--accent-color)"} strokeWidth="1.5"
+                  <circle cx="5" cy="5" r="4" fill="none" stroke={done ? "var(--color-green)" : "var(--accent-color)"} strokeWidth="1.5"
                     strokeDasharray={`${p * 25.13} 25.13`}
                     style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
                 </svg>
@@ -1413,7 +1413,7 @@ function FileTreeNode({
           {todoCounts && todoCounts[entry.path] > 0 && (
             <span title={`${todoCounts[entry.path]} open task${todoCounts[entry.path] > 1 ? "s" : ""}`} style={{
               fontSize: 10,
-              color: "#4ec9b0",
+              color: "var(--color-green)",
               background: "rgba(78,201,176,0.12)",
               borderRadius: 8,
               padding: "0 5px",
@@ -1423,7 +1423,7 @@ function FileTreeNode({
               alignItems: "center",
               gap: 2,
             }}>
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="#4ec9b0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="var(--color-green)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="0.5" y="0.5" width="7" height="7" rx="1" />
               </svg>
               {todoCounts[entry.path]}
@@ -1444,7 +1444,7 @@ function FileTreeNode({
           )}
           {gitStatus && gitStatus[entry.path] && (() => {
             const s = gitStatus[entry.path];
-            const color = s === "added" ? "#4ec9b0" : s === "deleted" ? "#e05252" : s === "renamed" ? "#56b6e6" : "#e6994a";
+            const color = s === "added" ? "var(--color-green)" : s === "deleted" ? "var(--color-red)" : s === "renamed" ? "#56b6e6" : "var(--color-orange)";
             const letter = s === "added" ? "A" : s === "deleted" ? "D" : s === "renamed" ? "R" : "M";
             return (
               <span title={`Git: ${s}`} style={{ fontSize: 9, fontWeight: 700, color, flexShrink: 0, marginLeft: 2 }}>

@@ -609,7 +609,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   <span
                     onClick={(e) => { e.stopPropagation(); removeSaved(s); }}
                     style={{ color: "var(--text-faint)", fontSize: 10, cursor: "pointer", lineHeight: 1 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#e05252")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-red)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
                   >
                     ×
@@ -689,7 +689,7 @@ function highlightMatch(text: string, query: string, isRegex: boolean, caseSensi
         <>
           {parts.map((part, i) =>
             re.test(part) ? (
-              <span key={i} style={{ color: "#e6994a", fontWeight: 600 }}>{part}</span>
+              <span key={i} style={{ color: "var(--color-orange)", fontWeight: 600 }}>{part}</span>
             ) : (
               <React.Fragment key={i}>{part}</React.Fragment>
             )
@@ -707,7 +707,7 @@ function highlightMatch(text: string, query: string, isRegex: boolean, caseSensi
   return (
     <>
       {text.slice(0, idx)}
-      <span style={{ color: "#e6994a", fontWeight: 600 }}>
+      <span style={{ color: "var(--color-orange)", fontWeight: 600 }}>
         {text.slice(idx, idx + query.length)}
       </span>
       {text.slice(idx + query.length)}

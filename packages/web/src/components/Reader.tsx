@@ -1585,7 +1585,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       const mark = document.createElement("mark");
       mark.className = "search-highlight";
       mark.style.background = "rgba(230, 153, 74, 0.3)";
-      mark.style.color = "#e6994a";
+      mark.style.color = "var(--color-orange)";
       mark.style.borderRadius = "2px";
       mark.style.padding = "0 1px";
       range.surroundContents(mark);

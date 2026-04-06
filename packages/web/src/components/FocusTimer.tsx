@@ -107,7 +107,7 @@ export function FocusTimer() {
           display: "inline-flex",
           alignItems: "center",
           gap: 4,
-          color: "#4ec9b0",
+          color: "var(--color-green)",
           fontWeight: 600,
           animation: "save-pulse 1s ease-in-out 3",
         }}
@@ -193,7 +193,7 @@ export function FocusTimer() {
         alignItems: "center",
         gap: 4,
         cursor: "pointer",
-        color: isLow ? "#e6994a" : "var(--accent-color)",
+        color: isLow ? "var(--color-orange)" : "var(--accent-color)",
         fontWeight: 500,
         animation: isLow ? "save-pulse 1s ease-in-out infinite" : undefined,
       }}
@@ -205,7 +205,7 @@ export function FocusTimer() {
         <circle
           cx="7" cy="7" r={r}
           fill="none"
-          stroke={isLow ? "#e6994a" : "var(--accent-color)"}
+          stroke={isLow ? "var(--color-orange)" : "var(--accent-color)"}
           strokeWidth="1.5"
           strokeDasharray={circ}
           strokeDashoffset={offset}

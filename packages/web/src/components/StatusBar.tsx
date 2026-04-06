@@ -125,7 +125,7 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
           const w = 40;
           const ht = 12;
           const points = h.map((v, i) => `${(i / (h.length - 1)) * w},${ht - ((v - min) / range) * ht}`).join(" ");
-          const trend = h[h.length - 1] >= h[0] ? "#4ec9b0" : "#e05252";
+          const trend = h[h.length - 1] >= h[0] ? "var(--color-green)" : "var(--color-red)";
           return (
             <svg width={w} height={ht} viewBox={`0 0 ${w} ${ht}`} style={{ opacity: 0.7 }}>
               <polyline points={points} fill="none" stroke={trend} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
@@ -196,15 +196,15 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
         </span>
       )}
       {saveStatus === "saving" && (
-        <span style={{ color: "#e6994a", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#e6994a", animation: "save-pulse 1s ease-in-out infinite" }} />
+        <span style={{ color: "var(--color-orange)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--color-orange)", animation: "save-pulse 1s ease-in-out infinite" }} />
           Saving
         </span>
       )}
       {saveStatus === "saved" && (
-        <span style={{ color: "#4ec9b0", display: "inline-flex", alignItems: "center", gap: 3, animation: "save-fade-in 0.25s ease-out" }}>
+        <span style={{ color: "var(--color-green)", display: "inline-flex", alignItems: "center", gap: 3, animation: "save-fade-in 0.25s ease-out" }}>
           <svg width="12" height="12" viewBox="0 0 12 12" style={{ flexShrink: 0 }}>
-            <path d="M2 6l3 3 5-5" fill="none" stroke="#4ec9b0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            <path d="M2 6l3 3 5-5" fill="none" stroke="var(--color-green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
               style={{ strokeDasharray: 14, strokeDashoffset: 0, animation: "save-check-draw 0.35s ease-out" }} />
           </svg>
           Saved
@@ -257,7 +257,7 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
         const circ = 2 * Math.PI * r;
         const offset = circ * (1 - pct);
         const done = pct >= 0.95;
-        const color = done ? "#4ec9b0" : "var(--accent-color)";
+        const color = done ? "var(--color-green)" : "var(--accent-color)";
         return (
           <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5 }}>
             <svg width="16" height="16" viewBox="0 0 16 16" style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
@@ -266,7 +266,7 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
                 strokeDasharray={circ} strokeDashoffset={offset}
                 strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.3s ease" }} />
             </svg>
-            <span style={{ color: done ? "#4ec9b0" : undefined }}>
+            <span style={{ color: done ? "var(--color-green)" : undefined }}>
               {Math.round(pct * 100)}%
             </span>
           </span>

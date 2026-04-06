@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import type { VaultEntry } from "../types.js";
 
 interface OutgoingLinksProps {
@@ -7,7 +7,7 @@ interface OutgoingLinksProps {
   tree: VaultEntry[];
 }
 
-export function OutgoingLinks({ content, onNavigate, tree }: OutgoingLinksProps) {
+export const OutgoingLinks = React.memo(function OutgoingLinks({ content, onNavigate, tree }: OutgoingLinksProps) {
   const resolvedNames = useMemo(() => {
     const names = new Set<string>();
     const walk = (entries: VaultEntry[]) => {
@@ -119,4 +119,4 @@ export function OutgoingLinks({ content, onNavigate, tree }: OutgoingLinksProps)
       )}
     </div>
   );
-}
+});

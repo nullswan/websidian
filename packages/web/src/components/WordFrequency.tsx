@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 const STOP_WORDS = new Set(["the","be","to","of","and","a","in","that","have","i","it","for","not","on","with","he","as","you","do","at","this","but","his","by","from","they","we","her","she","or","an","will","my","one","all","would","there","their","what","so","up","out","if","about","who","get","which","go","me","when","make","can","like","time","no","just","him","know","take","people","into","year","your","good","some","could","them","see","other","than","then","now","look","only","come","its","over","think","also","back","after","use","two","how","our","work","first","well","way","even","new","want","because","any","these","give","day","most","us"]);
 
@@ -6,7 +6,7 @@ interface WordFrequencyProps {
   content: string;
 }
 
-export function WordFrequency({ content }: WordFrequencyProps) {
+export const WordFrequency = React.memo(function WordFrequency({ content }: WordFrequencyProps) {
   const words = useMemo(() => {
     const text = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "")
       .replace(/\[\[[^\]]+\]\]/g, "")
@@ -39,4 +39,4 @@ export function WordFrequency({ content }: WordFrequencyProps) {
       ))}
     </div>
   );
-}
+});

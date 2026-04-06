@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createMarkdownRenderer } from "../lib/markdown.js";
 
 interface BacklinksProps {
@@ -8,7 +8,7 @@ interface BacklinksProps {
 
 const previewMd = createMarkdownRenderer();
 
-export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
+export const Backlinks = React.memo(function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
   const [hoverPreview, setHoverPreview] = useState<{ path: string; html: string; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
@@ -137,4 +137,4 @@ export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
       )}
     </div>
   );
-}
+});

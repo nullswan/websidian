@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface PropertiesProps {
   frontmatter: Record<string, unknown>;
@@ -74,7 +74,7 @@ function InlineEdit({ value, onCommit }: { value: string; onCommit: (v: string) 
   );
 }
 
-export function Properties({ frontmatter, fileCreated, fileModified, fileSize, content, onUpdate, onDelete, onAdd }: PropertiesProps) {
+export const Properties = React.memo(function Properties({ frontmatter, fileCreated, fileModified, fileSize, content, onUpdate, onDelete, onAdd }: PropertiesProps) {
   const entries = Object.entries(frontmatter);
   const hasFileInfo = fileCreated || fileModified || fileSize != null;
   const [adding, setAdding] = useState(false);
@@ -120,7 +120,7 @@ export function Properties({ frontmatter, fileCreated, fileModified, fileSize, c
                   opacity: 0.5,
                   flexShrink: 0,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#e05252"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "var(--color-red)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "var(--text-faint)"; }}
               >
                 ×
@@ -237,7 +237,7 @@ export function Properties({ frontmatter, fileCreated, fileModified, fileSize, c
       </div>
     </div>
   );
-}
+});
 
 function renderValue(value: unknown): string {
   if (Array.isArray(value)) {

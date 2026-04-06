@@ -2616,7 +2616,7 @@ ${rendered}
                             onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                             title={`${path}\nRight-click to unstar`}
                           >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#e6994a" stroke="#e6994a" strokeWidth="1.5">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--color-orange)" stroke="var(--color-orange)" strokeWidth="1.5">
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                             <span>{name}</span>
@@ -3484,8 +3484,8 @@ ${rendered}
                       <div key={i} style={{
                         padding: "0 16px",
                         background: d.type === "add" ? "rgba(78, 201, 176, 0.1)" : d.type === "remove" ? "rgba(224, 82, 82, 0.1)" : "transparent",
-                        color: d.type === "add" ? "#4ec9b0" : d.type === "remove" ? "#e05252" : "var(--text-secondary)",
-                        borderLeft: d.type === "add" ? "3px solid #4ec9b0" : d.type === "remove" ? "3px solid #e05252" : "3px solid transparent",
+                        color: d.type === "add" ? "var(--color-green)" : d.type === "remove" ? "var(--color-red)" : "var(--text-secondary)",
+                        borderLeft: d.type === "add" ? "3px solid var(--color-green)" : d.type === "remove" ? "3px solid var(--color-red)" : "3px solid transparent",
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
                       }}>

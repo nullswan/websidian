@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 
 interface LocalGraphProps {
   currentPath: string;
@@ -20,7 +20,7 @@ interface Edge {
   to: string;
 }
 
-export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNavigate }: LocalGraphProps) {
+export const LocalGraph = React.memo(function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNavigate }: LocalGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [depth, setDepth] = useState(1);
@@ -299,4 +299,4 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
     </svg>
     </div>
   );
-}
+});

@@ -107,7 +107,7 @@ export function WritingStreak() {
 
   if (displayCount === 0 && !isActiveToday) return null;
 
-  const flameColor = displayCount >= 7 ? "#e6994a" : displayCount >= 3 ? "#e6c84a" : "var(--text-faint)";
+  const flameColor = displayCount >= 7 ? "var(--color-orange)" : displayCount >= 3 ? "var(--color-yellow)" : "var(--text-faint)";
 
   return (
     <span
