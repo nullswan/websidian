@@ -133,6 +133,76 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
   );
 }
 
+function FolderPicker({ folders, currentPath, onSelect, onClose }: {
+  folders: string[];
+  currentPath: string;
+  onSelect: (folder: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const currentFolder = currentPath.includes("/") ? currentPath.split("/").slice(0, -1).join("/") : "(root)";
+  const filtered = query.trim()
+    ? folders.filter((f) => f.toLowerCase().includes(query.toLowerCase()))
+    : folders;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (filtered[selectedIdx]) onSelect(filtered[selectedIdx]); }
+    else if (e.key === "Escape") { onClose(); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "15vh", zIndex: 10000 }} onClick={onClose}>
+      <div style={{ width: 400, maxWidth: "90vw", background: "#2a2a2a", border: "1px solid #444", borderRadius: 8, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ padding: "12px 12px 8px", fontSize: 12, color: "#888" }}>
+          Move <strong style={{ color: "#ddd" }}>{currentPath.split("/").pop()}</strong> to folder
+          {currentFolder !== "(root)" && <span style={{ color: "#555" }}> (currently in {currentFolder})</span>}
+        </div>
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setSelectedIdx(0); }}
+          onKeyDown={handleKeyDown}
+          placeholder="Search folders..."
+          style={{ width: "100%", padding: "8px 12px", background: "#1e1e1e", border: "none", borderTop: "1px solid #333", borderBottom: "1px solid #333", color: "#ddd", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+        />
+        <div style={{ maxHeight: 300, overflow: "auto" }}>
+          {filtered.map((folder, i) => (
+            <div
+              key={folder}
+              onClick={() => onSelect(folder)}
+              style={{
+                padding: "6px 12px",
+                cursor: "pointer",
+                background: i === selectedIdx ? "rgba(127,109,242,0.15)" : "transparent",
+                color: folder === currentFolder ? "#7f6df2" : "#ccc",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+              onMouseEnter={() => setSelectedIdx(i)}
+            >
+              <span style={{ color: "#666", fontSize: 12 }}>{folder === "(root)" ? "/" : "📁"}</span>
+              <span>{folder === "(root)" ? "Vault root" : folder}</span>
+              {folder === currentFolder && <span style={{ fontSize: 10, color: "#666", marginLeft: "auto" }}>current</span>}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ padding: "12px", color: "#555", fontSize: 13, textAlign: "center" }}>No matching folders</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SidebarSection({ title, defaultOpen = true, children }: {
   title: string;
   defaultOpen?: boolean;
@@ -406,6 +476,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -2469,6 +2540,14 @@ ${rendered}
               action: exportAsHtml,
             },
             {
+              id: "move-file",
+              name: "Move current file to...",
+              action: () => {
+                if (!activeTab) { showToast("No active file"); return; }
+                setShowFolderPicker(true);
+              },
+            },
+            {
               id: "extract-selection",
               name: "Extract current selection to new note",
               shortcut: "Ctrl+Shift+N",
@@ -2800,6 +2879,46 @@ ${rendered}
           showToast={showToast}
         />
       )}
+
+      {/* Folder picker for Move file */}
+      {showFolderPicker && activeTab && (() => {
+        const collectFolders = (entries: VaultEntry[], prefix = ""): string[] => {
+          const folders: string[] = [];
+          for (const e of entries) {
+            if (e.kind === "folder") {
+              folders.push(e.path);
+              folders.push(...collectFolders(e.children, e.path + "/"));
+            }
+          }
+          return folders;
+        };
+        const allFolders = ["(root)", ...collectFolders(tree)];
+        return (
+          <FolderPicker
+            folders={allFolders}
+            currentPath={activeTab.path}
+            onSelect={async (folder) => {
+              setShowFolderPicker(false);
+              const name = activeTab.path.split("/").pop()!;
+              const newPath = folder === "(root)" ? name : `${folder}/${name}`;
+              if (newPath === activeTab.path) return;
+              const res = await fetch("/api/vault/rename", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ from: activeTab.path, to: newPath }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                handleFileRenamed(activeTab.path, newPath, data.updatedFiles ?? []);
+                refreshTree();
+                showToast(`Moved to ${folder === "(root)" ? "vault root" : folder}`);
+              }
+            }}
+            onClose={() => setShowFolderPicker(false)}
+          />
+        );
+      })()}
 
       {/* Toast notification */}
       {toast && (
