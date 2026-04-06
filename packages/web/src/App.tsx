@@ -1950,7 +1950,10 @@ ${rendered}
                   }}
                 >
                   {tab.pinned ? (
-                    <span className="tab-name" title={tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path} style={{ maxWidth: 28, overflow: "hidden", textOverflow: "clip" }}>
+                    <span className="tab-name" title={tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path} style={{ maxWidth: 40, overflow: "hidden", textOverflow: "clip", display: "flex", alignItems: "center", gap: 2 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0, opacity: 0.6 }}>
+                        <path d="M16 3l-4 4-4-4-2 2 4 4-5 5v2h2l5-5 4 4 2-2-4-4 4-4z" />
+                      </svg>
                       {(tab.path.split("/").pop()?.replace(/\.md$/, "") ?? "?").slice(0, 2)}
                     </span>
                   ) : renamingTabId === tab.id ? (
