@@ -2733,6 +2733,33 @@ ${rendered}
           onSelect={openTab}
           onClose={() => setShowSwitcher(false)}
           recentPaths={[...new Set(Object.values(tabsMap).map((t) => t.path))]}
+          onCreateNote={(title) => {
+            const path = title.endsWith(".md") ? title : `${title}.md`;
+            fetch("/api/vault/file", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ path, content: "" }),
+            }).then(() => {
+              refreshTree();
+              openTab(path);
+              showToast(`Created ${path}`);
+              setTimeout(() => {
+                setPanes((prev) =>
+                  prev.map((p) => {
+                    const tid = p.tabIds.find((id) => tabsMap[id]?.path === path);
+                    if (!tid) return p;
+                    return { ...p, tabIds: p.tabIds, activeTabId: tid };
+                  }),
+                );
+                setTabsMap((prev) => {
+                  const entry = Object.entries(prev).find(([, t]) => t.path === path);
+                  if (!entry) return prev;
+                  return { ...prev, [entry[0]]: { ...entry[1], mode: "edit" } };
+                });
+              }, 100);
+            });
+          }}
         />
       )}
 

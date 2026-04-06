@@ -11,6 +11,7 @@ interface QuickSwitcherProps {
   onSelect: (path: string) => void;
   onClose: () => void;
   recentPaths?: string[];
+  onCreateNote?: (title: string) => void;
 }
 
 function HighlightedName({ name, matches }: { name: string; matches?: number[] }) {
@@ -29,7 +30,7 @@ function HighlightedName({ name, matches }: { name: string; matches?: number[] }
   );
 }
 
-export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwitcherProps) {
+export function QuickSwitcher({ onSelect, onClose, recentPaths = [], onCreateNote }: QuickSwitcherProps) {
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -78,12 +79,15 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
         if (candidates[selectedIdx]) {
           onSelect(candidates[selectedIdx].path);
           onClose();
+        } else if (query.trim() && onCreateNote) {
+          onCreateNote(query.trim());
+          onClose();
         }
       } else if (e.key === "Escape") {
         onClose();
       }
     },
-    [candidates, selectedIdx, onSelect, onClose],
+    [candidates, selectedIdx, onSelect, onClose, query, onCreateNote],
   );
 
   return (
@@ -170,8 +174,35 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
             </div>
           ))}
           {candidates.length === 0 && query && (
-            <div style={{ padding: "12px 16px", color: "var(--text-faint)", fontSize: 13 }}>
-              No results
+            <div
+              style={{
+                padding: "10px 16px",
+                cursor: onCreateNote ? "pointer" : "default",
+                background: "var(--bg-hover)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+              onClick={() => {
+                if (onCreateNote && query.trim()) {
+                  onCreateNote(query.trim());
+                  onClose();
+                }
+              }}
+            >
+              {onCreateNote ? (
+                <>
+                  <span style={{ color: "var(--text-faint)", fontSize: 13 }}>Create note:</span>
+                  <span style={{ color: "var(--accent-color)", fontSize: 14, fontWeight: 500 }}>
+                    {query.trim()}
+                  </span>
+                  <span style={{ color: "var(--text-faint)", fontSize: 11, marginLeft: "auto" }}>
+                    Enter
+                  </span>
+                </>
+              ) : (
+                <span style={{ color: "var(--text-faint)", fontSize: 13 }}>No results</span>
+              )}
             </div>
           )}
         </div>
