@@ -1,6 +1,6 @@
 # Lab Note: UX Polish Batch 4 (2026-04-06)
 
-## Features Added (14 items)
+## Features Added (20 items)
 
 ### Navigation
 - **Ctrl+1-9 tab switching** — browser-style shortcut to jump to Nth tab, Ctrl+9 always goes to last tab
@@ -26,6 +26,18 @@
 - **Color-coded file icons** — PDF red, JSON yellow, CSS blue, JS/TS gold, audio pink, video brown
 - **Sort by file size** — fourth sort mode cycling through name → modified → created → size
 - **File properties in context menu** — right-click shows file size, modified date, created date
+
+### Sidebar
+- **Backlink hover preview** — hovering backlink path shows floating rendered note preview (300ms delay)
+- **Smooth section collapse** — sidebar sections expand/collapse with CSS max-height + opacity transition
+
+### File Management
+- **Copy wikilink from tree** — right-click .md file shows "Copy wikilink" → copies [[NoteName]]
+- **Copy path from tree** — right-click any file/folder shows "Copy path"
+
+### General
+- **Ctrl+P print support** — triggers browser print dialog with clean print CSS (hides UI chrome, light theme)
+- **Video file player** — .mp4/.webm/.mov files show native video player in tab
 
 ## Technical Notes
 - Ctrl+1-9 intercepts digit keys before hotkey map lookup to avoid combo conflicts
