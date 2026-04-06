@@ -2707,6 +2707,25 @@ const smartQuotesHandler = EditorView.inputHandler.of((view, from, _to, text) =>
   return true;
 });
 
+// Auto-close HTML tags: typing > after <tagname inserts </tagname>
+const htmlAutoClose = EditorView.inputHandler.of((view, from, _to, text) => {
+  if (text !== ">") return false;
+  const line = view.state.doc.lineAt(from);
+  const before = line.text.slice(0, from - line.from);
+  // Match opening tag at end, excluding self-closing and void elements
+  const tagMatch = /<([a-zA-Z][a-zA-Z0-9]*)(?:\s[^>]*)?\s*$/.exec(before);
+  if (!tagMatch) return false;
+  const tag = tagMatch[1].toLowerCase();
+  const voidElements = new Set(["br", "hr", "img", "input", "meta", "link", "area", "base", "col", "embed", "source", "track", "wbr"]);
+  if (voidElements.has(tag)) return false;
+  const closeTag = `</${tagMatch[1]}>`;
+  view.dispatch({
+    changes: { from, to: from, insert: `>${closeTag}` },
+    selection: { anchor: from + 1 },
+  });
+  return true;
+});
+
 // Format markdown table: align pipes and pad cells
 function sortSelectedLines(view: EditorView, reverse: boolean): boolean {
   const sel = view.state.selection.main;
@@ -4292,6 +4311,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         markdownAutoPair,
         wikilinkAutoPair,
         smartQuotesHandler,
+        htmlAutoClose,
         indentationMarkers({
           colors: {
             light: "rgba(127, 109, 242, 0.1)",
