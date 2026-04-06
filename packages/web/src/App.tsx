@@ -2330,6 +2330,18 @@ ${rendered}
             >
               +
             </button>
+            <div className="tab-indicator" ref={(el) => {
+              if (!el) return;
+              const bar = el.parentElement;
+              if (!bar) return;
+              const activeEl = bar.querySelector<HTMLElement>(".tab.active");
+              if (activeEl) {
+                el.style.left = activeEl.offsetLeft + "px";
+                el.style.width = activeEl.offsetWidth + "px";
+              } else {
+                el.style.width = "0px";
+              }
+            }} />
             {paneTab && paneIsMarkdown && (
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 8 }}>
                 <button
