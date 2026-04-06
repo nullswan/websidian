@@ -93,13 +93,11 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
     };
   }, [headings, content]);
 
-  if (headings.length === 0) return null;
-
-  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
+  const minLevel = headings.length > 0 ? headings.reduce((min, h) => Math.min(min, h.level), 6) : 1;
 
   // Compute heading numbers like 1, 1.1, 1.2, 2, 2.1
   const headingNums = useMemo(() => {
-    if (!showNumbers) return headings.map(() => "");
+    if (!showNumbers || headings.length === 0) return headings.map(() => "");
     const counters: number[] = new Array(7).fill(0);
     return headings.map((h) => {
       counters[h.level]++;
@@ -162,6 +160,8 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
     }
     prevActiveIdx.current = activeIdx;
   }, [activeIdx]);
+
+  if (headings.length === 0) return null;
 
   // Compute visible item indices for position indicator
   const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i));
