@@ -474,10 +474,19 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
                   {isCollapsed ? "▸" : "▾"}
                 </span>
                 <span
-                  style={{ color: "var(--accent-color)", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  style={{ fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                   onClick={(e) => { e.stopPropagation(); onNavigate(r.path, query); }}
                 >
-                  {r.path.replace(/\.md$/, "")}
+                  {(() => {
+                    const noExt = r.path.replace(/\.md$/, "");
+                    const parts = noExt.split("/");
+                    const name = parts.pop() || noExt;
+                    return parts.length > 0 ? (
+                      <><span style={{ color: "var(--text-faint)", fontSize: 11 }}>{parts.join(" › ")} › </span><span style={{ color: "var(--accent-color)" }}>{name}</span></>
+                    ) : (
+                      <span style={{ color: "var(--accent-color)" }}>{name}</span>
+                    );
+                  })()}
                 </span>
                 {showReplace && (
                   <button
