@@ -35,6 +35,7 @@ interface EditorProps {
   lineWrap?: boolean;
   showWhitespace?: boolean;
   cursorBlinkRate?: number;
+  rulerColumns?: number[];
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
 }
@@ -3322,7 +3323,44 @@ const floatingToolbarPlugin = ViewPlugin.fromClass(class {
   }
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, sourceMode = false, backlinks = [] }: EditorProps) {
+function rulerExtension(columns: number[]): import("@codemirror/state").Extension {
+  if (columns.length === 0) return [];
+  return ViewPlugin.fromClass(class {
+    dom: HTMLDivElement;
+    rulers: HTMLDivElement[] = [];
+    constructor(view: EditorView) {
+      this.dom = document.createElement("div");
+      this.dom.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;";
+      view.scrollDOM.style.position = "relative";
+      view.scrollDOM.appendChild(this.dom);
+      this.updateRulers(view);
+    }
+    update(update: import("@codemirror/view").ViewUpdate) {
+      if (update.geometryChanged || update.viewportChanged) this.updateRulers(update.view);
+    }
+    updateRulers(view: EditorView) {
+      const defaultCharWidth = view.defaultCharacterWidth;
+      const contentLeft = view.contentDOM.getBoundingClientRect().left - view.scrollDOM.getBoundingClientRect().left;
+      while (this.rulers.length < columns.length) {
+        const r = document.createElement("div");
+        r.style.cssText = "position:absolute;top:0;bottom:0;width:1px;background:var(--text-faint);opacity:0.15;";
+        this.dom.appendChild(r);
+        this.rulers.push(r);
+      }
+      while (this.rulers.length > columns.length) {
+        this.rulers.pop()!.remove();
+      }
+      for (let i = 0; i < columns.length; i++) {
+        this.rulers[i].style.left = `${contentLeft + columns[i] * defaultCharWidth}px`;
+      }
+    }
+    destroy() {
+      this.dom.remove();
+    }
+  });
+}
+
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], sourceMode = false, backlinks = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3340,6 +3378,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const lineWrapComp = useRef(new Compartment());
   const whitespaceComp = useRef(new Compartment());
   const cursorBlinkComp = useRef(new Compartment());
+  const rulerComp = useRef(new Compartment());
 
   // Compute backlink line numbers from backlinks prop
   useEffect(() => {
@@ -4184,6 +4223,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         lineWrapComp.current.of(lineWrap ? EditorView.lineWrapping : []),
         whitespaceComp.current.of(showWhitespace ? highlightWhitespace() : []),
         cursorBlinkComp.current.of(drawSelection({ cursorBlinkRate })),
+        rulerComp.current.of(rulerExtension(rulerColumns)),
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         focusModeComp.current.of(focusMode ? EditorView.theme({
           ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
@@ -4462,9 +4502,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             });
           }
         }) : []),
+        rulerComp.current.reconfigure(rulerExtension(rulerColumns)),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {

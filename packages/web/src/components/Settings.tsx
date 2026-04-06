@@ -21,6 +21,7 @@ export interface AppSettings {
   showWhitespace: boolean;
   cursorBlinkRate: number;
   trimTrailingWhitespace: boolean;
+  rulerColumns: number[];
   customCSS: string;
 }
 
@@ -44,6 +45,7 @@ const DEFAULTS: AppSettings = {
   showWhitespace: false,
   cursorBlinkRate: 1200,
   trimTrailingWhitespace: true,
+  rulerColumns: [],
   customCSS: "",
 };
 
@@ -416,6 +418,25 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                   <option value={1200}>Default (1200ms)</option>
                   <option value={2000}>Slow (2000ms)</option>
                 </select>
+              </SettingItem>
+
+              <SettingItem
+                title="Column rulers"
+                description="Vertical guide lines at specified columns (comma-separated, e.g. 80,120)"
+              >
+                <input
+                  type="text"
+                  value={settings.rulerColumns.join(",")}
+                  onChange={(e) => {
+                    const cols = e.target.value
+                      .split(",")
+                      .map((s) => parseInt(s.trim(), 10))
+                      .filter((n) => !isNaN(n) && n > 0);
+                    update("rulerColumns", cols);
+                  }}
+                  placeholder="80,120"
+                  style={{ ...inputStyle, width: 120 }}
+                />
               </SettingItem>
 
               <SettingItem
