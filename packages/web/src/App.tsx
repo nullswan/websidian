@@ -2761,6 +2761,7 @@ ${rendered}
                 ["Ctrl+K", "Insert link"],
                 ["Ctrl+`", "Inline code"],
                 ["Ctrl+Shift+X", "Strikethrough"],
+                ["Alt+↑/↓", "Move line up/down"],
                 ["Ctrl+Shift+D", "Duplicate line/selection"],
                 ["Ctrl+Shift+[", "Fold heading"],
                 ["Ctrl+Shift+]", "Unfold heading"],
