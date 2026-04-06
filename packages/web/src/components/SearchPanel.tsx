@@ -3,6 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 interface SearchResult {
   path: string;
   matches: Array<{ line: number; text: string }>;
+  mtime?: string;
 }
 
 interface SearchPanelProps {
@@ -24,6 +25,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [regexError, setRegexError] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [sortMode, setSortMode] = useState<"relevance" | "modified" | "name">("relevance");
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,12 +52,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
             setRegexError(data.error);
             setResults([]);
           } else {
-            // Sort by relevance: most matches first, then alphabetical
-            const sorted = (data.results ?? []).sort((a: SearchResult, b: SearchResult) => {
-              const diff = b.matches.length - a.matches.length;
-              return diff !== 0 ? diff : a.path.localeCompare(b.path);
-            });
-            setResults(sorted);
+            setResults(data.results ?? []);
           }
           setSearching(false);
         })
@@ -89,6 +86,17 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
 
   // Reset selection when results change
   useEffect(() => { setSelectedIdx(-1); }, [results]);
+
+  const sortedResults = [...results].sort((a, b) => {
+    if (sortMode === "relevance") {
+      const diff = b.matches.length - a.matches.length;
+      return diff !== 0 ? diff : a.path.localeCompare(b.path);
+    } else if (sortMode === "modified") {
+      return (b.mtime ?? "").localeCompare(a.mtime ?? "");
+    } else {
+      return a.path.localeCompare(b.path);
+    }
+  });
 
   const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
 
@@ -188,13 +196,13 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                   }
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    setSelectedIdx((i) => Math.min(i + 1, results.length - 1));
+                    setSelectedIdx((i) => Math.min(i + 1, sortedResults.length - 1));
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault();
                     setSelectedIdx((i) => Math.max(i - 1, -1));
-                  } else if (e.key === "Enter" && selectedIdx >= 0 && results[selectedIdx]) {
+                  } else if (e.key === "Enter" && selectedIdx >= 0 && sortedResults[selectedIdx]) {
                     e.preventDefault();
-                    onNavigate(results[selectedIdx].path, query);
+                    onNavigate(sortedResults[selectedIdx].path, query);
                   }
                 }}
                 placeholder={useRegex ? "Regex pattern..." : "Search vault..."}
@@ -291,9 +299,30 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
             Aa
           </span>
           {results.length > 0 && (
-            <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto" }}>
-              {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
-            </span>
+            <>
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as "relevance" | "modified" | "name")}
+                style={{
+                  marginLeft: "auto",
+                  background: "var(--bg-tertiary)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: 3,
+                  color: "var(--text-muted)",
+                  fontSize: 10,
+                  padding: "1px 2px",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="relevance">Relevance</option>
+                <option value="modified">Modified</option>
+                <option value="name">Name</option>
+              </select>
+              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
+              </span>
+            </>
           )}
         </div>
         {regexError && (
@@ -306,7 +335,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
         {searching && (
           <div style={{ padding: 12, color: "var(--text-faint)" }}>Searching...</div>
         )}
-        {results.map((r, rIdx) => {
+        {sortedResults.map((r, rIdx) => {
           const isCollapsed = collapsed.has(r.path);
           const isSelected = rIdx === selectedIdx;
           return (

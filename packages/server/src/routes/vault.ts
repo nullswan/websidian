@@ -364,6 +364,7 @@ export async function vaultRoutes(app: FastifyInstance) {
       const results: Array<{
         path: string;
         matches: Array<{ line: number; text: string }>;
+        mtime: string;
       }> = [];
 
       for (const file of files) {
@@ -391,7 +392,7 @@ export async function vaultRoutes(app: FastifyInstance) {
         }
 
         if (matches.length > 0) {
-          results.push({ path: file.path, matches });
+          results.push({ path: file.path, matches, mtime: new Date(file.mtime).toISOString() });
         }
       }
 
