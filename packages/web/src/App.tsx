@@ -80,7 +80,7 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
@@ -90,6 +90,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
   showMinimap?: boolean;
   onProgressChange?: (progress: number) => void;
   searchQuery?: string;
+  notePath?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
@@ -116,6 +117,14 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
       const p = max > 0 ? el.scrollTop / max : 0;
       setProgress(p);
       onProgressChange?.(p);
+      // Persist max reading progress per note
+      if (notePath) {
+        try {
+          const key = `reading-progress:${notePath}`;
+          const prev = parseFloat(localStorage.getItem(key) || "0");
+          if (p > prev) localStorage.setItem(key, p.toFixed(2));
+        } catch {}
+      }
       setScrollMetrics({ scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight });
 
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -1964,7 +1973,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined} notePath={paneTab?.path}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div

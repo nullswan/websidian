@@ -844,6 +844,23 @@ function FileTreeNode({
           {entry.kind === "file" && Date.now() - entry.mtime < 3600000 && (
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ec9b0", flexShrink: 0 }} title="Recently modified" />
           )}
+          {entry.kind === "file" && entry.path.endsWith(".md") && (() => {
+            try {
+              const p = parseFloat(localStorage.getItem(`reading-progress:${entry.path}`) || "0");
+              if (p < 0.05) return null;
+              const done = p >= 0.95;
+              return (
+                <span title={`${Math.round(p * 100)}% read`} style={{ display: "inline-flex", flexShrink: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 10 10">
+                  <circle cx="5" cy="5" r="4" fill="none" stroke="var(--border-color)" strokeWidth="1.5" />
+                  <circle cx="5" cy="5" r="4" fill="none" stroke={done ? "#4ec9b0" : "var(--accent-color)"} strokeWidth="1.5"
+                    strokeDasharray={`${p * 25.13} 25.13`}
+                    style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
+                </svg>
+                </span>
+              );
+            } catch { return null; }
+          })()}
           {backlinkCounts && backlinkCounts[entry.path] > 0 && (
             <span style={{
               fontSize: 10,
