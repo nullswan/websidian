@@ -84,6 +84,11 @@ body {
 
 .reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6 {
   scroll-margin-top: 60px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.reader-view h1:hover, .reader-view h2:hover, .reader-view h3:hover, .reader-view h4:hover, .reader-view h5:hover, .reader-view h6:hover {
+  background: rgba(127, 109, 242, 0.04);
 }
 
 .reader-view h1 {
