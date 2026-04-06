@@ -1570,6 +1570,78 @@ class CodeBlockLabelWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
+// Color swatch widget: shows inline color preview for hex codes
+class ColorSwatchWidget extends WidgetType {
+  color: string;
+  from: number;
+  to: number;
+  constructor(color: string, from: number, to: number) {
+    super();
+    this.color = color;
+    this.from = from;
+    this.to = to;
+  }
+  toDOM(view: EditorView) {
+    const span = document.createElement("span");
+    span.style.cssText = `display: inline-block; width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--border-color); vertical-align: middle; margin-right: 2px; cursor: pointer; background: ${this.color};`;
+    span.title = this.color;
+    const from = this.from;
+    const to = this.to;
+    span.addEventListener("click", (e) => {
+      e.preventDefault();
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = this.color.length === 4 ? `#${this.color[1]}${this.color[1]}${this.color[2]}${this.color[2]}${this.color[3]}${this.color[3]}` : this.color.slice(0, 7);
+      input.style.cssText = "position: absolute; opacity: 0; pointer-events: none;";
+      document.body.appendChild(input);
+      input.addEventListener("input", () => {
+        const newColor = input.value;
+        view.dispatch({ changes: { from, to, insert: newColor } });
+      });
+      input.addEventListener("change", () => {
+        input.remove();
+      });
+      input.click();
+    });
+    return span;
+  }
+  eq(other: ColorSwatchWidget) { return this.color === other.color && this.from === other.from; }
+  ignoreEvent() { return false; }
+}
+
+const colorSwatchPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) {
+    this.decorations = this.buildDecos(view);
+  }
+  update(update: { view: EditorView; docChanged: boolean; selectionSet: boolean }) {
+    if (update.docChanged || update.selectionSet) {
+      this.decorations = this.buildDecos(update.view);
+    }
+  }
+  buildDecos(view: EditorView): DecorationSet {
+    const builder = new RangeSetBuilder<Decoration>();
+    const doc = view.state.doc;
+    const hexRe = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+    for (let i = 1; i <= doc.lines; i++) {
+      const line = doc.line(i);
+      let match: RegExpExecArray | null;
+      hexRe.lastIndex = 0;
+      while ((match = hexRe.exec(line.text)) !== null) {
+        const from = line.from + match.index;
+        const deco = Decoration.widget({
+          widget: new ColorSwatchWidget(match[0], from, from + match[0].length),
+          side: -1,
+        });
+        builder.add(from, from, deco);
+      }
+    }
+    return builder.finish();
+  }
+}, {
+  decorations: (v) => v.decorations,
+});
+
 function buildCodeBlockDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const cursorLine = state.doc.lineAt(state.selection.main.head).number;
@@ -2949,6 +3021,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         stickyHeadingPlugin,
+        colorSwatchPlugin,
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
