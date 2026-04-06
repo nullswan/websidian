@@ -566,13 +566,30 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         const url = new URL(a.href);
         card.innerHTML = `<img src="https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32" width="24" height="24" style="border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'" /><div style="flex:1;overflow:hidden;"><div class="link-card-title" style="font-size:13px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${url.hostname}</div><div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.href.length > 80 ? a.href.slice(0, 80) + "…" : a.href}</div></div>`;
         p.replaceWith(card);
-        // Fetch title asynchronously
+        // Fetch title, description, image asynchronously
         fetch(`/api/vault/fetch-title?url=${encodeURIComponent(a.href)}`, { credentials: "include" })
           .then((r) => r.json())
           .then((data) => {
-            if (cancelled || !data.title) return;
-            const titleEl = card.querySelector(".link-card-title");
-            if (titleEl) titleEl.textContent = data.title;
+            if (cancelled) return;
+            if (data.title) {
+              const titleEl = card.querySelector(".link-card-title");
+              if (titleEl) titleEl.textContent = data.title;
+            }
+            if (data.description) {
+              const descEl = document.createElement("div");
+              descEl.style.cssText = "font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;";
+              const desc = data.description.length > 120 ? data.description.slice(0, 120) + "…" : data.description;
+              descEl.textContent = desc;
+              const infoDiv = card.querySelector(".link-card-title")?.parentElement;
+              if (infoDiv) infoDiv.appendChild(descEl);
+            }
+            if (data.image) {
+              const img = document.createElement("img");
+              img.src = data.image;
+              img.style.cssText = "width:60px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0;";
+              img.onerror = () => img.remove();
+              card.appendChild(img);
+            }
           })
           .catch(() => {});
       } catch {}

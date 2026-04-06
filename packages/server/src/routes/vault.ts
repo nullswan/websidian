@@ -1037,7 +1037,13 @@ export async function vaultRoutes(app: FastifyInstance) {
         const html = await res.text();
         const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
         const title = titleMatch ? titleMatch[1].trim().replace(/\s+/g, " ") : null;
-        return { title };
+        const descMatch = html.match(/<meta[^>]*(?:name="description"|property="og:description")[^>]*content="([^"]*)"[^>]*>/i)
+          || html.match(/<meta[^>]*content="([^"]*)"[^>]*(?:name="description"|property="og:description")[^>]*>/i);
+        const description = descMatch ? descMatch[1].trim().replace(/\s+/g, " ") : null;
+        const imgMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i)
+          || html.match(/<meta[^>]*content="([^"]*)"[^>]*property="og:image"[^>]*>/i);
+        const image = imgMatch ? imgMatch[1].trim() : null;
+        return { title, description, image };
       } catch {
         return { title: null };
       }
