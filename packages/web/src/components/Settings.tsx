@@ -662,7 +662,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 <strong style={{ color: "var(--text-primary)" }}>Websidian</strong> — A web-native Obsidian-compatible client
               </p>
               <p style={{ margin: "0 0 8px" }}>
-                Open-source project by <span style={{ color: "var(--accent-color)" }}>nullswan</span>
+                An open-source project
               </p>
               <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--text-faint)" }}>
                 Built with React, CodeMirror 6, Fastify, and markdown-it

@@ -1,6 +1,6 @@
 # Obsidian Web Skill
 
-Use this skill when working in `/Users/nullswan/projects/obsidian-web-loop`.
+Use this skill when working in this repository.
 
 ## Goal
 

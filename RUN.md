@@ -7,14 +7,14 @@ This repository is meant to be run by a coding agent for long stretches. The “
 Run your preferred coding agent from this directory:
 
 ```bash
-cd /Users/nullswan/projects/obsidian-web-loop
+cd <repo-root>
 ```
 
 If you want a long unattended session, keep it inside `tmux`:
 
 ```bash
 tmux new -s obsidian-web-loop
-cd /Users/nullswan/projects/obsidian-web-loop
+cd <repo-root>
 ```
 
 Then launch your coding agent CLI from the repo root.
