@@ -84,7 +84,14 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
                 marginLeft: -2,
               }}
               onClick={() => {
-                // Try reader view first
+                // Try heading ID first (most reliable)
+                const byId = document.getElementById(h.id);
+                if (byId) {
+                  byId.scrollIntoView({ behavior: "smooth", block: "start" });
+                  setActiveIdx(i);
+                  return;
+                }
+                // Fallback: text-match in reader view
                 const allHeadings = document.querySelectorAll(
                   ".reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6",
                 );
@@ -118,15 +125,18 @@ function extractHeadings(content: string): Heading[] {
   const body = fmMatch ? content.slice(fmMatch[0].length) : content;
 
   const headings: Heading[] = [];
+  const slugCounts: Record<string, number> = {};
   const lines = body.split("\n");
   for (const line of lines) {
     const match = /^(#{1,6})\s+(.+)$/.exec(line);
     if (match) {
-      headings.push({
-        level: match[1].length,
-        text: match[2].trim(),
-        id: match[2].trim().toLowerCase().replace(/\s+/g, "-"),
-      });
+      const text = match[2].trim().replace(/\s*\^[\w-]+$/, "");
+      let slug = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+      if (!slug) slug = "heading";
+      const count = slugCounts[slug] || 0;
+      slugCounts[slug] = count + 1;
+      const id = count > 0 ? `${slug}-${count}` : slug;
+      headings.push({ level: match[1].length, text, id });
     }
   }
   return headings;
