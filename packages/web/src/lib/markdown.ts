@@ -62,6 +62,24 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   // Plugin: footnotes [^1] and [^1]: definition
   md.use(footnotePlugin);
 
+  // Plugin: heading IDs for deep linking
+  md.core.ruler.push("heading_ids", (state) => {
+    const slugCounts: Record<string, number> = {};
+    for (let i = 0; i < state.tokens.length; i++) {
+      const token = state.tokens[i];
+      if (token.type !== "heading_open") continue;
+      // Get the text content from the next inline token
+      const inline = state.tokens[i + 1];
+      if (!inline || inline.type !== "inline") continue;
+      const text = inline.content.replace(/\s*\^[\w-]+$/, "");
+      let slug = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+      if (!slug) slug = "heading";
+      const count = slugCounts[slug] || 0;
+      slugCounts[slug] = count + 1;
+      token.attrSet("id", count > 0 ? `${slug}-${count}` : slug);
+    }
+  });
+
   // Plugin: hide block reference markers (^block-id)
   md.core.ruler.push("block_refs", (state) => {
     for (const token of state.tokens) {
