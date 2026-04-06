@@ -59,6 +59,9 @@ interface Tab {
   pinned?: boolean;
   missing?: boolean;
   dirty?: boolean;
+  fileCreated?: string;
+  fileModified?: string;
+  fileSize?: number;
 }
 
 interface Pane {
@@ -634,7 +637,7 @@ export function App() {
                       if (d.error) {
                         updateTab(tabId, { missing: true });
                       } else {
-                        updateTab(tabId, { content: d.content, missing: false });
+                        updateTab(tabId, { content: d.content, missing: false, fileCreated: d.created, fileModified: d.modified, fileSize: d.size });
                       }
                     })
                     .catch(() => {});
@@ -711,7 +714,7 @@ export function App() {
             fetch(`/api/vault/file?path=${encodeURIComponent(filePath)}`, { credentials: "include" })
               .then((r) => r.json())
               .then((data) => {
-                if (!data.error) updateTab(tabId, { content: data.content });
+                if (!data.error) updateTab(tabId, { content: data.content, fileModified: data.modified });
               });
           }
         }
@@ -757,7 +760,7 @@ export function App() {
             if (data.error) {
               updateTab(id, { missing: true });
             } else {
-              updateTab(id, { content: data.content, missing: false });
+              updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
               setError(null);
             }
           })
@@ -2264,7 +2267,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} />
         )}
         </div>
       </div>
@@ -2939,7 +2942,7 @@ ${rendered}
               // Fetch content
               fetch(`/api/vault/file?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
                 .then((r) => r.json())
-                .then((d) => { if (!d.error) updateTab(t.id, { content: d.content }); })
+                .then((d) => { if (!d.error) updateTab(t.id, { content: d.content, fileCreated: d.created, fileModified: d.modified, fileSize: d.size }); })
                 .catch(() => {});
               if (t.path.endsWith(".md")) {
                 fetch(`/api/vault/note?path=${encodeURIComponent(t.path)}`, { credentials: "include" })

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { readFile, writeFile, mkdir, readdir, unlink, rename } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir, unlink, rename, stat } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import {
   loadVaultConfig,
@@ -46,8 +46,18 @@ export async function vaultRoutes(app: FastifyInstance) {
       }
 
       try {
-        const content = await readFile(join(vaultRoot, filePath), "utf-8");
-        return { path: filePath, content };
+        const fullPath = join(vaultRoot, filePath);
+        const [content, fileStat] = await Promise.all([
+          readFile(fullPath, "utf-8"),
+          stat(fullPath),
+        ]);
+        return {
+          path: filePath,
+          content,
+          created: fileStat.birthtime.toISOString(),
+          modified: fileStat.mtime.toISOString(),
+          size: fileStat.size,
+        };
       } catch {
         return reply.status(404).send({ error: "file not found" });
       }

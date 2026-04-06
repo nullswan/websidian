@@ -5,9 +5,16 @@ interface StatusBarProps {
   path: string;
   cursorPos?: { line: number; col: number; selectedChars: number } | null;
   saveStatus?: "idle" | "saving" | "saved";
+  fileCreated?: string;
+  fileModified?: string;
 }
 
-export function StatusBar({ content, path, cursorPos, saveStatus = "idle" }: StatusBarProps) {
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified }: StatusBarProps) {
   const stats = useMemo(() => {
     const text = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
     const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -37,6 +44,8 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle" }: Sta
       <span>{stats.words.toLocaleString()} words</span>
       <span>{stats.chars.toLocaleString()} characters</span>
       <span>{stats.readingTime} min read</span>
+      {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
+      {fileModified && <span title={`Modified: ${fileModified}`}>Modified {formatDate(fileModified)}</span>}
       {saveStatus === "saving" && (
         <span style={{ color: "#e6994a" }}>Saving...</span>
       )}
