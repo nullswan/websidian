@@ -425,6 +425,47 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // Link cards: bare URLs on their own line become rich cards
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let cancelled = false;
+    const paragraphs = container.querySelectorAll<HTMLParagraphElement>("p");
+    paragraphs.forEach((p) => {
+      const links = p.querySelectorAll("a");
+      // Only transform paragraphs that contain exactly one link and no other text
+      if (links.length !== 1) return;
+      const a = links[0];
+      if (!a.href || !/^https?:\/\//.test(a.href)) return;
+      const text = p.textContent?.trim() ?? "";
+      const linkText = a.textContent?.trim() ?? "";
+      if (text !== linkText) return; // Has other content besides the link
+      // Create card
+      const card = document.createElement("a");
+      card.href = a.href;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer";
+      card.style.cssText = "display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); text-decoration: none; color: inherit; margin: 4px 0; transition: border-color 0.15s;";
+      card.onmouseenter = () => { card.style.borderColor = "var(--accent-color)"; };
+      card.onmouseleave = () => { card.style.borderColor = "var(--border-color)"; };
+      try {
+        const url = new URL(a.href);
+        card.innerHTML = `<img src="https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32" width="24" height="24" style="border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'" /><div style="flex:1;overflow:hidden;"><div class="link-card-title" style="font-size:13px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${url.hostname}</div><div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.href.length > 80 ? a.href.slice(0, 80) + "…" : a.href}</div></div>`;
+        p.replaceWith(card);
+        // Fetch title asynchronously
+        fetch(`/api/vault/fetch-title?url=${encodeURIComponent(a.href)}`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((data) => {
+            if (cancelled || !data.title) return;
+            const titleEl = card.querySelector(".link-card-title");
+            if (titleEl) titleEl.textContent = data.title;
+          })
+          .catch(() => {});
+      } catch {}
+    });
+    return () => { cancelled = true; };
+  }, [html]);
+
   // Style blockquote citations — detect "— Author" or "-- Author" at end
   useEffect(() => {
     const container = containerRef.current;
