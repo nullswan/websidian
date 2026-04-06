@@ -132,8 +132,15 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
     }
   }, [initialQuery, doSearch, useRegex, caseSensitive]);
 
-  // Reset selection when results change
-  useEffect(() => { setSelectedIdx(-1); setExpanded(new Set()); }, [results]);
+  // Reset selection when results change; restore collapse state from session
+  useEffect(() => {
+    setSelectedIdx(-1);
+    setExpanded(new Set());
+    try {
+      const raw = sessionStorage.getItem("search-collapsed");
+      if (raw) setCollapsed(new Set(JSON.parse(raw)));
+    } catch { /* ignore */ }
+  }, [results]);
 
   const filteredResults = fileTypeFilter === "all" ? results : results.filter((r) => {
     const ext = r.path.split(".").pop()?.toLowerCase() ?? "";
@@ -161,6 +168,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
       const next = new Set(prev);
       if (next.has(path)) next.delete(path);
       else next.add(path);
+      try { sessionStorage.setItem("search-collapsed", JSON.stringify([...next])); } catch { /* ignore */ }
       return next;
     });
   };
@@ -396,6 +404,21 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
               </select>
               <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                 {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
+              </span>
+              <span
+                onClick={() => {
+                  const allPaths = new Set(sortedResults.map((r) => r.path));
+                  const allCollapsed = sortedResults.every((r) => collapsed.has(r.path));
+                  const next = allCollapsed ? new Set<string>() : allPaths;
+                  setCollapsed(next);
+                  try { sessionStorage.setItem("search-collapsed", JSON.stringify([...next])); } catch { /* ignore */ }
+                }}
+                title={sortedResults.every((r) => collapsed.has(r.path)) ? "Expand all" : "Collapse all"}
+                style={{ fontSize: 10, color: "var(--text-faint)", cursor: "pointer", userSelect: "none" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+              >
+                {sortedResults.every((r) => collapsed.has(r.path)) ? "▼" : "▲"}
               </span>
               {query.trim() && !savedSearches.includes(query) && (
                 <span
