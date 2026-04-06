@@ -1741,6 +1741,59 @@ class ColorSwatchWidget extends WidgetType {
   ignoreEvent() { return false; }
 }
 
+// Bare URL highlighting: clickable links for bare http(s) URLs not inside markdown syntax
+const bareUrlMark = Decoration.mark({ class: "cm-bare-url" });
+const bareUrlPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = this.build(view); }
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) this.decorations = this.build(update.view);
+  }
+  build(view: EditorView): DecorationSet {
+    const builder = new RangeSetBuilder<Decoration>();
+    const urlRe = /https?:\/\/[^\s)<>\]]+/g;
+    for (const { from, to } of view.visibleRanges) {
+      for (let pos = from; pos < to;) {
+        const line = view.state.doc.lineAt(pos);
+        let match;
+        urlRe.lastIndex = 0;
+        while ((match = urlRe.exec(line.text)) !== null) {
+          const start = line.from + match.index;
+          const end = start + match[0].length;
+          // Skip if inside markdown link syntax: ](url) or [url]
+          const charBefore = match.index > 0 ? line.text[match.index - 1] : "";
+          if (charBefore === "(" || charBefore === "<") continue;
+          builder.add(start, end, bareUrlMark);
+        }
+        pos = line.to + 1;
+      }
+    }
+    return builder.finish();
+  }
+}, {
+  decorations: (v) => v.decorations,
+  eventHandlers: {
+    click(e: MouseEvent, view: EditorView) {
+      if (!e.metaKey && !e.ctrlKey) return false;
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains("cm-bare-url")) return false;
+      const pos = view.posAtDOM(target);
+      const line = view.state.doc.lineAt(pos);
+      const urlRe = /https?:\/\/[^\s)<>\]]+/g;
+      let match;
+      while ((match = urlRe.exec(line.text)) !== null) {
+        const start = line.from + match.index;
+        const end = start + match[0].length;
+        if (pos >= start && pos <= end) {
+          window.open(match[0], "_blank", "noopener,noreferrer");
+          return true;
+        }
+      }
+      return false;
+    },
+  },
+});
+
 const colorSwatchPlugin = ViewPlugin.fromClass(class {
   decorations: DecorationSet;
   constructor(view: EditorView) {
@@ -1961,6 +2014,12 @@ const livePreviewTheme = EditorView.theme({
   },
   "&.cm-focused .cm-selectionBackground": {
     background: "rgba(127, 109, 242, 0.3) !important",
+  },
+  ".cm-bare-url": {
+    color: "var(--accent-color)",
+    textDecoration: "underline",
+    textDecorationColor: "rgba(127, 109, 242, 0.4)",
+    cursor: "pointer",
   },
   ".cm-unlinked-mention": {
     borderBottom: "1px dotted rgba(127, 109, 242, 0.5)",
@@ -3764,7 +3823,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         markdownHeadingFold,
         lineTypeGutter,
         createBacklinkGutter(backlinkLinesRef),
-        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
+        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, bareUrlPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
