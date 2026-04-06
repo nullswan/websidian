@@ -240,6 +240,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [colorLabels, setColorLabels] = useState<Record<string, string>>(loadColorLabels);
+  const [quickPreviewPath, setQuickPreviewPath] = useState<string | null>(null);
+  const [quickPreviewContent, setQuickPreviewContent] = useState<string>("");
   const lastClickedPath = useRef<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -373,6 +375,22 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
     });
   }, [selectedPath]);
 
+  // Fetch content when quick preview path changes
+  useEffect(() => {
+    if (!quickPreviewPath) { setQuickPreviewContent(""); return; }
+    let cancelled = false;
+    fetch(`/api/vault/file?path=${encodeURIComponent(quickPreviewPath)}`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || data.error) return;
+        // Strip frontmatter, take first ~500 chars
+        const body = data.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim();
+        setQuickPreviewContent(body.slice(0, 500));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [quickPreviewPath]);
+
   const filteredEntries = useMemo(
     () => filter.trim() ? filterTree(entries, filter.trim()) : entries,
     [entries, filter],
@@ -424,6 +442,15 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
       if (entry?.kind === "folder" && !expandedPaths.has(entry.path)) {
         toggleExpanded(entry.path);
       }
+    } else if (e.key === " ") {
+      e.preventDefault();
+      if (!focusedPath) return;
+      const entry = findEntry(focusedPath, entries);
+      if (entry?.kind === "file" && entry.path.endsWith(".md")) {
+        setQuickPreviewPath((prev) => prev === entry.path ? null : entry.path);
+      }
+    } else if (e.key === "Escape") {
+      setQuickPreviewPath(null);
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       if (!focusedPath) return;
@@ -837,6 +864,63 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             {hoverPreview.path.replace(/\.md$/, "").split("/").pop()}
           </div>
           {hoverPreview.content || <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>Empty note</span>}
+        </div>
+      )}
+      {quickPreviewPath && (
+        <div
+          style={{
+            borderTop: "1px solid var(--border-color)",
+            padding: "8px 12px",
+            maxHeight: 200,
+            overflowY: "auto",
+            background: "var(--bg-primary)",
+            fontSize: 12,
+            color: "var(--text-secondary)",
+            lineHeight: 1.6,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--accent-color)" }}>
+              {quickPreviewPath.replace(/\.md$/, "").split("/").pop()}
+            </span>
+            <button
+              onClick={() => setQuickPreviewPath(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-faint)",
+                cursor: "pointer",
+                fontSize: 14,
+                padding: "0 2px",
+                lineHeight: 1,
+              }}
+              title="Close preview (Esc)"
+            >
+              ×
+            </button>
+          </div>
+          {quickPreviewContent ? (
+            <div style={{ opacity: 0.85 }}>{quickPreviewContent}{quickPreviewContent.length >= 500 ? "…" : ""}</div>
+          ) : (
+            <span style={{ color: "var(--text-faint)", fontStyle: "italic" }}>Empty note</span>
+          )}
+          <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+            <button
+              onClick={() => { onFileSelect(quickPreviewPath); setQuickPreviewPath(null); }}
+              style={{
+                background: "rgba(127,109,242,0.15)",
+                border: "1px solid rgba(127,109,242,0.3)",
+                borderRadius: 4,
+                color: "var(--accent-color)",
+                fontSize: 11,
+                padding: "2px 8px",
+                cursor: "pointer",
+              }}
+            >
+              Open
+            </button>
+          </div>
         </div>
       )}
     </>
