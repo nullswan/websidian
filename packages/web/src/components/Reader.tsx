@@ -97,7 +97,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         const arrow = document.createElement("span");
         arrow.className = "heading-fold-arrow";
         arrow.textContent = "▶";
-        arrow.style.cssText = "position: absolute; left: -20px; top: 50%; transform: translateY(-50%) rotate(90deg); font-size: 10px; color: #555; opacity: 0; transition: opacity 0.15s, transform 0.15s; cursor: pointer; user-select: none;";
+        arrow.style.cssText = "position: absolute; left: -20px; top: 50%; transform: translateY(-50%) rotate(90deg); font-size: 10px; color: var(--text-faint); opacity: 0; transition: opacity 0.15s, transform 0.15s; cursor: pointer; user-select: none;";
         arrow.dataset.folded = "false";
         heading.prepend(arrow);
 
@@ -107,7 +107,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         anchor.className = "heading-anchor";
         anchor.textContent = "#";
         anchor.title = `Copy link to ${headingText}`;
-        anchor.style.cssText = "position: absolute; right: -24px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #555; opacity: 0; transition: opacity 0.15s; cursor: pointer; user-select: none; font-weight: normal;";
+        anchor.style.cssText = "position: absolute; right: -24px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-faint); opacity: 0; transition: opacity 0.15s; cursor: pointer; user-select: none; font-weight: normal;";
         heading.appendChild(anchor);
 
         anchor.addEventListener("click", (e) => {
@@ -115,8 +115,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           const link = `[[${noteName}#${headingText}]]`;
           navigator.clipboard.writeText(link);
           anchor.textContent = "✓";
-          anchor.style.color = "#7f6df2";
-          setTimeout(() => { anchor.textContent = "#"; anchor.style.color = "#555"; }, 1500);
+          anchor.style.color = "var(--accent-color)";
+          setTimeout(() => { anchor.textContent = "#"; anchor.style.color = "var(--text-faint)"; }, 1500);
         });
 
         // Show arrow and anchor on heading hover
@@ -147,7 +147,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
             ? "translateY(-50%) rotate(90deg)"
             : "translateY(-50%) rotate(0deg)";
           arrow.style.opacity = "1";
-          arrow.style.color = isFolded ? "#555" : "#7f6df2";
+          arrow.style.color = isFolded ? "var(--text-faint)" : "var(--accent-color)";
         });
       }
 
@@ -161,20 +161,20 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         if (langClass) {
           const label = document.createElement("span");
           label.textContent = langClass[1];
-          label.style.cssText = "position: absolute; top: 6px; left: 8px; font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; user-select: none;";
+          label.style.cssText = "position: absolute; top: 6px; left: 8px; font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; user-select: none;";
           pre.appendChild(label);
         }
 
         // Copy button
         const btn = document.createElement("button");
         btn.textContent = "Copy";
-        btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: #333; color: #aaa; border: 1px solid #444; border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
+        btn.style.cssText = "position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; background: var(--border-color); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s;";
         btn.addEventListener("click", () => {
           if (code) {
             navigator.clipboard.writeText(code.textContent || "");
             btn.textContent = "Copied!";
-            btn.style.color = "#7f6df2";
-            setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "#aaa"; }, 1500);
+            btn.style.color = "var(--accent-color)";
+            setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "var(--text-secondary)"; }, 1500);
           }
         });
         pre.addEventListener("mouseenter", () => { btn.style.opacity = "1"; });
@@ -220,8 +220,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               }
 
               const embedHtml = md.render(embedContent);
-              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: #666; padding: 4px 0 2px; border-bottom: 1px solid #333; margin-bottom: 6px;">${data.resolved.replace(/\.md$/, "")}</div>${embedHtml}`;
-              embedEl.style.borderLeft = "2px solid #7f6df2";
+              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--text-faint); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px;">${data.resolved.replace(/\.md$/, "")}</div>${embedHtml}`;
+              embedEl.style.borderLeft = "2px solid var(--accent-color)";
               embedEl.style.paddingLeft = "12px";
               embedEl.style.margin = "8px 0";
               embedEl.style.opacity = "0.9";
@@ -501,8 +501,8 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     <>
       {properties.length > 0 && (
         <div style={{
-          background: "#252526",
-          border: "1px solid #333",
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
           borderRadius: 6,
           margin: "0 0 12px 0",
           overflow: "hidden",
@@ -516,7 +516,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               padding: "6px 12px",
               cursor: "pointer",
               fontSize: 11,
-              color: "#888",
+              color: "var(--text-muted)",
               textTransform: "uppercase",
               letterSpacing: 1,
               userSelect: "none",
@@ -529,9 +529,9 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <tbody>
                 {properties.map((p) => (
-                  <tr key={p.key} style={{ borderTop: "1px solid #333" }}>
-                    <td style={{ padding: "4px 12px", color: "#7f6df2", width: 100, verticalAlign: "top" }}>{p.key}</td>
-                    <td style={{ padding: "4px 12px", color: "#ccc" }}>{p.value}</td>
+                  <tr key={p.key} style={{ borderTop: "1px solid var(--border-color)" }}>
+                    <td style={{ padding: "4px 12px", color: "var(--accent-color)", width: 100, verticalAlign: "top" }}>{p.key}</td>
+                    <td style={{ padding: "4px 12px", color: "var(--text-primary)" }}>{p.value}</td>
                   </tr>
                 ))}
               </tbody>

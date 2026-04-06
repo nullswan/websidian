@@ -194,7 +194,7 @@ body {
 }
 
 .reader-view .embed-label {
-  color: #999;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -260,19 +260,19 @@ body {
 }
 
 .reader-view s {
-  color: #888;
-  text-decoration-color: #888;
+  color: var(--text-muted);
+  text-decoration-color: var(--text-muted);
 }
 
 .reader-view .footnotes-sep {
   border: none;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--border-color);
   margin: 32px 0 12px;
 }
 
 .reader-view .footnotes-list {
   font-size: 13px;
-  color: #aaa;
+  color: var(--text-secondary);
   padding-left: 20px;
 }
 
@@ -304,17 +304,17 @@ body {
 
 /* CM6 search panel dark theme */
 .cm-editor .cm-panels {
-  background: #252525;
-  border-bottom: 1px solid #444;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 .cm-editor .cm-search {
   font-size: 13px;
 }
 .cm-editor .cm-search input,
 .cm-editor .cm-search select {
-  background: #1e1e1e;
-  color: #ddd;
-  border: 1px solid #444;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 13px;
@@ -324,19 +324,19 @@ body {
   border-color: var(--accent-color, #7f6df2);
 }
 .cm-editor .cm-search button {
-  background: #333;
-  color: #ccc;
-  border: 1px solid #444;
+  background: var(--border-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px 8px;
   cursor: pointer;
   font-size: 12px;
 }
 .cm-editor .cm-search button:hover {
-  background: #444;
+  background: var(--border-color);
 }
 .cm-editor .cm-search label {
-  color: #999;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .cm-editor .cm-selectionMatch {
@@ -357,7 +357,7 @@ body {
 
 /* Properties panel */
 .properties-panel {
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
   padding: 8px 12px;
   font-size: 12px;
 }
@@ -368,7 +368,7 @@ body {
 }
 
 .properties-panel .prop-value {
-  color: #ccc;
+  color: var(--text-primary);
 }
 
 /* Resize handle */
@@ -392,7 +392,7 @@ body {
 .split-divider {
   width: 4px;
   cursor: col-resize;
-  background: #333;
+  background: var(--border-color);
   flex-shrink: 0;
   transition: background 0.15s;
 }
@@ -406,8 +406,8 @@ body {
 .tab-bar {
   display: flex;
   align-items: stretch;
-  background: #202020;
-  border-bottom: 1px solid #333;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
   min-height: 35px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -423,9 +423,9 @@ body {
   gap: 6px;
   padding: 6px 12px;
   cursor: pointer;
-  border-right: 1px solid #2a2a2a;
+  border-right: 1px solid var(--bg-tertiary);
   background: transparent;
-  color: #888;
+  color: var(--text-muted);
   font-size: 13px;
   white-space: nowrap;
   min-width: 0;
@@ -434,13 +434,13 @@ body {
 }
 
 .tab:hover {
-  background: #2a2a2a;
+  background: var(--bg-tertiary);
 }
 
 .tab.active {
-  background: #1e1e1e;
-  color: #ddd;
-  box-shadow: inset 0 -1px 0 #1e1e1e;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: inset 0 -1px 0 var(--bg-primary);
 }
 
 .tab-name {
@@ -467,26 +467,26 @@ body {
 }
 
 .tab:hover .tab-close {
-  color: #666;
+  color: var(--text-faint);
 }
 
 .tab-close:hover {
   background: rgba(255,255,255,0.1);
-  color: #ddd !important;
+  color: var(--text-primary) !important;
 }
 
 .tab.pinned {
   padding: 6px 8px;
-  border-right: 1px solid #444;
+  border-right: 1px solid var(--border-color);
 }
 
 .tab.pinned .tab-name {
   font-weight: 600;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 .tab.pinned.active .tab-name {
-  color: #ddd;
+  color: var(--text-primary);
 }
 
 /* Mode toggle — single icon button like Obsidian */
@@ -498,15 +498,15 @@ body {
   height: 28px;
   border: none;
   background: transparent;
-  color: #999;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
 
 .mode-toggle-btn:hover {
-  color: #ddd;
-  background: #37373d;
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 /* Image embeds */
@@ -523,7 +523,7 @@ body {
 .inline-title {
   font-size: 2.2em;
   font-weight: 700;
-  color: #e0e0e0;
+  color: var(--heading-color);
   padding: 16px 48px 0;
   max-width: 750px;
   outline: none;
@@ -537,12 +537,12 @@ body {
 }
 
 .inline-title:focus {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .inline-title:empty::before {
   content: "Untitled";
-  color: #555;
+  color: var(--text-faint);
 }
 
 /* Note content fade-in on tab switch */
@@ -578,7 +578,7 @@ body {
   padding: 6px 12px;
   font-size: 11px;
   font-weight: 600;
-  color: #888;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -604,7 +604,7 @@ body {
 }
 
 .cm-frontmatter-value {
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 /* ── CM6 Editor Obsidian fidelity ── */
@@ -622,7 +622,7 @@ body {
   width: auto;
   overflow: visible;
   display: inline;
-  color: #555;
+  color: var(--text-faint);
   font-weight: normal;
 }
 
@@ -638,13 +638,13 @@ body {
   width: auto;
   overflow: visible;
   display: inline;
-  color: #555;
+  color: var(--text-faint);
   font-weight: normal;
 }
 
 /* Dim frontmatter --- delimiters */
 .cm-editor .tok-meta:not(.tok-link):not(.tok-heading) {
-  color: #555 !important;
+  color: var(--text-faint) !important;
 }
 
 /* Wikilink brackets — hide on non-active lines, show dimmed on active */
@@ -666,7 +666,7 @@ body {
 
 .cm-editor .cm-activeLine .tok-strong.tok-meta {
   font-size: inherit;
-  color: #555 !important;
+  color: var(--text-faint) !important;
 }
 
 .cm-editor .cm-line:not(.cm-activeLine) .tok-emphasis.tok-meta {
@@ -676,7 +676,7 @@ body {
 
 .cm-editor .cm-activeLine .tok-emphasis.tok-meta {
   font-size: inherit;
-  color: #555 !important;
+  color: var(--text-faint) !important;
 }
 
 /* Tag hash symbol — slightly dimmer than tag text */
@@ -696,16 +696,16 @@ body {
 
 /* Vim mode status bar & command line */
 .cm-vim-panel {
-  background: #1e1e1e !important;
-  color: #ddd !important;
-  border-top: 1px solid #333 !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-top: 1px solid var(--border-color) !important;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 13px;
   padding: 2px 8px !important;
 }
 .cm-vim-panel input {
-  background: #1e1e1e !important;
-  color: #ddd !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
   border: none !important;
   outline: none !important;
   font-family: inherit;

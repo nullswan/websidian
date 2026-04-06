@@ -5,7 +5,6 @@ import { markdown } from "@codemirror/lang-markdown";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
-import { oneDarkTheme } from "@codemirror/theme-one-dark";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap, selectNextOccurrence } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
@@ -35,22 +34,22 @@ interface EditorProps {
 
 // Obsidian-like highlight style for markdown Live Preview
 const obsidianHighlight = HighlightStyle.define([
-  { tag: tags.heading1, fontSize: "1.8em", fontWeight: "700", color: "#e0e0e0" },
-  { tag: tags.heading2, fontSize: "1.5em", fontWeight: "600", color: "#e0e0e0" },
-  { tag: tags.heading3, fontSize: "1.25em", fontWeight: "600", color: "#e0e0e0" },
-  { tag: tags.heading4, fontSize: "1.1em", fontWeight: "600", color: "#ddd" },
-  { tag: tags.heading5, fontSize: "1.05em", fontWeight: "600", color: "#ccc" },
-  { tag: tags.heading6, fontSize: "1em", fontWeight: "600", color: "#bbb" },
-  { tag: tags.strong, fontWeight: "bold", color: "#e0e0e0" },
-  { tag: tags.emphasis, fontStyle: "italic", color: "#dcddde" },
-  { tag: tags.strikethrough, textDecoration: "line-through", color: "#888" },
-  { tag: tags.link, color: "#7f6df2", textDecoration: "none" },
-  { tag: tags.url, color: "#7f6df2", opacity: "0.6" },
-  { tag: tags.monospace, fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", backgroundColor: "rgba(255,255,255,0.06)", padding: "1px 4px", borderRadius: "3px", fontSize: "0.9em" },
-  { tag: tags.processingInstruction, color: "#e6994a" }, // tags (#tag) — Obsidian orange
-  { tag: tags.meta, color: "#555" }, // frontmatter delimiters — dimmer
-  { tag: tags.quote, color: "#aaa", fontStyle: "italic" },
-  { tag: tags.list, color: "#7f6df2" }, // list markers
+  { tag: tags.heading1, fontSize: "1.8em", fontWeight: "700", color: "var(--heading-color)" },
+  { tag: tags.heading2, fontSize: "1.5em", fontWeight: "600", color: "var(--heading-color)" },
+  { tag: tags.heading3, fontSize: "1.25em", fontWeight: "600", color: "var(--heading-color)" },
+  { tag: tags.heading4, fontSize: "1.1em", fontWeight: "600", color: "var(--text-primary)" },
+  { tag: tags.heading5, fontSize: "1.05em", fontWeight: "600", color: "var(--text-secondary)" },
+  { tag: tags.heading6, fontSize: "1em", fontWeight: "600", color: "var(--text-secondary)" },
+  { tag: tags.strong, fontWeight: "bold", color: "var(--heading-color)" },
+  { tag: tags.emphasis, fontStyle: "italic", color: "var(--reader-text)" },
+  { tag: tags.strikethrough, textDecoration: "line-through", color: "var(--text-muted)" },
+  { tag: tags.link, color: "var(--accent-color)", textDecoration: "none" },
+  { tag: tags.url, color: "var(--accent-color)", opacity: "0.6" },
+  { tag: tags.monospace, fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace", backgroundColor: "var(--code-bg)", padding: "1px 4px", borderRadius: "3px", fontSize: "0.9em" },
+  { tag: tags.processingInstruction, color: "#e6994a" }, // tags (#tag) — Obsidian orange (fixed)
+  { tag: tags.meta, color: "var(--text-faint)" }, // frontmatter delimiters — dimmer
+  { tag: tags.quote, color: "var(--text-secondary)", fontStyle: "italic" },
+  { tag: tags.list, color: "var(--accent-color)" }, // list markers
 ]);
 
 // Line decorations for heading lines (add padding/margin like Obsidian)
@@ -298,7 +297,7 @@ class CheckboxWidget extends WidgetType {
     const input = document.createElement("input");
     input.type = "checkbox";
     input.checked = this.checked;
-    input.style.cssText = "cursor: pointer; accent-color: #7f6df2; vertical-align: middle; margin-right: 4px;";
+    input.style.cssText = "cursor: pointer; accent-color: var(--accent-color); vertical-align: middle; margin-right: 4px;";
     input.addEventListener("mousedown", (e) => {
       e.preventDefault();
       // Find this widget's position and toggle
@@ -366,7 +365,7 @@ class HeadingMarkerWidget extends WidgetType {
 class HRWidget extends WidgetType {
   toDOM() {
     const hr = document.createElement("hr");
-    hr.style.cssText = "border: none; border-top: 1px solid #333; margin: 8px 0;";
+    hr.style.cssText = "border: none; border-top: 1px solid var(--border-color); margin: 8px 0;";
     return hr;
   }
   eq() { return true; }
@@ -383,7 +382,7 @@ class BulletWidget extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.indent + "• ";
-    span.style.color = "#7f6df2";
+    span.style.color = "var(--accent-color)";
     return span;
   }
   eq(other: BulletWidget) { return this.indent === other.indent; }
@@ -402,7 +401,7 @@ class NumberedListWidget extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.indent + this.num + ". ";
-    span.style.color = "#7f6df2";
+    span.style.color = "var(--accent-color)";
     return span;
   }
   eq(other: NumberedListWidget) { return this.indent === other.indent && this.num === other.num; }
@@ -636,7 +635,7 @@ class FootnoteRefWidget extends WidgetType {
   toDOM() {
     const sup = document.createElement("sup");
     sup.textContent = this.label;
-    sup.style.cssText = "color: #7f6df2; font-size: 0.75em; cursor: pointer; vertical-align: super; padding: 0 1px;";
+    sup.style.cssText = "color: var(--accent-color); font-size: 0.75em; cursor: pointer; vertical-align: super; padding: 0 1px;";
     return sup;
   }
   eq(other: FootnoteRefWidget) { return this.label === other.label; }
@@ -666,7 +665,7 @@ function buildFootnoteDecorations(state: EditorState): DecorationSet {
     const defMatch = text.match(/^\[\^([^\]]+)\]:\s*/);
     if (defMatch) {
       builder.add(line.from, line.from, Decoration.line({
-        attributes: { style: "color: #888; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;" },
+        attributes: { style: "color: var(--text-muted); font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;" },
       }));
       // Replace [^label] with superscript number
       const idx = defLabels.indexOf(defMatch[1]);
@@ -744,7 +743,7 @@ function buildTableDecorations(state: EditorState): DecorationSet {
       // Separator row — dim it
       builder.add(sepLine.from, sepLine.from, Decoration.line({
         attributes: {
-          style: "color: #444; font-size: 0.8em;",
+          style: "color: var(--border-color); font-size: 0.8em;",
           class: "cm-table-line cm-table-sep",
         },
       }));
@@ -793,7 +792,7 @@ class ExternalLinkWidget extends WidgetType {
     a.href = this.url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    a.style.cssText = "color: #7f6df2; text-decoration: underline; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px; cursor: pointer;";
+    a.style.cssText = "color: var(--accent-color); text-decoration: underline; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px; cursor: pointer;";
     // Small external arrow
     const arrow = document.createElement("span");
     arrow.textContent = " ↗";
@@ -931,7 +930,7 @@ class WikilinkWidget extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.display;
-    span.style.cssText = "color: #7f6df2; cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
+    span.style.cssText = "color: var(--accent-color); cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
     span.title = this.target;
     span.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1080,11 +1079,11 @@ class NoteEmbedWidget extends WidgetType {
   toDOM() {
     const container = document.createElement("div");
     container.className = "cm-note-embed";
-    container.style.cssText = "border-left: 3px solid #7f6df2; background: rgba(127, 109, 242, 0.05); border-radius: 4px; padding: 12px 16px; margin: 4px 0; font-size: 0.9em; color: #ccc; max-height: 300px; overflow-y: auto;";
+    container.style.cssText = "border-left: 3px solid var(--accent-color); background: rgba(127, 109, 242, 0.05); border-radius: 4px; padding: 12px 16px; margin: 4px 0; font-size: 0.9em; color: var(--text-primary); max-height: 300px; overflow-y: auto;";
 
     const loading = document.createElement("span");
     loading.textContent = `Loading ${this.target}...`;
-    loading.style.color = "#666";
+    loading.style.color = "var(--text-faint)";
     container.appendChild(loading);
 
     const target = this.target;
@@ -1144,7 +1143,7 @@ class NoteEmbedWidget extends WidgetType {
             container.innerHTML = "";
             // Title
             const title = document.createElement("div");
-            title.style.cssText = "font-weight: 600; color: #7f6df2; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;";
+            title.style.cssText = "font-weight: 600; color: var(--accent-color); margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;";
             title.textContent = target;
             container.appendChild(title);
             // Rendered content
@@ -1221,7 +1220,7 @@ class CodeBlockLabelWidget extends WidgetType {
     const span = document.createElement("span");
     span.className = "cm-codeblock-lang";
     span.textContent = this.lang.toUpperCase();
-    span.style.cssText = "position: absolute; right: 8px; top: 4px; font-size: 10px; color: #666; font-family: -apple-system, sans-serif; letter-spacing: 0.5px; pointer-events: none; user-select: none;";
+    span.style.cssText = "position: absolute; right: 8px; top: 4px; font-size: 10px; color: var(--text-faint); font-family: -apple-system, sans-serif; letter-spacing: 0.5px; pointer-events: none; user-select: none;";
     return span;
   }
   eq(other: CodeBlockLabelWidget) { return this.lang === other.lang; }
@@ -1334,7 +1333,7 @@ const livePreviewTheme = EditorView.theme({
   "&": {
     fontSize: "16px",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: "var(--bg-primary)",
   },
   "&.cm-focused": {
     outline: "none",
@@ -1342,7 +1341,7 @@ const livePreviewTheme = EditorView.theme({
   ".cm-content": {
     padding: "16px 48px",
     maxWidth: "750px",
-    caretColor: "#7f6df2",
+    caretColor: "var(--accent-color)",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
   },
   ".cm-scroller": {
@@ -1355,18 +1354,18 @@ const livePreviewTheme = EditorView.theme({
   ".cm-heading-line": {
     paddingTop: "10px",
   },
-  ".cm-heading-1": { paddingBottom: "4px", borderBottom: "1px solid rgba(255,255,255,0.08)" },
+  ".cm-heading-1": { paddingBottom: "4px", borderBottom: "1px solid var(--border-subtle)" },
   ".cm-heading-2": { paddingBottom: "2px" },
   ".cm-activeLine": {
-    backgroundColor: "rgba(255,255,255,0.02)",
+    backgroundColor: "var(--bg-hover)",
   },
   ".cm-gutters": {
-    background: "#1e1e1e",
-    borderRight: "1px solid #2a2a2a",
-    color: "#555",
+    background: "var(--bg-primary)",
+    borderRight: "1px solid var(--bg-tertiary)",
+    color: "var(--text-faint)",
   },
   ".cm-activeLineGutter": {
-    color: "#7f6df2",
+    color: "var(--accent-color)",
     background: "rgba(127, 109, 242, 0.08)",
   },
   ".cm-foldGutter": {
@@ -1380,18 +1379,18 @@ const livePreviewTheme = EditorView.theme({
     justifyContent: "center",
   },
   ".cm-foldGutter .cm-gutterElement:hover span": {
-    color: "#bbb !important",
+    color: "var(--text-secondary) !important",
   },
   ".cm-foldPlaceholder": {
     background: "rgba(127, 109, 242, 0.1)",
     border: "1px solid rgba(127, 109, 242, 0.3)",
     borderRadius: "3px",
-    color: "#7f6df2",
+    color: "var(--accent-color)",
     padding: "0 6px",
     margin: "0 4px",
   },
   ".cm-cursor": {
-    borderLeftColor: "#7f6df2",
+    borderLeftColor: "var(--accent-color)",
     borderLeftWidth: "2px",
   },
   ".cm-selectionBackground": {
@@ -1402,7 +1401,7 @@ const livePreviewTheme = EditorView.theme({
   },
   ".cm-matchingBracket": {
     background: "rgba(127, 109, 242, 0.2)",
-    color: "#e0e0e0 !important",
+    color: "var(--heading-color) !important",
     outline: "1px solid rgba(127, 109, 242, 0.4)",
     borderRadius: "2px",
   },
@@ -1412,27 +1411,27 @@ const livePreviewTheme = EditorView.theme({
   },
   // Dim the heading markers (# ## ###) — Obsidian fades these
   ".tok-heading .tok-meta": {
-    color: "#555 !important",
+    color: "var(--text-faint) !important",
     fontWeight: "normal",
   },
   // Dim wikilink brackets [[ ]]
   ".tok-link": {
-    color: "#7f6df2",
+    color: "var(--accent-color)",
   },
   // Blockquote styling
   ".cm-blockquote": {
-    borderLeft: "3px solid #7f6df2",
+    borderLeft: "3px solid var(--accent-color)",
     paddingLeft: "12px",
-    color: "#aaa",
+    color: "var(--text-secondary)",
     fontStyle: "italic",
   },
   ".cm-blockquote-2": {
-    borderLeft: "3px solid #7f6df2",
+    borderLeft: "3px solid var(--accent-color)",
     paddingLeft: "12px",
     marginLeft: "16px",
   },
   ".cm-blockquote-3": {
-    borderLeft: "3px solid #7f6df2",
+    borderLeft: "3px solid var(--accent-color)",
     paddingLeft: "12px",
     marginLeft: "32px",
   },
@@ -1454,8 +1453,9 @@ const livePreviewTheme = EditorView.theme({
     width: "8px",
   },
   ".cm-scroller::-webkit-scrollbar-thumb": {
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "var(--text-faint)",
     borderRadius: "4px",
+    opacity: "0.3",
   },
 });
 
@@ -1998,15 +1998,14 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           markerDOM(open) {
             const span = document.createElement("span");
             span.textContent = open ? "▾" : "▸";
-            span.style.cssText = "color: #555; cursor: pointer; font-size: 11px; user-select: none; opacity: 0.6; transition: opacity 0.15s;";
-            span.addEventListener("mouseenter", () => { span.style.opacity = "1"; span.style.color = "#aaa"; });
-            span.addEventListener("mouseleave", () => { span.style.opacity = "0.6"; span.style.color = "#555"; });
+            span.style.cssText = "color: var(--text-faint); cursor: pointer; font-size: 11px; user-select: none; opacity: 0.6; transition: opacity 0.15s;";
+            span.addEventListener("mouseenter", () => { span.style.opacity = "1"; span.style.color = "var(--text-secondary)"; });
+            span.addEventListener("mouseleave", () => { span.style.opacity = "0.6"; span.style.color = "var(--text-faint)"; });
             return span;
           },
         }),
         saveKeymap,
         markdown(),
-        oneDarkTheme,
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         syntaxHighlighting(classHighlighter),
         headingPlugin,
