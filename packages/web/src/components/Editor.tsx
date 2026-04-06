@@ -2735,6 +2735,43 @@ const lineTypeGutter = gutter({
   },
 });
 
+/// Indentation guides: faint vertical lines at each indent level
+const indentGuidePlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = this.build(view); }
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) this.decorations = this.build(update.view);
+  }
+  build(view: EditorView): DecorationSet {
+    const widgets: import("@codemirror/state").Range<Decoration>[] = [];
+    const tabSize = view.state.tabSize;
+    for (const { from, to } of view.visibleRanges) {
+      for (let pos = from; pos < to; ) {
+        const line = view.state.doc.lineAt(pos);
+        const text = line.text;
+        // Count leading whitespace
+        let spaces = 0;
+        for (let i = 0; i < text.length; i++) {
+          if (text[i] === " ") spaces++;
+          else if (text[i] === "\t") spaces += tabSize;
+          else break;
+        }
+        const levels = Math.floor(spaces / tabSize);
+        if (levels > 0 && text.trim().length > 0) {
+          // Create background-image based guides via line decoration
+          const guides = Array.from({ length: levels }, (_, i) => {
+            const left = (i * tabSize) * 0.6 + 0.6; // approximate ch width
+            return `linear-gradient(var(--border-color), var(--border-color)) ${left}ch 0/1px 100% no-repeat`;
+          }).join(", ");
+          widgets.push(Decoration.line({ attributes: { style: `background: ${guides};` } }).range(line.from));
+        }
+        pos = line.to + 1;
+      }
+    }
+    return Decoration.set(widgets, true);
+  }
+}, { decorations: (v) => v.decorations });
+
 // Sticky heading: shows current section heading at top of editor when scrolled past
 const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   bar: HTMLDivElement;
@@ -3557,7 +3594,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         markdownHeadingFold,
         lineTypeGutter,
         createBacklinkGutter(backlinkLinesRef),
-        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin]),
+        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, indentGuidePlugin]),
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
