@@ -2810,17 +2810,33 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
-// Smart quote replacement: straight quotes → curly quotes
+// Smart typography: curly quotes, em-dash (--→—), ellipsis (...→…)
 const smartQuotesHandler = EditorView.inputHandler.of((view, from, _to, text) => {
+  // Em-dash: -- → —
+  if (text === "-" && from >= 1 && view.state.sliceDoc(from - 1, from) === "-") {
+    view.dispatch({
+      changes: { from: from - 1, to: from, insert: "\u2014" },
+      selection: { anchor: from },
+    });
+    return true;
+  }
+  // Ellipsis: ... → …
+  if (text === "." && from >= 2 && view.state.sliceDoc(from - 2, from) === "..") {
+    view.dispatch({
+      changes: { from: from - 2, to: from, insert: "\u2026" },
+      selection: { anchor: from - 1 },
+    });
+    return true;
+  }
+  // Curly quotes
   if (text !== '"' && text !== "'") return false;
-  // Determine if opening or closing based on character before cursor
   const before = from > 0 ? view.state.sliceDoc(from - 1, from) : "";
   const isOpening = !before || /[\s\n({\[—–]/.test(before);
   let replacement: string;
   if (text === '"') {
-    replacement = isOpening ? "\u201C" : "\u201D"; // "" → ""
+    replacement = isOpening ? "\u201C" : "\u201D";
   } else {
-    replacement = isOpening ? "\u2018" : "\u2019"; // '' → ''
+    replacement = isOpening ? "\u2018" : "\u2019";
   }
   view.dispatch({
     changes: { from, to: from, insert: replacement },
