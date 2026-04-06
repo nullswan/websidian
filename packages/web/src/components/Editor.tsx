@@ -7,7 +7,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveL
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap, foldAll, unfoldAll } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
-import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches, highlightSelectionMatches } from "@codemirror/search";
+import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches, highlightSelectionMatches, gotoLine } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
@@ -3578,6 +3578,8 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // Go to line
+      { key: "Mod-g", run: gotoLine },
       // Join lines (merge current line with next)
       {
         key: "Mod-j",
