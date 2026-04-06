@@ -14,6 +14,7 @@ import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
 import { activateDemoMode, isDemoMode, resetDemoVault } from "./demoApi.js";
 import { WelcomeTour } from "./components/WelcomeTour.js";
+import { RelatedNotes } from "./components/RelatedNotes.js";
 import { Snippets } from "./components/Snippets.js";
 import { Tags } from "./components/Tags.js";
 import { Keywords } from "./components/Keywords.js";
@@ -3949,6 +3950,9 @@ ${rendered}
                 backlinkPaths={activeTab.backlinks.map((bl) => bl.path)}
                 onNavigate={(path) => openTab(path)}
               /></ErrorBoundary>
+            </SidebarSection>
+            <SidebarSection title="Related Notes">
+              <ErrorBoundary><RelatedNotes currentPath={activeTab.path} onNavigate={openTab} /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Word Frequency">
               <ErrorBoundary><WordFrequency content={activeTab.content} /></ErrorBoundary>
