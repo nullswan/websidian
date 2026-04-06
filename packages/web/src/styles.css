@@ -280,6 +280,8 @@ details.callout > div {
   margin: 8px 0;
   padding: 4px 16px;
   color: var(--text-secondary);
+  background: linear-gradient(90deg, rgba(127, 109, 242, 0.06) 0%, transparent 60%);
+  border-radius: 0 4px 4px 0;
 }
 .reader-view blockquote blockquote { border-left-color: #e6994a; }
 .reader-view blockquote blockquote blockquote { border-left-color: #4ac8e6; }
