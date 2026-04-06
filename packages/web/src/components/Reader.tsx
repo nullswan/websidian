@@ -49,13 +49,16 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Parse cssclasses from frontmatter
-  const cssClasses = useMemo(() => {
+  // Parse cssclasses and headingNumbers from frontmatter
+  const { cssClasses, fmHeadingNumbers } = useMemo(() => {
     const fmMatch = content.match(/^---[\t ]*\r?\n([\s\S]*?)\n---/);
-    if (!fmMatch) return "";
+    if (!fmMatch) return { cssClasses: "", fmHeadingNumbers: undefined as boolean | undefined };
     const classMatch = fmMatch[1].match(/cssclasses?:\s*(.+)/i);
-    if (!classMatch) return "";
-    return classMatch[1].split(/[,\s]+/).filter(Boolean).join(" ");
+    const hnMatch = fmMatch[1].match(/headingNumbers:\s*(true|false)/i);
+    return {
+      cssClasses: classMatch ? classMatch[1].split(/[,\s]+/).filter(Boolean).join(" ") : "",
+      fmHeadingNumbers: hnMatch ? hnMatch[1].toLowerCase() === "true" : undefined,
+    };
   }, [content]);
 
   // Parse and strip frontmatter for rendering
@@ -1938,7 +1941,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       })()}
       <div
         ref={containerRef}
-        className={`reader-view${cssClasses ? ` ${cssClasses}` : ""}`}
+        className={`reader-view${cssClasses ? ` ${cssClasses}` : ""}${fmHeadingNumbers === true ? " heading-numbers-enabled" : ""}${fmHeadingNumbers === false ? " heading-numbers-disabled" : ""}`}
         onClick={handleClick}
         onDoubleClick={(e) => {
           if (!onSwitchToEditor) return;

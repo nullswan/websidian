@@ -57,6 +57,21 @@ body {
 }
 
 /* Heading numbering (CSS counters, toggled via root class) */
+/* Per-note frontmatter override: headingNumbers: true enables locally */
+.reader-view.heading-numbers-enabled { counter-reset: h1counter; }
+.reader-view.heading-numbers-enabled h1 { counter-reset: h2counter; counter-increment: h1counter; }
+.reader-view.heading-numbers-enabled h2 { counter-reset: h3counter; counter-increment: h2counter; }
+.reader-view.heading-numbers-enabled h3 { counter-reset: h4counter; counter-increment: h3counter; }
+.reader-view.heading-numbers-enabled h4 { counter-increment: h4counter; }
+.reader-view.heading-numbers-enabled h1::before { content: counter(h1counter) ". "; color: var(--text-faint); }
+.reader-view.heading-numbers-enabled h2::before { content: counter(h1counter) "." counter(h2counter) ". "; color: var(--text-faint); }
+.reader-view.heading-numbers-enabled h3::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) ". "; color: var(--text-faint); }
+.reader-view.heading-numbers-enabled h4::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) ". "; color: var(--text-faint); }
+/* Per-note frontmatter override: headingNumbers: false disables locally */
+.heading-numbers-enabled .reader-view.heading-numbers-disabled h1::before,
+.heading-numbers-enabled .reader-view.heading-numbers-disabled h2::before,
+.heading-numbers-enabled .reader-view.heading-numbers-disabled h3::before,
+.heading-numbers-enabled .reader-view.heading-numbers-disabled h4::before { content: none; }
 .heading-numbers-enabled .reader-view { counter-reset: h1counter; }
 .heading-numbers-enabled .reader-view h1 { counter-reset: h2counter; counter-increment: h1counter; }
 .heading-numbers-enabled .reader-view h2 { counter-reset: h3counter; counter-increment: h2counter; }
