@@ -408,6 +408,13 @@ details.callout > div {
   color: var(--text-secondary);
 }
 
+/* Abbreviations */
+.reader-view abbr {
+  text-decoration: underline dotted var(--text-faint);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
 .reader-view mark {
   background: rgba(255, 208, 0, 0.25);
   color: inherit;

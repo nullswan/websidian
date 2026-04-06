@@ -4,6 +4,8 @@ import footnotePlugin from "markdown-it-footnote";
 // @ts-expect-error — no types available
 import deflistPlugin from "markdown-it-deflist";
 // @ts-expect-error — no types available
+import abbrPlugin from "markdown-it-abbr";
+// @ts-expect-error — no types available
 import supPlugin from "markdown-it-sup";
 // @ts-expect-error — no types available
 import subPlugin from "markdown-it-sub";
@@ -70,6 +72,7 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   md.use(deflistPlugin);
   md.use(supPlugin);
   md.use(subPlugin);
+  md.use(abbrPlugin);
 
   // Plugin: heading IDs for deep linking
   md.core.ruler.push("heading_ids", (state) => {
