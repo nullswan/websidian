@@ -237,6 +237,27 @@ details.callout > div {
   padding: 12px;
   margin: 8px 0;
   background: var(--bg-secondary);
+  position: relative;
+}
+
+.reader-view .embed.embed-collapsed {
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.reader-view .embed .embed-expand-btn {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 0 8px;
+  text-align: center;
+  background: linear-gradient(transparent, var(--bg-secondary) 60%);
+  color: var(--accent-color);
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
 }
 
 .reader-view .embed-label {

@@ -351,6 +351,22 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               embedEl.style.paddingLeft = "12px";
               embedEl.style.margin = "8px 0";
               embedEl.style.opacity = "0.9";
+
+              // Collapse if content is tall
+              requestAnimationFrame(() => {
+                if (embedEl.scrollHeight > 320) {
+                  embedEl.classList.add("embed-collapsed");
+                  const btn = document.createElement("button");
+                  btn.className = "embed-expand-btn";
+                  btn.textContent = "Show more";
+                  btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    embedEl.classList.remove("embed-collapsed");
+                    btn.remove();
+                  });
+                  embedEl.appendChild(btn);
+                }
+              });
             });
         })
         .catch(() => {
