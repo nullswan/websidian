@@ -256,6 +256,27 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
+  // Image captions: title attribute → <figcaption> below image
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const imgs = container.querySelectorAll<HTMLImageElement>("img[title]");
+    imgs.forEach((img) => {
+      const title = img.getAttribute("title");
+      if (!title) return;
+      // Wrap in figure if not already
+      if (img.parentElement?.tagName === "FIGURE") return;
+      const figure = document.createElement("figure");
+      figure.style.cssText = "margin: 12px 0; text-align: center;";
+      const caption = document.createElement("figcaption");
+      caption.textContent = title;
+      caption.style.cssText = "font-size: 0.85em; color: var(--text-faint); margin-top: 4px; font-style: italic;";
+      img.parentElement?.insertBefore(figure, img);
+      figure.appendChild(img);
+      figure.appendChild(caption);
+    });
+  }, [html]);
+
   // Style blockquote citations — detect "— Author" or "-- Author" at end
   useEffect(() => {
     const container = containerRef.current;
