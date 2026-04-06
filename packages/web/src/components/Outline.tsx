@@ -12,9 +12,10 @@ interface OutlineProps {
   content: string;
   onScrollToHeading?: (heading: string, level: number) => void;
   onReorderSection?: (fromHeadingLine: number, fromHeadingLevel: number, toHeadingLine: number) => void;
+  showNumbers?: boolean;
 }
 
-export function Outline({ content, onScrollToHeading, onReorderSection }: OutlineProps) {
+export function Outline({ content, onScrollToHeading, onReorderSection, showNumbers = false }: OutlineProps) {
   const headings = useMemo(() => extractHeadings(content), [content]);
   const [activeIdx, setActiveIdx] = useState(-1);
   const [dragIdx, setDragIdx] = useState(-1);
@@ -71,6 +72,21 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
   if (headings.length === 0) return null;
 
   const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
+
+  // Compute heading numbers like 1, 1.1, 1.2, 2, 2.1
+  const headingNums = useMemo(() => {
+    if (!showNumbers) return headings.map(() => "");
+    const counters: number[] = new Array(7).fill(0);
+    return headings.map((h) => {
+      counters[h.level]++;
+      // Reset deeper levels
+      for (let l = h.level + 1; l <= 6; l++) counters[l] = 0;
+      // Build number string from minLevel to current level
+      const parts: number[] = [];
+      for (let l = minLevel; l <= h.level; l++) parts.push(counters[l] || 0);
+      return parts.join(".");
+    });
+  }, [headings, showNumbers, minLevel]);
 
   // Determine which headings have children (next heading has higher level)
   const hasChildren = headings.map((h, i) => {
@@ -236,7 +252,10 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
                   style={{ width: 12, fontSize: 9, color: "var(--text-faint)", cursor: "pointer", flexShrink: 0, textAlign: "center", marginRight: 2 }}
                 >{collapsed.has(i) ? "▸" : "▾"}</span>
               )}
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.text}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {showNumbers && headingNums[i] && <span style={{ color: "var(--text-faint)", marginRight: 4, fontSize: 10 }}>{headingNums[i]}</span>}
+                {h.text}
+              </span>
               {h.wordCount >= 20 && (
                 <span
                   style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 4, flexShrink: 0 }}

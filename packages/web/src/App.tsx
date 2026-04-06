@@ -3728,6 +3728,7 @@ ${rendered}
             <SidebarSection title="Outline">
               <Outline
                 content={activeTab.content}
+                showNumbers={appSettings.headingNumbers}
                 onScrollToHeading={(heading, level) => scrollToHeadingRef.current?.(heading, level)}
                 onReorderSection={(fromLine, fromLevel, toLine) => {
                   if (!activeTab) return;
