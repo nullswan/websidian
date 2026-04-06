@@ -1191,6 +1191,16 @@ function ContextMenu({
       action: () => { navigator.clipboard.writeText(entry.path); onClose(); },
     });
     if (entry.kind !== "folder") {
+      menuItems.push({
+        label: "Download",
+        action: () => {
+          onClose();
+          const a = document.createElement("a");
+          a.href = `/api/vault/raw?path=${encodeURIComponent(entry.path)}`;
+          a.download = entry.path.split("/").pop() ?? entry.path;
+          a.click();
+        },
+      });
       menuItems.push({ label: "Delete", action: () => onDelete(entry.path), danger: true });
     }
   }
