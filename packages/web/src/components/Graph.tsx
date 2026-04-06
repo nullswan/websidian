@@ -33,7 +33,15 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [showOrphans, setShowOrphans] = useState(true);
   const [filterDepth, setFilterDepth] = useState(1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; words: number; links: number } | null>(null);
-  const [timelineFilter, setTimelineFilter] = useState(0); // 0 = show all, 1-100 = percentage of time range
+  const [timelineFilter, setTimelineFilter] = useState(0);
+  const [pathStart, setPathStart] = useState<string | null>(null);
+  const [pathEnd, setPathEnd] = useState<string | null>(null);
+  const [pathNodes, setPathNodes] = useState<Set<string>>(new Set());
+  const [pathEdges, setPathEdges] = useState<Set<string>>(new Set()); // "source->target" strings
+  const pathNodesRef = useRef<Set<string>>(new Set());
+  const pathEdgesRef = useRef<Set<string>>(new Set());
+  const pathStartRef = useRef<string | null>(null);
+  const pathEndRef = useRef<string | null>(null);
   const [folderLegend, setFolderLegend] = useState<Array<{ folder: string; color: string }>>([]);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
@@ -128,6 +136,63 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     nodesRef.current = filteredNodes;
     edgesRef.current = filteredEdges;
   }, [loaded, graphFilter, showOrphans, filterDepth, timelineFilter]);
+
+  // BFS shortest path finder
+  useEffect(() => {
+    if (!pathStart || !pathEnd || pathStart === pathEnd) {
+      setPathNodes(new Set());
+      setPathEdges(new Set());
+      return;
+    }
+    const edges = allEdgesRef.current;
+    const adj = new Map<string, string[]>();
+    for (const e of edges) {
+      if (!adj.has(e.source)) adj.set(e.source, []);
+      if (!adj.has(e.target)) adj.set(e.target, []);
+      adj.get(e.source)!.push(e.target);
+      adj.get(e.target)!.push(e.source);
+    }
+    // BFS
+    const visited = new Map<string, string | null>();
+    visited.set(pathStart, null);
+    const queue = [pathStart];
+    let found = false;
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (curr === pathEnd) { found = true; break; }
+      for (const neighbor of adj.get(curr) ?? []) {
+        if (!visited.has(neighbor)) {
+          visited.set(neighbor, curr);
+          queue.push(neighbor);
+        }
+      }
+    }
+    if (!found) {
+      setPathNodes(new Set());
+      setPathEdges(new Set());
+      return;
+    }
+    const pNodes = new Set<string>();
+    const pEdges = new Set<string>();
+    let curr: string | null = pathEnd;
+    while (curr) {
+      pNodes.add(curr);
+      const prev: string | null = visited.get(curr) ?? null;
+      if (prev) {
+        pEdges.add(`${prev}->${curr}`);
+        pEdges.add(`${curr}->${prev}`);
+      }
+      curr = prev;
+    }
+    setPathNodes(pNodes);
+    setPathEdges(pEdges);
+  }, [pathStart, pathEnd]);
+
+  // Keep refs in sync with path state for canvas render loop
+  useEffect(() => { pathNodesRef.current = pathNodes; }, [pathNodes]);
+  useEffect(() => { pathEdgesRef.current = pathEdges; }, [pathEdges]);
+  useEffect(() => { pathStartRef.current = pathStart; }, [pathStart]);
+  useEffect(() => { pathEndRef.current = pathEnd; }, [pathEnd]);
 
   // Screen to world coordinates
   const screenToWorld = useCallback((sx: number, sy: number, canvas: HTMLCanvasElement) => {
@@ -288,22 +353,34 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       const zoom = zoomRef.current;
 
       // Draw edges
+      const pNodes = pathNodesRef.current;
+      const pEdges = pathEdgesRef.current;
+      const hasPath = pNodes.size > 0;
+
       for (const edge of edges) {
         const a = nodeMap.get(edge.source);
         const b = nodeMap.get(edge.target);
         if (!a || !b) continue;
 
+        const isPathEdge = hasPath && (pEdges.has(`${edge.source}->${edge.target}`) || pEdges.has(`${edge.target}->${edge.source}`));
         const isHighlighted = hoverNode && (
           edge.source === hoverNode || edge.target === hoverNode
         );
         const isDimmed = hoverNode && !isHighlighted;
 
-        ctx.strokeStyle = isHighlighted
-          ? "rgba(127, 109, 242, 0.6)"
-          : isDimmed
-            ? "rgba(127, 109, 242, 0.08)"
-            : "rgba(127, 109, 242, 0.2)";
-        ctx.lineWidth = isHighlighted ? 1.5 : 1;
+        if (isPathEdge) {
+          ctx.strokeStyle = "rgba(255, 200, 50, 0.9)";
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = isHighlighted
+            ? "rgba(127, 109, 242, 0.6)"
+            : isDimmed
+              ? "rgba(127, 109, 242, 0.08)"
+              : hasPath
+                ? "rgba(127, 109, 242, 0.08)"
+                : "rgba(127, 109, 242, 0.2)";
+          ctx.lineWidth = isHighlighted ? 1.5 : 1;
+        }
         ctx.beginPath();
         ctx.moveTo(cx + a.x * zoom, cy + a.y * zoom);
         ctx.lineTo(cx + b.x * zoom, cy + b.y * zoom);
@@ -317,18 +394,21 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         const isActive = node.id === activePath;
         const isHovered = node.id === hoverNode;
         const isNeighbor = hoverNeighbors?.has(node.id) ?? false;
+        const isPathNode = hasPath && pNodes.has(node.id);
+        const isPathEndpoint = node.id === pathStartRef.current || node.id === pathEndRef.current;
         const isDimmed = hoverNode !== null && !isHovered && !isNeighbor;
         const conns = counts.get(node.id) ?? 0;
         const baseRadius = Math.max(4, Math.min(10, 3 + conns * 1.2));
-        const radius = isActive ? baseRadius + 2 : isHovered ? baseRadius + 1 : baseRadius;
+        const radius = isPathEndpoint ? baseRadius + 3 : isPathNode ? baseRadius + 1.5 : isActive ? baseRadius + 2 : isHovered ? baseRadius + 1 : baseRadius;
 
-        // Glow for active/hovered nodes
-        if (isActive || isHovered) {
+        // Glow for active/hovered/path nodes
+        if (isActive || isHovered || isPathNode) {
           ctx.beginPath();
           ctx.arc(nx, ny, radius + 6, 0, Math.PI * 2);
           const glow = ctx.createRadialGradient(nx, ny, radius, nx, ny, radius + 6);
-          glow.addColorStop(0, isActive ? "rgba(127, 109, 242, 0.3)" : "rgba(127, 109, 242, 0.2)");
-          glow.addColorStop(1, "rgba(127, 109, 242, 0)");
+          const glowColor = isPathNode ? "rgba(255, 200, 50, 0.35)" : isActive ? "rgba(127, 109, 242, 0.3)" : "rgba(127, 109, 242, 0.2)";
+          glow.addColorStop(0, glowColor);
+          glow.addColorStop(1, "rgba(0, 0, 0, 0)");
           ctx.fillStyle = glow;
           ctx.fill();
         }
@@ -336,24 +416,28 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         ctx.beginPath();
         ctx.arc(nx, ny, radius, 0, Math.PI * 2);
         const nodeColor = getNodeColor(node.id);
-        ctx.fillStyle = isActive
-          ? "#7f6df2"
-          : isHovered
-            ? "#9d8ff5"
-            : isNeighbor
+        ctx.fillStyle = isPathEndpoint
+          ? "#ffc832"
+          : isPathNode
+            ? "#ffd866"
+            : isActive
               ? "#7f6df2"
-              : isDimmed
-                ? "rgba(110, 110, 110, 0.3)"
-                : nodeColor;
-        ctx.globalAlpha = isActive || isHovered ? 1 : isNeighbor ? 0.8 : isDimmed ? 0.4 : 0.6;
+              : isHovered
+                ? "#9d8ff5"
+                : isNeighbor
+                  ? "#7f6df2"
+                  : isDimmed || (hasPath && !isPathNode)
+                    ? "rgba(110, 110, 110, 0.3)"
+                    : nodeColor;
+        ctx.globalAlpha = isPathEndpoint || isPathNode ? 1 : isActive || isHovered ? 1 : isNeighbor ? 0.8 : isDimmed || (hasPath && !isPathNode) ? 0.4 : 0.6;
         ctx.fill();
         ctx.globalAlpha = 1;
 
         // Label
-        const showLabel = isActive || isHovered || isNeighbor || !hoverNode;
+        const showLabel = isActive || isHovered || isNeighbor || isPathNode || !hoverNode;
         if (showLabel) {
-          ctx.fillStyle = isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
-          ctx.font = `${isActive || isHovered ? 12 : 10}px system-ui, sans-serif`;
+          ctx.fillStyle = isPathNode ? "#ffc832" : isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
+          ctx.font = `${isActive || isHovered || isPathNode ? 12 : 10}px system-ui, sans-serif`;
           ctx.textAlign = "center";
           const label = node.name.length > 20 ? node.name.slice(0, 18) + "…" : node.name;
           ctx.fillText(label, nx, ny + radius + 14);
@@ -384,6 +468,20 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       const sy = e.clientY - rect.top;
       const world = screenToWorld(sx, sy, canvas);
       const node = findNodeAt(world.x, world.y);
+
+      // Alt+Click to set path start/end
+      if (e.altKey && node) {
+        if (!pathStartRef.current) {
+          setPathStart(node.id);
+        } else if (!pathEndRef.current) {
+          setPathEnd(node.id);
+        } else {
+          // Reset: start new path
+          setPathStart(node.id);
+          setPathEnd(null);
+        }
+        return;
+      }
 
       if (node) {
         dragRef.current = { node, offsetX: world.x - node.x, offsetY: world.y - node.y };
@@ -538,6 +636,84 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           {timelineFilter === 0 ? "All" : `${timelineFilter}%`}
         </span>
       </div>
+      {/* Path finder UI */}
+      {(pathStart || pathEnd || pathNodes.size > 0) && (
+        <div style={{ padding: "4px 8px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: 6, flexShrink: 0, fontSize: 11 }}>
+          <span style={{ color: "#ffc832", fontWeight: 600, flexShrink: 0 }}>Path:</span>
+          {pathNodes.size > 0 ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 2, overflow: "hidden" }}>
+              {(() => {
+                // Reconstruct ordered path from pathStart to pathEnd
+                const ordered: string[] = [];
+                if (pathStart) {
+                  let curr: string | null = pathEnd;
+                  const visited = new Map<string, string | null>();
+                  // Quick BFS re-trace using pathEdges
+                  const adj = new Map<string, string[]>();
+                  for (const key of pathEdges) {
+                    const [a, b] = key.split("->");
+                    if (!adj.has(a)) adj.set(a, []);
+                    adj.get(a)!.push(b);
+                  }
+                  // BFS from start
+                  const bfsVisited = new Map<string, string | null>();
+                  bfsVisited.set(pathStart, null);
+                  const queue = [pathStart];
+                  while (queue.length > 0) {
+                    curr = queue.shift()!;
+                    if (curr === pathEnd) break;
+                    for (const n of adj.get(curr) ?? []) {
+                      if (!bfsVisited.has(n) && pathNodes.has(n)) {
+                        bfsVisited.set(n, curr);
+                        queue.push(n);
+                      }
+                    }
+                  }
+                  // Reconstruct
+                  curr = pathEnd;
+                  while (curr) {
+                    ordered.unshift(curr);
+                    curr = bfsVisited.get(curr) ?? null;
+                  }
+                }
+                return ordered.map((id, i) => {
+                  const name = id.replace(/\.md$/, "").split("/").pop() ?? id;
+                  return (
+                    <span key={id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      {i > 0 && <span style={{ color: "var(--text-faint)" }}>&rarr;</span>}
+                      <span
+                        onClick={() => onNavigate(id)}
+                        style={{
+                          color: i === 0 || i === ordered.length - 1 ? "#ffc832" : "#ffd866",
+                          cursor: "pointer",
+                          fontWeight: i === 0 || i === ordered.length - 1 ? 600 : 400,
+                          whiteSpace: "nowrap",
+                        }}
+                        title={id}
+                      >
+                        {name}
+                      </span>
+                    </span>
+                  );
+                });
+              })()}
+              <span style={{ color: "var(--text-faint)", marginLeft: 4 }}>({pathNodes.size} hops)</span>
+            </div>
+          ) : pathStart && !pathEnd ? (
+            <span style={{ color: "var(--text-muted)" }}>
+              Alt+Click second node (from: {pathStart.replace(/\.md$/, "").split("/").pop()})
+            </span>
+          ) : pathStart && pathEnd ? (
+            <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No path found</span>
+          ) : null}
+          <button
+            onClick={() => { setPathStart(null); setPathEnd(null); }}
+            style={{ marginLeft: "auto", background: "none", border: "1px solid var(--border-color)", borderRadius: 3, color: "var(--text-muted)", cursor: "pointer", padding: "1px 6px", fontSize: 10, flexShrink: 0 }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         style={{ width: "100%", flex: 1, display: "block" }}
@@ -567,7 +743,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         }}
       >
         <span style={{ color: "var(--text-faint)", fontSize: 10, marginRight: 4 }}>
-          Scroll zoom · Drag · Dbl-click open
+          Scroll zoom · Drag · Dbl-click open · Alt+Click path
         </span>
         <button
           onClick={() => { zoomRef.current = Math.min(3, zoomRef.current * 1.3); }}
