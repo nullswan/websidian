@@ -291,7 +291,14 @@ function SidebarSection({ title, defaultOpen = true, badge, children }: {
           <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent-color)", background: "rgba(127,109,242,0.12)", padding: "1px 5px", borderRadius: 8, fontWeight: 600 }}>{badge}</span>
         )}
       </div>
-      {open && children}
+      <div style={{
+        overflow: "hidden",
+        maxHeight: open ? 2000 : 0,
+        transition: "max-height 0.2s ease-in-out",
+        opacity: open ? 1 : 0,
+      }}>
+        {children}
+      </div>
     </div>
   );
 }
