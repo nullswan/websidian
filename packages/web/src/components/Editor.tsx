@@ -618,6 +618,59 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Tag pill widget for Live Preview — renders #tag as styled badge
+class TagPillWidget extends WidgetType {
+  tag: string;
+  constructor(tag: string) {
+    super();
+    this.tag = tag;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = "#" + this.tag;
+    span.style.cssText = "background: rgba(230, 153, 74, 0.15); color: #e6994a; padding: 1px 6px; border-radius: 4px; font-size: 0.85em; cursor: pointer;";
+    return span;
+  }
+  eq(other: TagPillWidget) { return this.tag === other.tag; }
+  ignoreEvent() { return true; }
+}
+
+function buildTagDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+
+  for (let i = 1; i <= state.doc.lines; i++) {
+    if (i === cursorLine) continue;
+    const line = state.doc.line(i);
+    const text = line.text;
+    // Skip heading lines (# is heading marker, not tag)
+    if (/^#{1,6}\s/.test(text)) continue;
+    // Skip frontmatter
+    if (text === "---") continue;
+    // Find #tag patterns (not inside code/links)
+    const re = /(?:^|\s)#([\w\-/]+)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const hashPos = m[0].indexOf("#");
+      const from = line.from + m.index + hashPos;
+      const to = from + 1 + m[1].length;
+      builder.add(from, to, Decoration.replace({ widget: new TagPillWidget(m[1]) }));
+    }
+  }
+  return builder.finish();
+}
+
+const tagRenderField = StateField.define<DecorationSet>({
+  create(state) { return buildTagDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildTagDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Wikilink rendering widget for Live Preview — shows display text as styled link
 class WikilinkWidget extends WidgetType {
   display: string;
@@ -1544,6 +1597,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         livePreviewWidgetsField,
         inlineMarkerField,
         wikilinkRenderField,
+        tagRenderField,
         mathField,
         codeBlockField,
         noteEmbedField,
