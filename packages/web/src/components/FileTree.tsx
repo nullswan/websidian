@@ -128,6 +128,7 @@ interface FileTreeProps {
   onDuplicate?: (path: string) => void;
   backlinkCounts?: Record<string, number>;
   todoCounts?: Record<string, number>;
+  onShowToast?: (msg: string) => void;
 }
 
 interface ContextMenuState {
@@ -168,6 +169,17 @@ function filterTree(entries: VaultEntry[], query: string): VaultEntry[] {
 
 const EXPANDED_KEY = "filetree-expanded";
 
+function findSiblings(entries: VaultEntry[], parentPath: string): VaultEntry[] {
+  for (const e of entries) {
+    if (e.path === parentPath && e.kind === "folder") return e.children;
+    if (e.kind === "folder") {
+      const found = findSiblings(e.children, parentPath);
+      if (found.length > 0) return found;
+    }
+  }
+  return [];
+}
+
 function countFiles(entry: VaultEntry): number {
   if (entry.kind === "file") return 1;
   return entry.children.reduce((sum, child) => sum + countFiles(child), 0);
@@ -206,7 +218,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, onShowToast }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -430,10 +442,26 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   const handleRenameSubmit = async (oldPath: string, newName: string) => {
     setRenaming(null);
     if (!newName.trim()) return;
+    // Validate characters
+    if (/[<>:"|?*\\]/.test(newName)) {
+      onShowToast?.(`Invalid characters in name: < > : " | ? * \\`);
+      return;
+    }
+    if (newName.startsWith(".") || newName.startsWith(" ")) {
+      onShowToast?.("Name cannot start with a dot or space");
+      return;
+    }
     const parts = oldPath.split("/");
     parts[parts.length - 1] = newName;
     const newPath = parts.join("/");
     if (newPath === oldPath) return;
+    // Check for duplicates in same folder
+    const parentPath = parts.slice(0, -1).join("/");
+    const siblings = parentPath ? findSiblings(entries, parentPath) : entries;
+    if (siblings.some((e) => e.path !== oldPath && e.path.split("/").pop() === newName)) {
+      onShowToast?.(`"${newName}" already exists in this folder`);
+      return;
+    }
     const res = await fetch("/api/vault/rename", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

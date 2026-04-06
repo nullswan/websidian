@@ -2752,6 +2752,7 @@ ${rendered}
                   onDuplicate={duplicateNote}
                   backlinkCounts={backlinkCounts}
                   todoCounts={todoCounts}
+                  onShowToast={showToast}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
