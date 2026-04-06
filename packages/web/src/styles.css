@@ -1647,3 +1647,15 @@ li:hover .file-size-label {
   .reader-view .footnote-sidenote { display: none; }
   .floating-toc { display: none !important; }
 }
+
+/* Welcome tour */
+@keyframes tour-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tour-highlight {
+  position: relative;
+  z-index: 9999 !important;
+  box-shadow: 0 0 0 3px var(--accent-color), 0 0 12px rgba(127,109,242,0.4);
+  border-radius: 4px;
+}
