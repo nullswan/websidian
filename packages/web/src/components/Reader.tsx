@@ -400,7 +400,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               }
 
               const embedHtml = md.render(embedContent);
-              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--accent-color); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; cursor: pointer; opacity: 0.7;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.7'">${data.resolved.replace(/\.md$/, "")}</div>${embedHtml}`;
+              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--accent-color); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; cursor: pointer; opacity: 0.7; display: flex; justify-content: space-between; align-items: center;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.7'"><span>${data.resolved.replace(/\.md$/, "")}</span><span class="embed-ref-badge" data-embed-path="${data.resolved}" style="font-size: 10px; color: var(--text-faint);"></span></div>${embedHtml}`;
               embedEl.style.borderLeft = "2px solid var(--accent-color)";
               embedEl.style.paddingLeft = "12px";
               embedEl.style.margin = "8px 0";
@@ -432,6 +432,32 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
     return () => { cancelled = true; };
   }, [html, filePath, md]);
+
+  // Populate embed backlink count badges
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const badges = container.querySelectorAll<HTMLElement>(".embed-ref-badge[data-embed-path]");
+    if (badges.length === 0) return;
+    const controller = new AbortController();
+    fetch("/api/vault/graph", { credentials: "include", signal: controller.signal })
+      .then((r) => r.json())
+      .then((graph: { edges: Array<{ target: string }> }) => {
+        const backlinkMap = new Map<string, number>();
+        for (const edge of graph.edges) {
+          backlinkMap.set(edge.target, (backlinkMap.get(edge.target) ?? 0) + 1);
+        }
+        for (const badge of badges) {
+          const path = badge.dataset.embedPath;
+          if (path) {
+            const count = backlinkMap.get(path) ?? 0;
+            if (count > 0) badge.textContent = `${count} ref${count !== 1 ? "s" : ""}`;
+          }
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [html, filePath]);
 
   // Hydrate image embeds — resolve short names like ![[diagram.png]] via vault search
   useEffect(() => {
