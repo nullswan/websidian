@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { VaultEntry } from "../types.js";
 
-type SortMode = "name" | "mtime" | "ctime";
+type SortMode = "name" | "mtime" | "ctime" | "size";
 
 const SORT_KEY = "filetree-sort";
 
 function loadSortMode(): SortMode {
   try {
     const v = localStorage.getItem(SORT_KEY);
-    if (v === "name" || v === "mtime" || v === "ctime") return v;
+    if (v === "name" || v === "mtime" || v === "ctime" || v === "size") return v;
   } catch {}
   return "name";
 }
@@ -23,6 +23,9 @@ function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry
     }
     if (mode === "ctime" && a.kind === "file" && b.kind === "file") {
       return (b.ctime ?? 0) - (a.ctime ?? 0);
+    }
+    if (mode === "size" && a.kind === "file" && b.kind === "file") {
+      return (b.size ?? 0) - (a.size ?? 0);
     }
     const aName = (a.path.split("/").pop() ?? a.path).toLowerCase();
     const bName = (b.path.split("/").pop() ?? b.path).toLowerCase();
@@ -410,7 +413,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         <button
           title={`Sort: ${sortMode} (click to cycle)`}
           onClick={() => {
-            const modes: SortMode[] = ["name", "mtime", "ctime"];
+            const modes: SortMode[] = ["name", "mtime", "ctime", "size"];
             const next = modes[(modes.indexOf(sortMode) + 1) % modes.length];
             setSortMode(next);
             localStorage.setItem(SORT_KEY, next);
@@ -433,11 +436,13 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               <path d="M2 4h12M2 8h8M2 12h4" />
             ) : sortMode === "mtime" ? (
               <path d="M2 4h4M2 8h8M2 12h12" />
+            ) : sortMode === "size" ? (
+              <path d="M2 4h12M2 8h8M2 12h4" strokeWidth="2" />
             ) : (
               <><circle cx="8" cy="8" r="5" /><path d="M8 5.5V8l2 1.5" /></>
             )}
           </svg>
-          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : "new"}</span>}
+          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : "size"}</span>}
         </button>
       </div>
       <ul
