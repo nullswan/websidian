@@ -4,7 +4,7 @@ import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirr
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
-import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap, foldAll, unfoldAll } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
 import { autocompletion, closeBrackets, closeBracketsKeymap, CompletionContext, type Completion } from "@codemirror/autocomplete";
 import { search, searchKeymap, selectNextOccurrence, selectSelectionMatches } from "@codemirror/search";
@@ -28,6 +28,7 @@ interface EditorProps {
   showLineNumbers?: boolean;
   tabSize?: number;
   scrollToHeadingRef?: React.MutableRefObject<((heading: string, level: number) => void) | null>;
+  foldAllRef?: React.MutableRefObject<{ foldAll: () => void; unfoldAll: () => void } | null>;
   typewriterMode?: boolean;
   focusMode?: boolean;
   vimMode?: boolean;
@@ -2067,7 +2068,7 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2691,6 +2692,14 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return;
           }
         }
+      };
+    }
+
+    // Expose fold all / unfold all
+    if (foldAllRef) {
+      foldAllRef.current = {
+        foldAll: () => { if (viewRef.current) foldAll(viewRef.current); },
+        unfoldAll: () => { if (viewRef.current) unfoldAll(viewRef.current); },
       };
     }
 

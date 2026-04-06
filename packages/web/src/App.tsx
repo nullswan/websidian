@@ -688,6 +688,7 @@ export function App() {
   const splitDivRef = useRef<HTMLDivElement>(null);
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
   const scrollToHeadingRef = useRef<((heading: string, level: number) => void) | null>(null);
+  const foldAllRef = useRef<{ foldAll: () => void; unfoldAll: () => void } | null>(null);
   const [pendingHeading, setPendingHeading] = useState<string | null>(null);
 
   // Set CSS accent color variable
@@ -2016,6 +2017,7 @@ ${rendered}
                 vimMode={appSettings.vimMode}
                 lineWrap={appSettings.lineWrap}
                 scrollToHeadingRef={scrollToHeadingRef}
+                foldAllRef={foldAllRef}
               />
             )
           ) : (
@@ -3372,6 +3374,16 @@ ${rendered}
               action: () => {
                 setAppSettings((s) => ({ ...s, editorFontSize: Math.max(10, (s.editorFontSize ?? 16) - 1) }));
               },
+            },
+            {
+              id: "fold-all",
+              name: "Fold all headings",
+              action: () => foldAllRef.current?.foldAll(),
+            },
+            {
+              id: "unfold-all",
+              name: "Unfold all headings",
+              action: () => foldAllRef.current?.unfoldAll(),
             },
             ...(panes.length < 2
               ? [{
