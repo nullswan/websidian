@@ -21,6 +21,7 @@ import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
 import { Minimap } from "./components/Minimap.js";
+import { VaultStats } from "./components/VaultStats.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
@@ -623,6 +624,7 @@ export function App() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showMergePicker, setShowMergePicker] = useState(false);
+  const [showVaultStats, setShowVaultStats] = useState(false);
   const calendarAnchorRef = useRef<HTMLButtonElement>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
@@ -3203,6 +3205,11 @@ ${rendered}
               action: () => { if (activeTab) setShowMergePicker(true); },
             },
             {
+              id: "vault-stats",
+              name: "Vault statistics",
+              action: () => setShowVaultStats(true),
+            },
+            {
               id: "copy-link",
               name: "Copy note link",
               action: () => {
@@ -3616,6 +3623,13 @@ ${rendered}
           settings={appSettings}
           onUpdate={setAppSettings}
           onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
+        />
+      )}
+
+      {showVaultStats && (
+        <VaultStats
+          onClose={() => setShowVaultStats(false)}
+          onNavigate={openTab}
         />
       )}
 
