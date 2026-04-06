@@ -187,6 +187,10 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
       )}
+      <span style={{ marginLeft: cursorPos ? 8 : "auto", color: "var(--text-faint)" }}>
+        {content.includes("\r\n") ? "CRLF" : "LF"}
+      </span>
+      <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>UTF-8</span>
       {scrollProgress != null && !cursorPos && (
         <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: scrollProgress >= 0.95 ? "#4ec9b0" : undefined }}>
