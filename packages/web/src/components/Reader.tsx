@@ -117,6 +117,30 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         rendered += `</ol></div>`;
       }
     }
+    // Replace [toc] or [[_TOC_]] with auto-generated table of contents
+    const tocPattern = /<p>\s*(?:\[toc\]|\[\[_TOC_\]\])\s*<\/p>/gi;
+    if (tocPattern.test(rendered)) {
+      const headings: Array<{ level: number; text: string; slug: string }> = [];
+      const headingRegex = /^(#{1,6})\s+(.+)/gm;
+      let match;
+      const slugCounts: Record<string, number> = {};
+      while ((match = headingRegex.exec(body)) !== null) {
+        const level = match[1].length;
+        const text = match[2].replace(/\*\*|__|[*_`]/g, "").trim();
+        let slug = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+        if (slugCounts[slug]) { slug += `-${slugCounts[slug]}`; }
+        slugCounts[slug] = (slugCounts[slug] ?? 0) + 1;
+        headings.push({ level, text, slug });
+      }
+      if (headings.length > 0) {
+        const minLevel = Math.min(...headings.map((h) => h.level));
+        const tocHtml = `<nav class="inline-toc" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; margin: 12px 0;">
+          <div style="font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600;">Table of Contents</div>
+          ${headings.map((h) => `<div style="padding: 2px 0 2px ${(h.level - minLevel) * 16}px; font-size: 13px;"><a href="#${h.slug}" style="color: var(--accent-color); text-decoration: none;">${h.text}</a></div>`).join("")}
+        </nav>`;
+        rendered = rendered.replace(tocPattern, tocHtml);
+      }
+    }
     return rendered;
   }, [md, body, references]);
 
