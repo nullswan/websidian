@@ -178,10 +178,17 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       }
 
       // Render
+      const styles = getComputedStyle(document.documentElement);
+      const textPrimary = styles.getPropertyValue("--text-primary").trim() || "#ddd";
+      const textSecondary = styles.getPropertyValue("--text-secondary").trim() || "#bbb";
+      const textMuted = styles.getPropertyValue("--text-muted").trim() || "#888";
+      const bgPrimary = styles.getPropertyValue("--bg-primary").trim() || "#1a1a1a";
+
       canvas.width = canvas.clientWidth * devicePixelRatio;
       canvas.height = canvas.clientHeight * devicePixelRatio;
       ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      ctx.fillStyle = bgPrimary;
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
       const cx = canvas.clientWidth / 2 + panRef.current.x;
       const cy = canvas.clientHeight / 2 + panRef.current.y;
@@ -251,7 +258,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         // Label
         const showLabel = isActive || isHovered || isNeighbor || !hoverNode;
         if (showLabel) {
-          ctx.fillStyle = isActive || isHovered ? "#ddd" : isNeighbor ? "#bbb" : "#888";
+          ctx.fillStyle = isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
           ctx.font = `${isActive || isHovered ? 12 : 10}px system-ui, sans-serif`;
           ctx.textAlign = "center";
           ctx.fillText(node.name, nx, ny + radius + 14);
@@ -359,7 +366,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   }, [loaded, onNavigate, screenToWorld, findNodeAt]);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", background: "#1a1a1a" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", background: "var(--bg-primary)" }}>
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: "100%", display: "block" }}
@@ -372,7 +379,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#666",
+            color: "var(--text-faint)",
           }}
         >
           Loading graph...
@@ -383,7 +390,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           position: "absolute",
           bottom: 8,
           right: 8,
-          color: "#555",
+          color: "var(--text-faint)",
           fontSize: 11,
         }}
       >

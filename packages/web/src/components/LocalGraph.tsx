@@ -133,7 +133,7 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
   }, [nodes, edges]);
 
   if (nodes.length <= 1) {
-    return <div style={{ padding: "8px 12px", fontSize: 12, color: "#555" }}>No connections</div>;
+    return <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-faint)" }}>No connections</div>;
   }
 
   // Compute viewBox from node positions
@@ -170,7 +170,7 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
             y1={from.y}
             x2={to.x}
             y2={to.y}
-            stroke={isHighlighted ? "#7f6df2" : "#444"}
+            stroke={isHighlighted ? "var(--accent-color, #7f6df2)" : "var(--border-color)"}
             strokeWidth={isHighlighted ? 1.5 : 0.8}
             opacity={hoveredNode && !isHighlighted ? 0.2 : 0.6}
           />
@@ -196,7 +196,7 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
               cx={pos.x}
               cy={pos.y}
               r={node.isCurrent ? 6 : 4}
-              fill={node.isCurrent ? "#7f6df2" : isHovered ? "#a89bf2" : "#888"}
+              fill={node.isCurrent ? "var(--accent-color, #7f6df2)" : isHovered ? "#a89bf2" : "var(--text-muted)"}
               opacity={dimmed ? 0.2 : 1}
             />
             {node.isCurrent && (
@@ -205,7 +205,7 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
                 cy={pos.y}
                 r={10}
                 fill="none"
-                stroke="#7f6df2"
+                stroke="var(--accent-color, #7f6df2)"
                 strokeWidth={0.5}
                 opacity={0.3}
               />
@@ -214,7 +214,7 @@ export function LocalGraph({ currentPath, outgoingLinks, backlinkPaths, onNaviga
               x={pos.x}
               y={pos.y + (node.isCurrent ? 14 : 12)}
               textAnchor="middle"
-              fill={dimmed ? "#333" : isHovered ? "#ddd" : "#888"}
+              fill={dimmed ? "var(--border-color)" : isHovered ? "var(--text-primary)" : "var(--text-muted)"}
               fontSize={node.isCurrent ? 9 : 7}
               fontWeight={node.isCurrent ? 600 : 400}
               fontFamily="-apple-system, sans-serif"

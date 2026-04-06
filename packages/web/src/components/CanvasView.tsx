@@ -123,7 +123,7 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
   }
 
   if (!data) {
-    return <div style={{ padding: 24, color: "#666" }}>Loading canvas...</div>;
+    return <div style={{ padding: 24, color: "var(--text-faint)" }}>Loading canvas...</div>;
   }
 
   const nodeMap = new Map(data.nodes.map((n) => [n.id, n]));
@@ -135,7 +135,7 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
         width: "100%",
         height: "100%",
         overflow: "hidden",
-        background: "#1a1a1a",
+        background: "var(--bg-primary)",
         position: "relative",
         cursor: isPanning.current ? "grabbing" : "grab",
       }}
@@ -184,10 +184,10 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
             width: node.width * zoom,
             height: node.height * zoom,
             background: node.color ?? "#2a2a2a",
-            border: "1px solid #444",
+            border: "1px solid var(--border-color)",
             borderRadius: 6,
             padding: 8 * zoom,
-            color: "#ddd",
+            color: "var(--text-primary)",
             fontSize: 13 * zoom,
             overflow: "hidden",
             display: "flex",
@@ -204,7 +204,7 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
             <div
               style={{
                 fontSize: 10 * zoom,
-                color: "#7f6df2",
+                color: "var(--accent-color)",
                 marginBottom: 4 * zoom,
                 fontWeight: 600,
               }}
@@ -216,7 +216,7 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
             <div style={{ lineHeight: 1.4 }}>{node.text}</div>
           )}
           {node.type === "file" && !node.text && (
-            <div style={{ color: "#888", fontSize: 11 * zoom }}>
+            <div style={{ color: "var(--text-muted)", fontSize: 11 * zoom }}>
               Click to open
             </div>
           )}
