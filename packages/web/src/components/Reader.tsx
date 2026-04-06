@@ -630,7 +630,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
-  // Style blockquote citations — detect "— Author" or "-- Author" at end
+  // Style blockquote citations — detect "— Author" or "-- Author" at end, linkify URLs
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -652,6 +652,32 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       lastP.style.opacity = "0.8";
       lastP.style.textAlign = "right";
       lastP.style.marginTop = "4px";
+
+      // Linkify URLs in citation text
+      const citText = citMatch[1];
+      const urlMatch = citText.match(/(https?:\/\/[^\s)>]+)/);
+      if (urlMatch && !lastP.querySelector("a")) {
+        const url = urlMatch[1];
+        lastP.innerHTML = lastP.innerHTML.replace(
+          url,
+          `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;">${url.replace(/^https?:\/\//, "").split("/")[0]}</a>`
+        );
+      }
+
+      // Detect "Source: URL" pattern in any paragraph
+      for (let i = 0; i < paragraphs.length; i++) {
+        const pText = paragraphs[i].textContent || "";
+        const srcMatch = pText.match(/^Source:\s*(https?:\/\/[^\s)>]+)/i);
+        if (srcMatch && !paragraphs[i].querySelector("a.source-link")) {
+          const srcUrl = srcMatch[1];
+          const domain = srcUrl.replace(/^https?:\/\//, "").split("/")[0];
+          paragraphs[i].innerHTML = paragraphs[i].innerHTML.replace(
+            /Source:\s*(https?:\/\/[^\s)>]+)/i,
+            `<span style="color: var(--text-faint); font-size: 0.85em;">Source: <a class="source-link" href="${srcUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline dotted; text-underline-offset: 3px;">${domain}</a></span>`
+          );
+          paragraphs[i].style.marginTop = "4px";
+        }
+      }
     });
   }, [html]);
 
