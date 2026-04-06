@@ -4,9 +4,10 @@ interface StatusBarProps {
   content: string;
   path: string;
   cursorPos?: { line: number; col: number; selectedChars: number } | null;
+  saveStatus?: "idle" | "saving" | "saved";
 }
 
-export function StatusBar({ content, path, cursorPos }: StatusBarProps) {
+export function StatusBar({ content, path, cursorPos, saveStatus = "idle" }: StatusBarProps) {
   const stats = useMemo(() => {
     const text = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
     const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -36,6 +37,12 @@ export function StatusBar({ content, path, cursorPos }: StatusBarProps) {
       <span>{stats.words.toLocaleString()} words</span>
       <span>{stats.chars.toLocaleString()} characters</span>
       <span>{stats.readingTime} min read</span>
+      {saveStatus === "saving" && (
+        <span style={{ color: "#e6994a" }}>Saving...</span>
+      )}
+      {saveStatus === "saved" && (
+        <span style={{ color: "#4ec9b0" }}>&#10003; Saved</span>
+      )}
       {cursorPos && (
         <span style={{ marginLeft: "auto" }}>
           {cursorPos.selectedChars > 0 && `${cursorPos.selectedChars} selected  `}

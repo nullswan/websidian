@@ -375,6 +375,8 @@ export function App() {
   const [activePaneIdx, setActivePaneIdx] = useState(0);
   const [vaultName, setVaultName] = useState("Vault");
   const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveStatusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred">("files");
   const [starredNotes, setStarredNotes] = useState<string[]>(() => {
@@ -798,6 +800,8 @@ export function App() {
   const handleSave = useCallback(
     (content: string) => {
       if (!activeTab) return;
+      setSaveStatus("saving");
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
       fetch("/api/vault/file", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -805,13 +809,20 @@ export function App() {
       })
         .then((r) => r.json())
         .then((data) => {
-          if (data.error) setError(data.error);
-          else {
+          if (data.error) {
+            setError(data.error);
+            setSaveStatus("idle");
+          } else {
             setError(null);
             updateTab(activeTab.id, { content, dirty: false });
+            setSaveStatus("saved");
+            saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
           }
         })
-        .catch((e) => setError("Failed to save: " + e.message));
+        .catch((e) => {
+          setError("Failed to save: " + e.message);
+          setSaveStatus("idle");
+        });
     },
     [activeTab, updateTab],
   );
@@ -2129,7 +2140,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} />
         )}
         </div>
       </div>
