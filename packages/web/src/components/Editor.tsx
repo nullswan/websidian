@@ -3313,6 +3313,55 @@ const indentGuidePlugin = ViewPlugin.fromClass(class {
   }
 }, { decorations: (v) => v.decorations });
 
+// Scrollbar selection/match indicators — colored ticks on the right edge
+const scrollbarIndicatorPlugin = ViewPlugin.fromClass(class {
+  container: HTMLDivElement;
+  constructor(view: EditorView) {
+    this.container = document.createElement("div");
+    this.container.className = "cm-scrollbar-indicators";
+    this.container.style.cssText = "position: absolute; top: 0; right: 0; bottom: 0; width: 6px; pointer-events: none; z-index: 4;";
+    view.scrollDOM.style.position = "relative";
+    view.scrollDOM.appendChild(this.container);
+    this.render(view);
+  }
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.selectionSet || update.docChanged || update.geometryChanged) this.render(update.view);
+  }
+  render(view: EditorView) {
+    const totalLines = view.state.doc.lines;
+    if (totalLines < 2) { this.container.innerHTML = ""; return; }
+    const marks: string[] = [];
+    // Selection ranges
+    for (const range of view.state.selection.ranges) {
+      if (range.from === range.to) continue;
+      const fromLine = view.state.doc.lineAt(range.from).number;
+      const toLine = view.state.doc.lineAt(range.to).number;
+      const top = ((fromLine - 1) / totalLines) * 100;
+      const height = Math.max(0.3, ((toLine - fromLine + 1) / totalLines) * 100);
+      marks.push(`<div style="position:absolute;top:${top}%;left:0;width:100%;height:${height}%;background:rgba(127,109,242,0.6);border-radius:1px;"></div>`);
+    }
+    // Search matches (cm-selectionMatch decorations exist for word highlights)
+    // We use the selection word to find other occurrences
+    const sel = view.state.selection.main;
+    if (sel.from !== sel.to) {
+      const selectedText = view.state.sliceDoc(sel.from, sel.to);
+      if (selectedText.length >= 2 && selectedText.length <= 100 && !/\n/.test(selectedText)) {
+        const doc = view.state.doc.toString();
+        const lower = selectedText.toLowerCase();
+        let idx = 0;
+        while ((idx = doc.toLowerCase().indexOf(lower, idx)) !== -1) {
+          const line = view.state.doc.lineAt(idx).number;
+          const top = ((line - 1) / totalLines) * 100;
+          marks.push(`<div style="position:absolute;top:${top}%;left:1px;width:4px;height:2px;background:rgba(230,153,74,0.7);border-radius:1px;"></div>`);
+          idx += selectedText.length;
+        }
+      }
+    }
+    this.container.innerHTML = marks.join("");
+  }
+  destroy() { this.container.remove(); }
+});
+
 // Sticky heading: shows current section heading at top of editor when scrolled past
 const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   bar: HTMLDivElement;
@@ -4420,6 +4469,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         createHeadingLinkGutter(filePath),
         createBacklinkGutter(backlinkLinesRef),
         ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, bareUrlPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
+        scrollbarIndicatorPlugin,
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
