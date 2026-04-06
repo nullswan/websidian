@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { EditorView, keymap, highlightActiveLine, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
 import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
+import { languages } from "@codemirror/language-data";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
 import { syntaxHighlighting, HighlightStyle, syntaxTree, bracketMatching, indentUnit, foldService, foldGutter, codeFolding, foldKeymap } from "@codemirror/language";
 import { tags, classHighlighter } from "@lezer/highlight";
@@ -2173,7 +2174,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           },
         }),
         saveKeymap,
-        markdown(),
+        markdown({ codeLanguages: languages }),
         syntaxHighlighting(obsidianHighlight, { fallback: false }),
         syntaxHighlighting(classHighlighter),
         headingPlugin,
