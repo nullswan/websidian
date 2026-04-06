@@ -2201,6 +2201,8 @@ const livePreviewTheme = EditorView.theme({
   ".cm-heading-2": { paddingBottom: "2px" },
   ".cm-activeLine": {
     backgroundColor: "var(--bg-hover)",
+    borderLeft: "2px solid var(--accent-color)",
+    marginLeft: "-2px",
   },
   ".cm-gutters": {
     background: "var(--bg-primary)",
