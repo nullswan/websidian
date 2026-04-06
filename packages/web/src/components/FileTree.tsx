@@ -616,6 +616,8 @@ function FileTreeNode({
               el.scrollIntoView({ block: "nearest", inline: "nearest" });
             }
           }}
+          data-path={entry.path}
+          className="file-tree-item"
           draggable
           onDragStart={(e) => {
             e.dataTransfer.setData("text/plain", entry.path);

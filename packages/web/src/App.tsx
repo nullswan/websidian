@@ -2267,6 +2267,46 @@ ${rendered}
                     <path d="M9 14h6" />
                   </svg>
                 </button>
+                {activeTab && (
+                  <button
+                    title="Reveal active file in file tree"
+                    onClick={() => {
+                      const el = document.querySelector(`.file-tree-item[data-path="${CSS.escape(activeTab.path)}"]`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        (el as HTMLElement).style.background = "var(--accent-color)";
+                        (el as HTMLElement).style.transition = "background 0.8s";
+                        setTimeout(() => {
+                          (el as HTMLElement).style.background = "";
+                          (el as HTMLElement).style.transition = "";
+                        }, 1000);
+                      }
+                    }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "none",
+                      borderRadius: 3,
+                      background: "transparent",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="3" />
+                      <line x1="12" y1="2" x2="12" y2="6" />
+                      <line x1="12" y1="18" x2="12" y2="22" />
+                      <line x1="2" y1="12" x2="6" y2="12" />
+                      <line x1="18" y1="12" x2="22" y2="12" />
+                    </svg>
+                  </button>
+                )}
               </div>
             )}
           </div>
