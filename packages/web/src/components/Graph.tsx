@@ -433,6 +433,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         ctx.beginPath();
         ctx.arc(nx, ny, radius, 0, Math.PI * 2);
         const nodeColor = getNodeColor(node.id);
+        const isOrphan = !counts.get(node.id);
         ctx.fillStyle = isPathEndpoint
           ? "#ffc832"
           : isPathNode
@@ -445,9 +446,19 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
                   ? "#7f6df2"
                   : isDimmed || (hasPath && !isPathNode)
                     ? "rgba(110, 110, 110, 0.3)"
-                    : nodeColor;
-        ctx.globalAlpha = isPathEndpoint || isPathNode ? 1 : isActive || isHovered ? 1 : isNeighbor ? 0.8 : isDimmed || (hasPath && !isPathNode) ? 0.4 : 0.6;
+                    : isOrphan
+                      ? "rgba(150, 150, 150, 0.5)"
+                      : nodeColor;
+        ctx.globalAlpha = isPathEndpoint || isPathNode ? 1 : isActive || isHovered ? 1 : isNeighbor ? 0.8 : isDimmed || (hasPath && !isPathNode) ? 0.4 : isOrphan ? 0.4 : 0.6;
         ctx.fill();
+        // Dashed ring for orphan nodes
+        if (isOrphan && !isDimmed && !hasPath) {
+          ctx.setLineDash([2, 2]);
+          ctx.strokeStyle = "rgba(150, 150, 150, 0.4)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
         ctx.globalAlpha = 1;
 
         // Collect label info for overlap avoidance
