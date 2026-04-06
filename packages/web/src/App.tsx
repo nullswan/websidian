@@ -14,6 +14,7 @@ import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
 import { Snippets } from "./components/Snippets.js";
 import { Tags } from "./components/Tags.js";
+import { Keywords } from "./components/Keywords.js";
 import { LocalGraph } from "./components/LocalGraph.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
@@ -3568,6 +3569,16 @@ ${rendered}
                     credentials: "include",
                     body: JSON.stringify({ content: newContent }),
                   }).catch(() => {});
+                }}
+              />
+            </SidebarSection>
+            <SidebarSection title="Keywords">
+              <Keywords
+                content={activeTab?.content ?? ""}
+                onSearch={(query) => {
+                  setLeftPanel("search");
+                  setLeftCollapsed(false);
+                  setSearchQuery(query);
                 }}
               />
             </SidebarSection>
