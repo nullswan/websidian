@@ -1680,6 +1680,7 @@ function ContextMenu({
         zIndex: 1000,
         minWidth: 140,
         boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+        animation: "ctx-menu-in 0.12s ease-out",
       }}
     >
       {menuItems.map((item, i) => (

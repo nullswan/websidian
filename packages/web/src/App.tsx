@@ -4880,6 +4880,7 @@ ${rendered}
               minWidth: 160,
               boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
               fontSize: 13,
+              animation: "ctx-menu-in 0.12s ease-out",
             }}
             onClick={(e) => e.stopPropagation()}
           >
