@@ -813,6 +813,7 @@ export function App() {
   const [readerHighlight, setReaderHighlight] = useState("");
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [editorInitialLine, setEditorInitialLine] = useState<number | null>(null);
+  const [justSavedTabId, setJustSavedTabId] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [leftWidth, setLeftWidth] = useState(260);
   const [rightWidth, setRightWidth] = useState(240);
@@ -1355,7 +1356,8 @@ export function App() {
             setError(null);
             updateTab(activeTab.id, { content, dirty: false });
             setSaveStatus("saved");
-            saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+            setJustSavedTabId(activeTab.id);
+            saveStatusTimer.current = setTimeout(() => { setSaveStatus("idle"); setJustSavedTabId(null); }, 2000);
             // Save version snapshot + clear recovery draft
             saveSnapshot(activeTab.path, content);
             clearDraft(activeTab.path);
@@ -2187,7 +2189,7 @@ ${rendered}
                           setRenamingTabId(tab.id);
                         }}
                       >
-                        {tab.dirty && <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span>}
+                        {tab.dirty ? <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span> : justSavedTabId === tab.id ? <span style={{ color: "#4ec9b0", marginRight: 2, fontSize: 10 }}>✓</span> : null}
                         {tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path}
                         {(() => {
                           if (!tab.content) return null;
