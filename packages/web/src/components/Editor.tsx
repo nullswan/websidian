@@ -1869,6 +1869,37 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // Backspace on list prefix: remove marker
+      {
+        key: "Backspace",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          if (sel.from !== sel.to) return false;
+          const line = view.state.doc.lineAt(sel.head);
+          const col = sel.head - line.from;
+          // Match list prefixes and check if cursor is right after the prefix
+          const taskMatch = line.text.match(/^(\s*)- \[[ x]\] $/);
+          const bulletMatch = line.text.match(/^(\s*)- $/);
+          const olMatch = line.text.match(/^(\s*)\d+\. $/);
+          const bqMatch = line.text.match(/^(\s*>+ ?)$/);
+
+          let prefixLen = 0;
+          if (taskMatch && col === line.text.length) prefixLen = line.text.length;
+          else if (bulletMatch && !line.text.match(/^(\s*)- \[/) && col === line.text.length) prefixLen = line.text.length;
+          else if (olMatch && col === line.text.length) prefixLen = line.text.length;
+          else if (bqMatch && col === line.text.length) prefixLen = line.text.length;
+
+          if (prefixLen > 0) {
+            const indent = line.text.match(/^\s*/)?.[0] ?? "";
+            view.dispatch({
+              changes: { from: line.from, to: line.to, insert: indent },
+              selection: { anchor: line.from + indent.length },
+            });
+            return true;
+          }
+          return false;
+        },
+      },
       // Select next occurrence (multi-cursor)
       { key: "Mod-d", run: selectNextOccurrence },
       { key: "Mod-Shift-l", run: selectSelectionMatches },
