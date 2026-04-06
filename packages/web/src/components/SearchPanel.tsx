@@ -29,9 +29,26 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
   const [sortMode, setSortMode] = useState<"relevance" | "modified" | "name">("relevance");
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [savedSearches, setSavedSearches] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("saved-searches") ?? "[]"); } catch { return []; }
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const lastInitialQuery = useRef(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveCurrent = () => {
+    if (!query.trim()) return;
+    const next = savedSearches.includes(query) ? savedSearches : [query, ...savedSearches].slice(0, 10);
+    setSavedSearches(next);
+    localStorage.setItem("saved-searches", JSON.stringify(next));
+    showToast?.("Search saved");
+  };
+
+  const removeSaved = (q: string) => {
+    const next = savedSearches.filter((s) => s !== q);
+    setSavedSearches(next);
+    localStorage.setItem("saved-searches", JSON.stringify(next));
+  };
 
   // Auto-focus input on mount
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -352,6 +369,17 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
               <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                 {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
               </span>
+              {query.trim() && !savedSearches.includes(query) && (
+                <span
+                  onClick={saveCurrent}
+                  title="Save this search"
+                  style={{ fontSize: 10, color: "var(--text-faint)", cursor: "pointer", userSelect: "none", marginLeft: 2 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-color)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+                >
+                  ☆
+                </span>
+              )}
             </>
           )}
         </div>
@@ -450,6 +478,41 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast, onCr
             </div>
           );
         })}
+        {!query && !searching && savedSearches.length > 0 && (
+          <div style={{ padding: "12px 12px 4px" }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>Saved searches</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {savedSearches.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    padding: "2px 8px",
+                    background: "rgba(127,109,242,0.08)",
+                    border: "1px solid rgba(127,109,242,0.2)",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setQuery(s)}
+                >
+                  {s}
+                  <span
+                    onClick={(e) => { e.stopPropagation(); removeSaved(s); }}
+                    style={{ color: "var(--text-faint)", fontSize: 10, cursor: "pointer", lineHeight: 1 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#e05252")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+                  >
+                    ×
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {!query && !searching && (
           <div style={{ padding: "12px 12px 8px", color: "var(--text-faint)", fontSize: 12 }}>
             <div style={{ marginBottom: 8, color: "var(--text-muted)", fontSize: 11 }}>Search tips:</div>
