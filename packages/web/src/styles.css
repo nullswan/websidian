@@ -284,6 +284,12 @@ details.callout > div {
 .reader-view li {
   margin: 4px 0;
 }
+/* Depth-based list marker colors */
+.reader-view > ul > li::marker, .reader-view > ol > li::marker { color: var(--accent-color, #7f6df2); }
+.reader-view li li::marker { color: #e6994a; }
+.reader-view li li li::marker { color: #4ac8e6; }
+.reader-view li li li li::marker { color: #e64a7b; }
+.reader-view li li li li li::marker { color: #8ae64a; }
 
 .reader-view li.task-list-item {
   list-style: none;
