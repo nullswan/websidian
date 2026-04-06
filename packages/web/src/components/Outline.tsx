@@ -105,9 +105,39 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
     });
   };
 
+  // Compute visible item indices for position indicator
+  const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i));
+  const activeVisiblePos = visibleIndices.indexOf(activeIdx);
+
   return (
     <div style={{ padding: "4px 12px 8px" }}>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, position: "relative" }}>
+        {/* Position indicator track */}
+        {visibleIndices.length > 1 && activeVisiblePos >= 0 && (
+          <div style={{
+            position: "absolute",
+            left: -8,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            background: "var(--border-color)",
+            borderRadius: 2,
+            opacity: 0.3,
+            pointerEvents: "none",
+          }}>
+            <div style={{
+              position: "absolute",
+              top: `${(activeVisiblePos / (visibleIndices.length - 1)) * 100}%`,
+              left: 0,
+              width: 3,
+              height: Math.max(12, 100 / visibleIndices.length) + "%",
+              maxHeight: 24,
+              background: "var(--accent-color)",
+              borderRadius: 2,
+              transition: "top 0.2s ease",
+            }} />
+          </div>
+        )}
         {/* Indent guide lines */}
         {Array.from(new Set(headings.map((h) => h.level - minLevel))).filter((d) => d > 0).map((depth) => (
           <div key={`guide-${depth}`} style={{
