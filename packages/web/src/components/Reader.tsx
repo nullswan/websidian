@@ -162,6 +162,25 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         });
       }
 
+      // Per-heading reading time badge
+      const allHeadings = Array.from(containerRef.current.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6"));
+      allHeadings.forEach((heading, idx) => {
+        // Count words between this heading and the next
+        let wordCount = 0;
+        let sibling = heading.nextElementSibling as HTMLElement | null;
+        while (sibling) {
+          if (/^H[1-6]$/.test(sibling.tagName)) break;
+          wordCount += (sibling.textContent || "").trim().split(/\s+/).filter(Boolean).length;
+          sibling = sibling.nextElementSibling as HTMLElement | null;
+        }
+        if (wordCount < 20) return; // Skip very short sections
+        const mins = Math.max(1, Math.ceil(wordCount / 200));
+        const badge = document.createElement("span");
+        badge.textContent = `${mins}m`;
+        badge.style.cssText = "font-size: 9px; color: var(--text-faint); font-weight: 400; margin-left: 8px; opacity: 0.6; vertical-align: middle;";
+        heading.appendChild(badge);
+      });
+
       // Add language labels and copy buttons to code blocks
       containerRef.current.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
         pre.style.position = "relative";
