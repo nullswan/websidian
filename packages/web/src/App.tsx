@@ -3279,6 +3279,54 @@ ${rendered}
               },
             },
             {
+              id: "split-at-heading",
+              name: "Split note at heading…",
+              action: () => {
+                if (!activeTab) return;
+                const content = activeTab.content;
+                const lines = content.split("\n");
+                // Find all headings
+                const headings: Array<{ text: string; level: number; lineIdx: number }> = [];
+                const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(content);
+                const fmLines = fmMatch ? fmMatch[0].split("\n").length - 1 : 0;
+                for (let i = fmLines; i < lines.length; i++) {
+                  const m = /^(#{1,6})\s+(.+)$/.exec(lines[i]);
+                  if (m) headings.push({ text: m[2].trim(), level: m[1].length, lineIdx: i });
+                }
+                if (headings.length < 2) { showToast("Need at least 2 headings to split"); return; }
+                // Use first non-first heading as split point (split off the second section)
+                // For a simple UX, split at the second heading
+                const splitIdx = headings[1].lineIdx;
+                const splitHeading = headings[1].text;
+                const before = lines.slice(0, splitIdx).join("\n").trimEnd();
+                const after = lines.slice(splitIdx).join("\n");
+                // New note name from heading
+                const newName = splitHeading.replace(/[/\\:*?"<>|]/g, "").trim();
+                const dir = activeTab.path.split("/").slice(0, -1).join("/");
+                const newPath = dir ? `${dir}/${newName}.md` : `${newName}.md`;
+                // Update current note (remove split section)
+                const updatedContent = before + "\n\n[[" + newName + "]]\n";
+                updateTab(activeTab.id, { content: updatedContent, dirty: true });
+                fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ content: updatedContent }),
+                }).catch(() => {});
+                // Create new note
+                fetch(`/api/vault/note?path=${encodeURIComponent(newPath)}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ content: after }),
+                }).then(() => {
+                  openTab(newPath);
+                  refreshTree();
+                  showToast(`Split into [[${newName}]]`);
+                }).catch(() => {});
+              },
+            },
+            {
               id: "close-all-tabs",
               name: "Close all tabs",
               action: () => {
