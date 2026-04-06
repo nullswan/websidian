@@ -3340,6 +3340,43 @@ function createBacklinkGutter(backlinkLinesRef: React.MutableRefObject<Map<numbe
   });
 }
 
+// Reading time estimate gutter: shows "Xm" on heading lines for that section
+class ReadingTimeMarker extends GutterMarker {
+  label: string;
+  constructor(label: string) { super(); this.label = label; }
+  toDOM() {
+    const el = document.createElement("span");
+    el.textContent = this.label;
+    el.style.cssText = "font-size:9px;color:var(--text-faint);opacity:0.4;transition:opacity 0.15s;cursor:default;";
+    el.title = `Estimated reading time for this section`;
+    return el;
+  }
+}
+
+const readingTimeGutter = gutter({
+  class: "cm-reading-time-gutter",
+  lineMarker(view, line) {
+    const text = view.state.sliceDoc(line.from, line.to);
+    const hm = /^(#{1,6})\s/.exec(text);
+    if (!hm) return null;
+    const headingLevel = hm[1].length;
+    const doc = view.state.doc;
+    const startLine = doc.lineAt(line.from).number;
+    // Count words from this heading to the next heading of equal or higher level
+    let words = 0;
+    for (let n = startLine + 1; n <= doc.lines; n++) {
+      const lineText = doc.line(n).text;
+      const nextH = /^(#{1,6})\s/.exec(lineText);
+      if (nextH && nextH[1].length <= headingLevel) break;
+      words += lineText.trim().split(/\s+/).filter(Boolean).length;
+    }
+    if (words < 20) return null;
+    const minutes = words / 200; // 200 wpm average
+    const label = minutes < 1 ? `${Math.ceil(minutes * 60)}s` : `${Math.round(minutes)}m`;
+    return new ReadingTimeMarker(label);
+  },
+});
+
 const lineTypeGutter = gutter({
   class: "cm-line-type-gutter",
   lineMarker(view, line) {
@@ -4602,6 +4639,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         lineTypeGutter,
+        readingTimeGutter,
         paragraphWordCountGutter,
         createHeadingLinkGutter(filePath),
         createBacklinkGutter(backlinkLinesRef),
