@@ -392,6 +392,22 @@ details.callout > div {
   background: rgba(127, 109, 242, 0.06);
 }
 
+/* Definition lists */
+.reader-view dl {
+  margin: 12px 0;
+}
+.reader-view dt {
+  font-weight: 600;
+  color: var(--heading-color);
+  margin-top: 8px;
+}
+.reader-view dd {
+  margin-left: 24px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
 .reader-view mark {
   background: rgba(255, 208, 0, 0.25);
   color: inherit;
