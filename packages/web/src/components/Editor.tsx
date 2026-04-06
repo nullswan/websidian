@@ -618,6 +618,82 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Table styling for Live Preview — adds borders and header background
+function buildTableDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  const doc = state.doc;
+
+  let i = 1;
+  while (i <= doc.lines) {
+    const line = doc.line(i);
+    const text = line.text;
+    // Detect table start: line with | separators
+    if (!text.match(/^\|.*\|/)) { i++; continue; }
+    // Check next line is separator (| --- | --- |)
+    if (i + 1 > doc.lines) { i++; continue; }
+    const sepLine = doc.line(i + 1);
+    if (!sepLine.text.match(/^\|[\s:-]+\|/)) { i++; continue; }
+
+    // Found a table: header at i, separator at i+1, data rows following
+    const tableStart = i;
+    let tableEnd = i + 1;
+    for (let j = i + 2; j <= doc.lines; j++) {
+      if (!doc.line(j).text.match(/^\|.*\|/)) break;
+      tableEnd = j;
+    }
+
+    // Check if cursor is in this table
+    let cursorInTable = false;
+    for (let l = tableStart; l <= tableEnd; l++) {
+      if (l === cursorLine) { cursorInTable = true; break; }
+    }
+
+    if (!cursorInTable) {
+      // Header row
+      builder.add(doc.line(tableStart).from, doc.line(tableStart).from, Decoration.line({
+        attributes: {
+          style: "background: rgba(255,255,255,0.06); font-weight: 600;",
+          class: "cm-table-line cm-table-header",
+        },
+      }));
+      // Separator row — dim it
+      builder.add(sepLine.from, sepLine.from, Decoration.line({
+        attributes: {
+          style: "color: #444; font-size: 0.8em;",
+          class: "cm-table-line cm-table-sep",
+        },
+      }));
+      // Data rows
+      for (let j = tableStart + 2; j <= tableEnd; j++) {
+        const dataLine = doc.line(j);
+        const isEven = (j - tableStart) % 2 === 0;
+        builder.add(dataLine.from, dataLine.from, Decoration.line({
+          attributes: {
+            style: isEven ? "background: rgba(255,255,255,0.02);" : "",
+            class: "cm-table-line",
+          },
+        }));
+      }
+    }
+
+    i = tableEnd + 1;
+  }
+
+  return builder.finish();
+}
+
+const tableField = StateField.define<DecorationSet>({
+  create(state) { return buildTableDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildTableDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // External link widget for Live Preview — renders [text](url) as styled text
 class ExternalLinkWidget extends WidgetType {
   text: string;
@@ -1207,6 +1283,11 @@ const livePreviewTheme = EditorView.theme({
     paddingLeft: "12px",
     marginLeft: "32px",
   },
+  // Table lines
+  ".cm-table-line": {
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    fontSize: "0.9em",
+  },
   // Code block lines
   ".cm-codeblock-line": {
     fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
@@ -1682,6 +1763,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         wikilinkRenderField,
         tagRenderField,
         highlightAndLinkField,
+        tableField,
         mathField,
         codeBlockField,
         noteEmbedField,
