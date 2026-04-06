@@ -672,6 +672,11 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             onFileClick={handleFileClick}
           />
         ))}
+        {filter.trim() && filteredEntries.length === 0 && (
+          <li style={{ padding: "12px 16px", color: "var(--text-faint)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
+            No matching files
+          </li>
+        )}
         {creating && creating.parentPath === "" && (
           <li>
             <InlineInput
