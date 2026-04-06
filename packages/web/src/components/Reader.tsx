@@ -745,6 +745,89 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html, filePath, md]);
 
+  // Tag hover popover — show count + notes sharing the tag
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+    let popover: HTMLDivElement | null = null;
+    let currentTag: HTMLElement | null = null;
+
+    const removePopover = () => {
+      if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+      if (popover) { popover.remove(); popover = null; }
+      currentTag = null;
+    };
+
+    const handleOver = (e: Event) => {
+      const target = (e.target as HTMLElement).closest<HTMLSpanElement>("span.tag[data-tag]");
+      if (!target || target === currentTag) return;
+      removePopover();
+      currentTag = target;
+
+      hoverTimer = setTimeout(() => {
+        const tag = target.dataset.tag;
+        if (!tag) return;
+
+        popover = document.createElement("div");
+        popover.className = "hover-preview";
+        popover.style.maxWidth = "240px";
+        popover.style.padding = "8px 12px";
+        popover.innerHTML = '<div style="color:var(--text-faint);font-size:11px;">Loading...</div>';
+
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        popover.style.position = "absolute";
+        popover.style.left = `${rect.left - containerRect.left}px`;
+        popover.style.top = `${rect.bottom - containerRect.top + 4}px`;
+        container.appendChild(popover);
+
+        fetch(`/api/vault/search?q=${encodeURIComponent("#" + tag)}`, { credentials: "include" })
+          .then(r => r.json())
+          .then(data => {
+            if (!popover || currentTag !== target) return;
+            const results = data.results ?? [];
+            const count = results.length;
+            let html = `<div style="font-weight:600;color:var(--accent-color);font-size:12px;margin-bottom:4px;">#${tag}</div>`;
+            html += `<div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">${count} note${count !== 1 ? "s" : ""}</div>`;
+            if (count > 0) {
+              const shown = results.slice(0, 8);
+              html += '<div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">';
+              for (const r of shown) {
+                const name = (r.path as string).replace(/\.md$/, "").split("/").pop();
+                html += `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>`;
+              }
+              if (count > 8) html += `<div style="color:var(--text-faint);">+${count - 8} more</div>`;
+              html += "</div>";
+            }
+            popover.innerHTML = html;
+
+            // Reposition if overflow
+            const pRect = popover.getBoundingClientRect();
+            if (pRect.bottom > window.innerHeight - 20) {
+              popover.style.top = `${rect.top - containerRect.top - pRect.height - 4}px`;
+            }
+          })
+          .catch(() => { if (popover) popover.innerHTML = '<div style="color:var(--text-faint);font-size:11px;">Unavailable</div>'; });
+      }, 300);
+    };
+
+    const handleOut = (e: Event) => {
+      const related = (e as MouseEvent).relatedTarget as HTMLElement | null;
+      if (related && (related.closest(".hover-preview") || related.closest("span.tag"))) return;
+      removePopover();
+    };
+
+    container.addEventListener("mouseover", handleOver);
+    container.addEventListener("mouseout", handleOut);
+    return () => {
+      removePopover();
+      container.removeEventListener("mouseover", handleOver);
+      container.removeEventListener("mouseout", handleOut);
+    };
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
