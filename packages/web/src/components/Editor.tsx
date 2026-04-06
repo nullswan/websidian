@@ -1172,6 +1172,27 @@ function buildHighlightAndLinkDecorations(state: EditorState): DecorationSet {
       });
     }
 
+    // Bare URLs — https://... not already inside []() or <> (on non-cursor lines)
+    const bareUrlRegex = /(?<![(\[<])https?:\/\/[^\s)>\]]+/g;
+    while ((m = bareUrlRegex.exec(text)) !== null) {
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      // Skip if it overlaps with a markdown link — the linkRegex below will handle those
+      const before = text.slice(Math.max(0, m.index - 2), m.index);
+      if (before.endsWith("](")) continue;
+      ranges.push({
+        from,
+        to,
+        deco: Decoration.mark({
+          attributes: {
+            style: "color: var(--accent-color); text-decoration: underline; text-decoration-color: rgba(127,109,242,0.3); cursor: pointer;",
+            title: m[0],
+            "data-url": m[0],
+          },
+        }),
+      });
+    }
+
     // [text](url) — external links, not images (![...])
     const linkRegex = /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g;
     while ((m = linkRegex.exec(text)) !== null) {
@@ -3496,12 +3517,24 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         onTagClick(detail.tag);
       }
     };
+    // Ctrl+Click on bare URLs opens in browser
+    const handleUrlClick = (e: MouseEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const target = (e.target as HTMLElement).closest("[data-url]");
+      if (target) {
+        e.preventDefault();
+        window.open((target as HTMLElement).dataset.url, "_blank", "noopener,noreferrer");
+      }
+    };
+    contentDOM.addEventListener("click", handleUrlClick);
+
     viewRef.current.dom.addEventListener("wikilink-navigate", handleWikilinkNav);
     viewRef.current.dom.addEventListener("tag-click", handleTagClick);
 
     return () => {
       contentDOM.removeEventListener("mousemove", handleMouseMove);
       contentDOM.removeEventListener("mouseleave", handleMouseLeave);
+      contentDOM.removeEventListener("click", handleUrlClick);
       viewRef.current?.dom.removeEventListener("wikilink-navigate", handleWikilinkNav);
       viewRef.current?.dom.removeEventListener("tag-click", handleTagClick);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
