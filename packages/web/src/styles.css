@@ -918,3 +918,19 @@ details.callout > div {
 .cm-cursor-overlay .cm-fat-cursor {
   background: rgba(127, 109, 242, 0.6) !important;
 }
+
+/* Print styles */
+@media print {
+  body { background: white !important; color: black !important; }
+  .icon-ribbon, .tab-bar-wrapper, .status-bar, .hover-preview, .floating-toc,
+  aside, .scroll-progress-bar, .minimap-canvas { display: none !important; }
+  .reader-view { color: black !important; padding: 0 !important; max-width: 100% !important; }
+  .reader-view a { color: #333 !important; }
+  .reader-view code { background: #f5f5f5 !important; color: #333 !important; }
+  .reader-view pre { background: #f5f5f5 !important; border: 1px solid #ddd !important; }
+  .reader-view blockquote { border-left-color: #999 !important; color: #555 !important; }
+  .reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6 {
+    color: black !important;
+  }
+  .inline-title { color: black !important; }
+}

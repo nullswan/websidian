@@ -1386,6 +1386,13 @@ ${rendered}
         return;
       }
 
+      // Ctrl+P: print current view
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key === "p") {
+        e.preventDefault();
+        window.print();
+        return;
+      }
+
       // Check each registered hotkey action
       const hkMap = hotkeyMapRef.current;
       let matchedAction: string | null = null;
