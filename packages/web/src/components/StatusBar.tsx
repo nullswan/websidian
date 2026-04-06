@@ -95,7 +95,23 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
         userSelect: "none",
       }}
     >
-      <span>{fileName}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+        {(() => {
+          const parts = path.split("/");
+          const file = parts.pop() ?? path;
+          return (
+            <>
+              {parts.map((seg, i) => (
+                <span key={i}>
+                  <span style={{ opacity: 0.5 }}>{seg}</span>
+                  <span style={{ opacity: 0.3, margin: "0 1px" }}>/</span>
+                </span>
+              ))}
+              <span style={{ color: "var(--text-secondary)" }}>{file}</span>
+            </>
+          );
+        })()}
+      </span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
         {stats.words.toLocaleString()} words
         {wordHistory.length >= 3 && (() => {
