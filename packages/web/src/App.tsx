@@ -3782,6 +3782,36 @@ ${rendered}
               },
             },
             {
+              id: "split-preview",
+              name: "Split preview (editor + reader side-by-side)",
+              action: () => {
+                if (!activeTab) return;
+                if (panes.length >= 2) {
+                  showToast("Already in split view");
+                  return;
+                }
+                // Set current pane to edit mode
+                updateTab(activeTab.id, { mode: "edit" });
+                // Create new pane and open same file in read mode
+                setPanes((prev) => [...prev, { tabIds: [], activeTabId: null }]);
+                setTimeout(() => {
+                  openTab(activeTab.path, panes.length);
+                  // Set the new tab to read mode after it loads
+                  setTimeout(() => {
+                    setTabsMap((prev) => {
+                      const newTabEntry = Object.entries(prev).find(
+                        ([id, t]) => t.path === activeTab.path && id !== activeTab.id
+                      );
+                      if (newTabEntry) {
+                        return { ...prev, [newTabEntry[0]]: { ...newTabEntry[1], mode: "read" } };
+                      }
+                      return prev;
+                    });
+                  }, 100);
+                }, 0);
+              },
+            },
+            {
               id: "rename-tag",
               name: "Rename tag across vault",
               action: async () => {
