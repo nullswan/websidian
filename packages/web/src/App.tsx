@@ -5418,6 +5418,7 @@ ${rendered}
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
           zIndex: 2000,
           pointerEvents: "none",
+          animation: "toast-slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
         }}>
           {toast}
         </div>
