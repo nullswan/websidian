@@ -2577,6 +2577,53 @@ ${rendered}
                 }
               },
             },
+            {
+              id: "close-all-tabs",
+              name: "Close all tabs",
+              action: () => {
+                const tabIds = activePane?.tabIds ?? [];
+                tabIds.forEach((id) => closeTab(id, activePaneIdx));
+              },
+            },
+            {
+              id: "close-other-tabs",
+              name: "Close other tabs",
+              action: () => {
+                const tabIds = activePane?.tabIds ?? [];
+                const keepId = activePane?.activeTabId;
+                tabIds.filter((id) => id !== keepId).forEach((id) => closeTab(id, activePaneIdx));
+              },
+            },
+            {
+              id: "reveal-in-tree",
+              name: "Reveal active file in file tree",
+              action: () => {
+                if (!activeTab) return;
+                setLeftPanel("files");
+                setLeftCollapsed(false);
+              },
+            },
+            {
+              id: "toggle-line-numbers",
+              name: appSettings.showLineNumbers ? "Hide line numbers" : "Show line numbers",
+              action: () => {
+                setAppSettings((s) => ({ ...s, showLineNumbers: !s.showLineNumbers }));
+              },
+            },
+            {
+              id: "increase-font",
+              name: "Increase editor font size",
+              action: () => {
+                setAppSettings((s) => ({ ...s, editorFontSize: Math.min(24, (s.editorFontSize ?? 16) + 1) }));
+              },
+            },
+            {
+              id: "decrease-font",
+              name: "Decrease editor font size",
+              action: () => {
+                setAppSettings((s) => ({ ...s, editorFontSize: Math.max(10, (s.editorFontSize ?? 16) - 1) }));
+              },
+            },
             ...(panes.length < 2
               ? [{
                   id: "split-right",
