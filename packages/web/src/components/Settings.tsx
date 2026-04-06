@@ -27,6 +27,7 @@ export interface AppSettings {
   smartQuotes: boolean;
   customCSS: string;
   autoHideTabBar: boolean;
+  showFileExtensions: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -55,6 +56,7 @@ const DEFAULTS: AppSettings = {
   smartQuotes: true,
   customCSS: "",
   autoHideTabBar: false,
+  showFileExtensions: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -480,6 +482,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Hide the tab bar when only one tab is open"
               >
                 <Toggle checked={settings.autoHideTabBar} onChange={(v) => update("autoHideTabBar", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Show file extensions"
+                description="Display .md and other extensions in the file explorer"
+              >
+                <Toggle checked={settings.showFileExtensions} onChange={(v) => update("showFileExtensions", v)} />
               </SettingItem>
 
               <SettingItem

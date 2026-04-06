@@ -147,6 +147,7 @@ interface FileTreeProps {
   todoCounts?: Record<string, number>;
   gitStatus?: Record<string, string>;
   onShowToast?: (msg: string) => void;
+  showFileExtensions?: boolean;
 }
 
 interface ContextMenuState {
@@ -236,7 +237,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, gitStatus, onShowToast }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts, gitStatus, onShowToast, showFileExtensions = false }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const [colorLabels, setColorLabels] = useState<Record<string, string>>(loadColorLabels);
@@ -696,7 +697,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               onMouseLeave={(e) => { if (f.path !== selectedPath) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >
               <FileIcon name={f.path.split("/").pop() ?? ""} />
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{f.path.replace(/\.md$/, "").split("/").pop()}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{showFileExtensions ? f.path.split("/").pop() : f.path.replace(/\.md$/, "").split("/").pop()}</span>
               <span style={{ fontSize: 9, color: "var(--text-faint)", flexShrink: 0 }}>{formatRelativeTime(f.mtime)}</span>
             </div>
           ))}
@@ -871,6 +872,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             reorderInFolder={reorderInFolder}
             multiSelected={multiSelected}
             onFileClick={handleFileClick}
+            showFileExtensions={showFileExtensions}
           />
         ))}
         {filter.trim() && filteredEntries.length === 0 && (
@@ -1109,6 +1111,7 @@ function FileTreeNode({
   reorderInFolder,
   multiSelected,
   onFileClick,
+  showFileExtensions,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -1137,6 +1140,7 @@ function FileTreeNode({
   reorderInFolder?: (sourcePath: string, targetPath: string, parentPath: string) => void;
   multiSelected?: Set<string>;
   onFileClick?: (path: string, e: React.MouseEvent) => void;
+  showFileExtensions?: boolean;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -1252,6 +1256,7 @@ function FileTreeNode({
                 reorderInFolder={reorderInFolder}
                 multiSelected={multiSelected}
                 onFileClick={onFileClick}
+                showFileExtensions={showFileExtensions}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -1273,16 +1278,17 @@ function FileTreeNode({
   const isSelected = entry.path === selectedPath;
   const isMultiSelected = multiSelected?.has(entry.path) ?? false;
   const isFocused = focusedPath === entry.path;
-  const name = entry.path.split("/").pop() ?? entry.path;
+  const rawName = entry.path.split("/").pop() ?? entry.path;
+  const name = showFileExtensions ? rawName : rawName.replace(/\.md$/, "");
   const isRenaming = renaming === entry.path;
 
   return (
     <li>
       {isRenaming ? (
         <InlineInput
-          defaultValue={name}
+          defaultValue={rawName}
           onSubmit={(newName) => onRenameSubmit(entry.path, newName)}
-          onCancel={() => onRenameSubmit(entry.path, name)}
+          onCancel={() => onRenameSubmit(entry.path, rawName)}
           depth={depth + 1}
         />
       ) : (

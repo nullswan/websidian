@@ -3193,6 +3193,7 @@ ${rendered}
                   todoCounts={todoCounts}
                   gitStatus={gitStatus}
                   onShowToast={showToast}
+                  showFileExtensions={appSettings.showFileExtensions}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
