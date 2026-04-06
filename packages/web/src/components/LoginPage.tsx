@@ -46,7 +46,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         alignItems: "center",
         justifyContent: "center",
         height: "100vh",
-        background: "#1e1e1e",
+        background: "var(--bg-primary)",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
@@ -55,7 +55,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         style={{
           width: 360,
           padding: 32,
-          background: "#252526",
+          background: "var(--bg-secondary)",
           borderRadius: 8,
           boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
         }}
@@ -64,7 +64,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           style={{
             fontSize: 22,
             fontWeight: 600,
-            color: "#ddd",
+            color: "var(--text-primary)",
             marginBottom: 4,
             textAlign: "center",
           }}
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <p
           style={{
             fontSize: 13,
-            color: "#888",
+            color: "var(--text-muted)",
             textAlign: "center",
             marginBottom: 24,
           }}
@@ -99,7 +99,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <div style={{ marginBottom: 12 }}>
           <label
-            style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}
+            style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}
           >
             Username
           </label>
@@ -111,10 +111,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             style={{
               width: "100%",
               padding: "8px 12px",
-              border: "1px solid #444",
+              border: "1px solid var(--border-color)",
               borderRadius: 4,
-              background: "#1e1e1e",
-              color: "#ddd",
+              background: "var(--bg-primary)",
+              color: "var(--text-primary)",
               fontSize: 14,
               outline: "none",
             }}
@@ -123,7 +123,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <div style={{ marginBottom: 20 }}>
           <label
-            style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}
+            style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}
           >
             Password
           </label>
@@ -134,10 +134,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             style={{
               width: "100%",
               padding: "8px 12px",
-              border: "1px solid #444",
+              border: "1px solid var(--border-color)",
               borderRadius: 4,
-              background: "#1e1e1e",
-              color: "#ddd",
+              background: "var(--bg-primary)",
+              color: "var(--text-primary)",
               fontSize: 14,
               outline: "none",
             }}
@@ -152,8 +152,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             padding: "10px",
             border: "none",
             borderRadius: 4,
-            background: "#7f6df2",
-            color: "#fff",
+            background: "var(--accent-color)",
+            color: "var(--text-primary)",
             fontSize: 14,
             fontWeight: 600,
             cursor: loading ? "default" : "pointer",
@@ -173,7 +173,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             style={{
               background: "none",
               border: "none",
-              color: "#7f6df2",
+              color: "var(--accent-color)",
               fontSize: 13,
               cursor: "pointer",
             }}

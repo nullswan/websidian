@@ -6,7 +6,7 @@ interface BacklinksProps {
 export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
   if (backlinks.length === 0) {
     return (
-      <div style={{ padding: "4px 12px", fontSize: 12, color: "#555" }}>
+      <div style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-faint)" }}>
         No backlinks
       </div>
     );
@@ -32,7 +32,7 @@ export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
               }}
               title={path}
               style={{
-                color: "#7f6df2",
+                color: "var(--accent-color)",
                 textDecoration: "none",
                 fontSize: 13,
                 display: "block",
@@ -51,10 +51,10 @@ export function Backlinks({ backlinks, onNavigate }: BacklinksProps) {
               return (
                 <div key={i} style={{
                   fontSize: 11,
-                  color: "#999",
+                  color: "var(--text-secondary)",
                   marginTop: 2,
                   padding: "2px 0 2px 8px",
-                  borderLeft: "2px solid #333",
+                  borderLeft: "2px solid var(--border-color)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",

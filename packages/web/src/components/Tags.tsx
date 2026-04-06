@@ -27,7 +27,7 @@ export function Tags({ onNavigate }: TagsProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: 12, color: "#666", fontSize: 13 }}>
+      <div style={{ padding: 12, color: "var(--text-faint)", fontSize: 13 }}>
         Loading tags...
       </div>
     );
@@ -35,7 +35,7 @@ export function Tags({ onNavigate }: TagsProps) {
 
   if (tags.length === 0) {
     return (
-      <div style={{ padding: 12, color: "#555", fontSize: 13 }}>
+      <div style={{ padding: 12, color: "var(--text-faint)", fontSize: 13 }}>
         No tags found
       </div>
     );
@@ -128,7 +128,7 @@ function TagNode({
           gap: 4,
           padding: "4px 8px 4px " + (8 + depth * 14) + "px",
           cursor: hasNotes ? "pointer" : "default",
-          color: hasNotes ? "#7f6df2" : "#888",
+          color: hasNotes ? "var(--accent-color)" : "var(--text-muted)",
         }}
         onClick={() => {
           if (hasNotes) {
@@ -143,7 +143,7 @@ function TagNode({
         )}
         <span>#{node.name}</span>
         {hasNotes && (
-          <span style={{ fontSize: 11, color: "#666", marginLeft: "auto" }}>
+          <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto" }}>
             {node.count}
           </span>
         )}
@@ -157,15 +157,15 @@ function TagNode({
               style={{
                 padding: "2px 8px",
                 fontSize: 12,
-                color: "#aaa",
+                color: "var(--text-secondary)",
                 cursor: "pointer",
               }}
               onClick={() => onNavigate(path)}
               onMouseEnter={(e) => {
-                (e.target as HTMLElement).style.color = "#ddd";
+                (e.target as HTMLElement).style.color = "var(--text-primary)";
               }}
               onMouseLeave={(e) => {
-                (e.target as HTMLElement).style.color = "#aaa";
+                (e.target as HTMLElement).style.color = "var(--text-secondary)";
               }}
             >
               {path.replace(/\.md$/, "")}

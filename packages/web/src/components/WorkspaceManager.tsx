@@ -79,8 +79,8 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: "1px solid #444",
+          background: "var(--bg-primary)",
+          border: "1px solid var(--border-color)",
           borderRadius: 8,
           width: 400,
           maxHeight: "60vh",
@@ -90,8 +90,8 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid #333" }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#ddd", marginBottom: 8 }}>Workspaces</div>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>Workspaces</div>
           <div style={{ display: "flex", gap: 6 }}>
             <input
               ref={inputRef}
@@ -106,10 +106,10 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
               style={{
                 flex: 1,
                 padding: "6px 8px",
-                border: "1px solid #444",
+                border: "1px solid var(--border-color)",
                 borderRadius: 4,
-                background: "#2a2a2a",
-                color: "#ddd",
+                background: "var(--bg-tertiary)",
+                color: "var(--text-primary)",
                 fontSize: 13,
                 outline: "none",
               }}
@@ -122,7 +122,7 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
                 border: "1px solid rgba(127,109,242,0.4)",
                 borderRadius: 4,
                 background: "rgba(127,109,242,0.15)",
-                color: newName.trim() ? "#7f6df2" : "#555",
+                color: newName.trim() ? "var(--accent-color)" : "var(--text-faint)",
                 fontSize: 13,
                 cursor: newName.trim() ? "pointer" : "default",
               }}
@@ -133,7 +133,7 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
         </div>
         <div style={{ flex: 1, overflow: "auto" }}>
           {workspaces.length === 0 ? (
-            <div style={{ padding: 16, color: "#555", fontSize: 13, textAlign: "center" }}>
+            <div style={{ padding: 16, color: "var(--text-faint)", fontSize: 13, textAlign: "center" }}>
               No saved workspaces
             </div>
           ) : (
@@ -145,7 +145,7 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  borderBottom: "1px solid #2a2a2a",
+                  borderBottom: "1px solid var(--bg-tertiary)",
                   cursor: "pointer",
                 }}
                 onClick={() => handleLoad(ws)}
@@ -153,8 +153,8 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: "#ddd", fontSize: 13 }}>{ws.name}</div>
-                  <div style={{ color: "#555", fontSize: 11, marginTop: 2 }}>
+                  <div style={{ color: "var(--text-primary)", fontSize: 13 }}>{ws.name}</div>
+                  <div style={{ color: "var(--text-faint)", fontSize: 11, marginTop: 2 }}>
                     {ws.snapshot.tabs.length} tab{ws.snapshot.tabs.length !== 1 ? "s" : ""} · {new Date(ws.savedAt).toLocaleDateString()}
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export function WorkspaceManager({ onClose, onLoad, getCurrentSnapshot, showToas
                   style={{
                     background: "transparent",
                     border: "none",
-                    color: "#555",
+                    color: "var(--text-faint)",
                     cursor: "pointer",
                     fontSize: 14,
                     padding: "2px 6px",

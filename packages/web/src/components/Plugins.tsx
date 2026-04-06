@@ -60,7 +60,7 @@ export function Plugins() {
 
   if (loading) {
     return (
-      <div style={{ padding: 12, color: "#666", fontSize: 13 }}>
+      <div style={{ padding: 12, color: "var(--text-faint)", fontSize: 13 }}>
         Loading plugins...
       </div>
     );
@@ -68,7 +68,7 @@ export function Plugins() {
 
   if (plugins.length === 0) {
     return (
-      <div style={{ padding: 12, color: "#555", fontSize: 13 }}>
+      <div style={{ padding: 12, color: "var(--text-faint)", fontSize: 13 }}>
         No plugins installed
       </div>
     );
@@ -83,22 +83,22 @@ export function Plugins() {
             key={plugin.id}
             style={{
               padding: "8px 10px",
-              borderBottom: "1px solid #2a2a2a",
+              borderBottom: "1px solid var(--bg-tertiary)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-              <span style={{ fontWeight: 600, color: "#ddd" }}>
+              <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                 {plugin.name}
               </span>
-              <span style={{ fontSize: 11, color: "#666" }}>
+              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                 v{plugin.version}
               </span>
             </div>
-            <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
               {plugin.description}
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: "#666" }}>
+              <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
                 by {plugin.author}
               </span>
               {plugin.isDesktopOnly ? (
@@ -120,7 +120,7 @@ export function Plugins() {
                     padding: "1px 6px",
                     borderRadius: 3,
                     background: "rgba(127, 109, 242, 0.15)",
-                    color: "#7f6df2",
+                    color: "var(--accent-color)",
                   }}
                 >
                   Web Compatible
@@ -131,8 +131,8 @@ export function Plugins() {
                     fontSize: 10,
                     padding: "1px 6px",
                     borderRadius: 3,
-                    background: "#333",
-                    color: "#888",
+                    background: "var(--border-color)",
+                    color: "var(--text-muted)",
                   }}
                 >
                   No main.js

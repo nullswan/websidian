@@ -75,12 +75,12 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
                 padding: `2px 0 2px ${(h.level - 1) * 12}px`,
                 fontSize: 12,
                 color: i === activeIdx
-                  ? "#7f6df2"
-                  : h.level === 1 ? "#ddd" : h.level === 2 ? "#bbb" : "#888",
+                  ? "var(--accent-color)"
+                  : h.level === 1 ? "var(--text-primary)" : h.level === 2 ? "var(--text-secondary)" : "var(--text-muted)",
                 cursor: "pointer",
                 borderRadius: 3,
                 fontWeight: i === activeIdx ? 600 : "normal",
-                borderLeft: i === activeIdx ? "2px solid #7f6df2" : "2px solid transparent",
+                borderLeft: i === activeIdx ? "2px solid var(--accent-color)" : "2px solid transparent",
                 marginLeft: -2,
               }}
               onClick={() => {

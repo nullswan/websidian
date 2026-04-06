@@ -128,8 +128,8 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
 
   const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? "rgba(127,109,242,0.2)" : "transparent",
-    border: active ? "1px solid rgba(127,109,242,0.5)" : "1px solid #444",
-    color: active ? "#7f6df2" : "#666",
+    border: active ? "1px solid rgba(127,109,242,0.5)" : "1px solid var(--border-color)",
+    color: active ? "var(--accent-color)" : "var(--text-faint)",
     borderRadius: 3,
     padding: "2px 5px",
     fontSize: 11,
@@ -142,9 +142,9 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
 
   const actionBtnStyle: React.CSSProperties = {
     background: "transparent",
-    border: "1px solid #444",
+    border: "1px solid var(--border-color)",
     borderRadius: 3,
-    color: "#999",
+    color: "var(--text-secondary)",
     fontSize: 10,
     padding: "2px 6px",
     cursor: "pointer",
@@ -155,12 +155,12 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ padding: "8px 12px", borderBottom: "1px solid #333" }}>
+      <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-color)" }}>
         <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
           <span
             onClick={() => setShowReplace((v) => !v)}
             style={{
-              color: "#555", fontSize: 10, cursor: "pointer", userSelect: "none",
+              color: "var(--text-faint)", fontSize: 10, cursor: "pointer", userSelect: "none",
               marginTop: 8, width: 12, textAlign: "center", flexShrink: 0,
               transition: "transform 0.15s",
               transform: showReplace ? "rotate(90deg)" : "rotate(0deg)",
@@ -196,10 +196,10 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                 style={{
                   width: "100%",
                   padding: "6px 28px 6px 8px",
-                  border: regexError ? "1px solid #f44" : "1px solid #444",
+                  border: regexError ? "1px solid #f44" : "1px solid var(--border-color)",
                   borderRadius: 4,
-                  background: "#2a2a2a",
-                  color: "#ddd",
+                  background: "var(--bg-tertiary)",
+                  color: "var(--text-primary)",
                   fontSize: 13,
                   outline: "none",
                   boxSizing: "border-box",
@@ -213,7 +213,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                     right: 6,
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#666",
+                    color: "var(--text-faint)",
                     cursor: "pointer",
                     fontSize: 14,
                     lineHeight: 1,
@@ -243,10 +243,10 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                   style={{
                     width: "100%",
                     padding: "6px 8px",
-                    border: "1px solid #444",
+                    border: "1px solid var(--border-color)",
                     borderRadius: 4,
-                    background: "#2a2a2a",
-                    color: "#ddd",
+                    background: "var(--bg-tertiary)",
+                    color: "var(--text-primary)",
                     fontSize: 13,
                     outline: "none",
                     boxSizing: "border-box",
@@ -258,7 +258,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                     disabled={replacing || !query.trim()}
                     style={{
                       ...actionBtnStyle,
-                      color: replacing ? "#555" : "#7f6df2",
+                      color: replacing ? "var(--text-faint)" : "var(--accent-color)",
                       border: "1px solid rgba(127,109,242,0.3)",
                     }}
                     title="Replace all (Ctrl+Enter)"
@@ -286,7 +286,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
             Aa
           </span>
           {results.length > 0 && (
-            <span style={{ fontSize: 11, color: "#666", marginLeft: "auto" }}>
+            <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto" }}>
               {totalMatches} match{totalMatches !== 1 ? "es" : ""} in {results.length} file{results.length !== 1 ? "s" : ""}
             </span>
           )}
@@ -299,13 +299,13 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
       </div>
       <div style={{ flex: 1, overflow: "auto", fontSize: 13 }}>
         {searching && (
-          <div style={{ padding: 12, color: "#666" }}>Searching...</div>
+          <div style={{ padding: 12, color: "var(--text-faint)" }}>Searching...</div>
         )}
         {results.map((r, rIdx) => {
           const isCollapsed = collapsed.has(r.path);
           const isSelected = rIdx === selectedIdx;
           return (
-            <div key={r.path} style={{ borderBottom: "1px solid #2a2a2a" }}>
+            <div key={r.path} style={{ borderBottom: "1px solid var(--bg-tertiary)" }}>
               <div
                 ref={(el) => { if (el && isSelected) el.scrollIntoView({ block: "nearest" }); }}
                 style={{
@@ -318,11 +318,11 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                 }}
                 onClick={() => toggleCollapse(r.path)}
               >
-                <span style={{ color: "#555", fontSize: 10, width: 10, textAlign: "center", flexShrink: 0 }}>
+                <span style={{ color: "var(--text-faint)", fontSize: 10, width: 10, textAlign: "center", flexShrink: 0 }}>
                   {isCollapsed ? "▸" : "▾"}
                 </span>
                 <span
-                  style={{ color: "#7f6df2", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  style={{ color: "var(--accent-color)", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                   onClick={(e) => { e.stopPropagation(); onNavigate(r.path, query); }}
                 >
                   {r.path.replace(/\.md$/, "")}
@@ -336,7 +336,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                     Replace
                   </button>
                 )}
-                <span style={{ color: "#555", fontSize: 11, flexShrink: 0 }}>
+                <span style={{ color: "var(--text-faint)", fontSize: 11, flexShrink: 0 }}>
                   {r.matches.length}
                 </span>
               </div>
@@ -345,13 +345,13 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                   key={m.line}
                   style={{
                     padding: "2px 12px 2px 28px",
-                    color: "#999",
+                    color: "var(--text-secondary)",
                     fontSize: 12,
                     cursor: "pointer",
                   }}
                   onClick={() => onNavigate(r.path, query, m.line)}
                 >
-                  <span style={{ color: "#555", marginRight: 6 }}>
+                  <span style={{ color: "var(--text-faint)", marginRight: 6 }}>
                     {m.line}:
                   </span>
                   {highlightMatch(m.text, query, useRegex, caseSensitive)}
@@ -361,7 +361,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
                 <div
                   style={{
                     padding: "2px 12px 4px 28px",
-                    color: "#555",
+                    color: "var(--text-faint)",
                     fontSize: 11,
                     cursor: "pointer",
                   }}
@@ -374,7 +374,7 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
           );
         })}
         {!searching && results.length === 0 && query && !regexError && (
-          <div style={{ padding: 12, color: "#555" }}>No results found</div>
+          <div style={{ padding: 12, color: "var(--text-faint)" }}>No results found</div>
         )}
       </div>
     </div>

@@ -88,7 +88,7 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
         style={{
           width: 500,
           maxHeight: "60vh",
-          background: "#2a2a2a",
+          background: "var(--bg-tertiary)",
           borderRadius: 8,
           boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           display: "flex",
@@ -106,16 +106,16 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
           style={{
             padding: "12px 16px",
             border: "none",
-            borderBottom: "1px solid #444",
+            borderBottom: "1px solid var(--border-color)",
             background: "transparent",
-            color: "#ddd",
+            color: "var(--text-primary)",
             fontSize: 15,
             outline: "none",
           }}
         />
         <div style={{ overflow: "auto", flex: 1 }}>
           {!query.trim() && candidates.length > 0 && (
-            <div style={{ padding: "6px 16px 2px", fontSize: 11, color: "#666", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <div style={{ padding: "6px 16px 2px", fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Recent
             </div>
           )}
@@ -125,7 +125,7 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
               style={{
                 padding: "8px 16px",
                 cursor: "pointer",
-                background: i === selectedIdx ? "#37373d" : "transparent",
+                background: i === selectedIdx ? "var(--bg-hover)" : "transparent",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
@@ -136,21 +136,21 @@ export function QuickSwitcher({ onSelect, onClose, recentPaths = [] }: QuickSwit
               }}
               onMouseEnter={() => setSelectedIdx(i)}
             >
-              <span style={{ color: "#ddd", fontSize: 14 }}>{c.name}</span>
+              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>{c.name}</span>
               {c.type === "alias" && (
-                <span style={{ color: "#666", fontSize: 12 }}>
+                <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
                   alias → {c.path.replace(/\.md$/, "")}
                 </span>
               )}
               {c.type === "file" && c.path.includes("/") && (
-                <span style={{ color: "#555", fontSize: 12 }}>
+                <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
                   {c.path.split("/").slice(0, -1).join("/")}
                 </span>
               )}
             </div>
           ))}
           {candidates.length === 0 && query && (
-            <div style={{ padding: "12px 16px", color: "#666", fontSize: 13 }}>
+            <div style={{ padding: "12px 16px", color: "var(--text-faint)", fontSize: 13 }}>
               No results
             </div>
           )}

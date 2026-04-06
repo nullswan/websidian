@@ -71,7 +71,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         style={{
           width: 500,
           maxHeight: "60vh",
-          background: "#2a2a2a",
+          background: "var(--bg-tertiary)",
           borderRadius: 8,
           boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           display: "flex",
@@ -89,9 +89,9 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
           style={{
             padding: "12px 16px",
             border: "none",
-            borderBottom: "1px solid #444",
+            borderBottom: "1px solid var(--border-color)",
             background: "transparent",
-            color: "#ddd",
+            color: "var(--text-primary)",
             fontSize: 15,
             outline: "none",
           }}
@@ -103,7 +103,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
               style={{
                 padding: "8px 16px",
                 cursor: "pointer",
-                background: i === selectedIdx ? "#37373d" : "transparent",
+                background: i === selectedIdx ? "var(--bg-hover)" : "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -114,13 +114,13 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
               }}
               onMouseEnter={() => setSelectedIdx(i)}
             >
-              <span style={{ color: "#ddd", fontSize: 14 }}>{cmd.name}</span>
+              <span style={{ color: "var(--text-primary)", fontSize: 14 }}>{cmd.name}</span>
               {cmd.shortcut && (
                 <span
                   style={{
-                    color: "#666",
+                    color: "var(--text-faint)",
                     fontSize: 11,
-                    background: "#1e1e1e",
+                    background: "var(--bg-primary)",
                     padding: "2px 6px",
                     borderRadius: 3,
                   }}
@@ -131,7 +131,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
             </div>
           ))}
           {filtered.length === 0 && (
-            <div style={{ padding: "12px 16px", color: "#666", fontSize: 13 }}>
+            <div style={{ padding: "12px 16px", color: "var(--text-faint)", fontSize: 13 }}>
               No matching commands
             </div>
           )}

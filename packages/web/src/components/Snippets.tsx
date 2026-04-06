@@ -59,7 +59,7 @@ export function Snippets() {
             gap: 6,
             padding: "3px 0",
             fontSize: 12,
-            color: "#ccc",
+            color: "var(--text-primary)",
             cursor: "pointer",
           }}
         >
@@ -67,7 +67,7 @@ export function Snippets() {
             type="checkbox"
             checked={activeSnippets.has(s.name)}
             onChange={() => toggleSnippet(s)}
-            style={{ accentColor: "#7f6df2" }}
+            style={{ accentColor: "var(--accent-color)" }}
           />
           {s.name}
         </label>

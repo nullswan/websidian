@@ -117,11 +117,11 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className }: {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {tabId && (
-        <div style={{ height: 2, flexShrink: 0, background: "#2a2a2a" }}>
+        <div style={{ height: 2, flexShrink: 0, background: "var(--bg-tertiary)" }}>
           <div style={{
             height: "100%",
             width: `${progress * 100}%`,
-            background: "#7f6df2",
+            background: "var(--accent-color)",
             transition: "width 0.1s ease-out",
           }} />
         </div>
@@ -159,10 +159,10 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "15vh", zIndex: 10000 }} onClick={onClose}>
-      <div style={{ width: 400, maxWidth: "90vw", background: "#2a2a2a", border: "1px solid #444", borderRadius: 8, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ padding: "12px 12px 8px", fontSize: 12, color: "#888" }}>
-          Move <strong style={{ color: "#ddd" }}>{currentPath.split("/").pop()}</strong> to folder
-          {currentFolder !== "(root)" && <span style={{ color: "#555" }}> (currently in {currentFolder})</span>}
+      <div style={{ width: 400, maxWidth: "90vw", background: "var(--bg-tertiary)", border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ padding: "12px 12px 8px", fontSize: 12, color: "var(--text-muted)" }}>
+          Move <strong style={{ color: "var(--text-primary)" }}>{currentPath.split("/").pop()}</strong> to folder
+          {currentFolder !== "(root)" && <span style={{ color: "var(--text-faint)" }}> (currently in {currentFolder})</span>}
         </div>
         <input
           ref={inputRef}
@@ -170,7 +170,7 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
           onChange={(e) => { setQuery(e.target.value); setSelectedIdx(0); }}
           onKeyDown={handleKeyDown}
           placeholder="Search folders..."
-          style={{ width: "100%", padding: "8px 12px", background: "#1e1e1e", border: "none", borderTop: "1px solid #333", borderBottom: "1px solid #333", color: "#ddd", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+          style={{ width: "100%", padding: "8px 12px", background: "var(--bg-primary)", border: "none", borderTop: "1px solid var(--border-color)", borderBottom: "1px solid var(--border-color)", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
         />
         <div style={{ maxHeight: 300, overflow: "auto" }}>
           {filtered.map((folder, i) => (
@@ -181,7 +181,7 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
                 padding: "6px 12px",
                 cursor: "pointer",
                 background: i === selectedIdx ? "rgba(127,109,242,0.15)" : "transparent",
-                color: folder === currentFolder ? "#7f6df2" : "#ccc",
+                color: folder === currentFolder ? "var(--accent-color)" : "var(--text-primary)",
                 fontSize: 13,
                 display: "flex",
                 alignItems: "center",
@@ -189,13 +189,13 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
               }}
               onMouseEnter={() => setSelectedIdx(i)}
             >
-              <span style={{ color: "#666", fontSize: 12 }}>{folder === "(root)" ? "/" : "📁"}</span>
+              <span style={{ color: "var(--text-faint)", fontSize: 12 }}>{folder === "(root)" ? "/" : "📁"}</span>
               <span>{folder === "(root)" ? "Vault root" : folder}</span>
-              {folder === currentFolder && <span style={{ fontSize: 10, color: "#666", marginLeft: "auto" }}>current</span>}
+              {folder === currentFolder && <span style={{ fontSize: 10, color: "var(--text-faint)", marginLeft: "auto" }}>current</span>}
             </div>
           ))}
           {filtered.length === 0 && (
-            <div style={{ padding: "12px", color: "#555", fontSize: 13, textAlign: "center" }}>No matching folders</div>
+            <div style={{ padding: "12px", color: "var(--text-faint)", fontSize: 13, textAlign: "center" }}>No matching folders</div>
           )}
         </div>
       </div>
@@ -222,7 +222,7 @@ function SidebarSection({ title, defaultOpen = true, children }: {
   };
 
   return (
-    <div style={{ borderTop: "1px solid #2a2a2a" }}>
+    <div style={{ borderTop: "1px solid var(--bg-tertiary)" }}>
       <div
         onClick={toggle}
         style={{
@@ -230,7 +230,7 @@ function SidebarSection({ title, defaultOpen = true, children }: {
           fontSize: 11,
           fontWeight: 600,
           textTransform: "uppercase",
-          color: "#888",
+          color: "var(--text-muted)",
           letterSpacing: "0.05em",
           cursor: "pointer",
           display: "flex",
@@ -238,8 +238,8 @@ function SidebarSection({ title, defaultOpen = true, children }: {
           gap: 6,
           userSelect: "none",
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#bbb"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
       >
         <svg
           width="8"
@@ -321,8 +321,8 @@ function TemplatePicker({ templatesFolder, onSelect, onClose }: {
       <div style={{
         width: 500,
         maxWidth: "90vw",
-        background: "#252526",
-        border: "1px solid #444",
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border-color)",
         borderRadius: 8,
         overflow: "hidden",
         boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
@@ -342,15 +342,15 @@ function TemplatePicker({ templatesFolder, onSelect, onClose }: {
             padding: "12px 16px",
             background: "transparent",
             border: "none",
-            borderBottom: "1px solid #333",
-            color: "#ddd",
+            borderBottom: "1px solid var(--border-color)",
+            color: "var(--text-primary)",
             fontSize: 15,
             outline: "none",
           }}
         />
         <div style={{ maxHeight: 300, overflow: "auto" }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: 16, fontSize: 13, color: "#666" }}>
+            <div style={{ padding: 16, fontSize: 13, color: "var(--text-faint)" }}>
               {templates.length === 0
                 ? `No templates found in "${templatesFolder}/" folder`
                 : "No matching templates"}
@@ -365,14 +365,14 @@ function TemplatePicker({ templatesFolder, onSelect, onClose }: {
                   style={{
                     padding: "8px 16px",
                     cursor: "pointer",
-                    background: i === selected ? "#37373d" : "transparent",
-                    color: i === selected ? "#fff" : "#bbb",
+                    background: i === selected ? "var(--bg-hover)" : "transparent",
+                    color: i === selected ? "var(--text-primary)" : "var(--text-secondary)",
                     fontSize: 14,
                   }}
                   onMouseEnter={() => setSelected(i)}
                 >
                   {name}
-                  <span style={{ fontSize: 11, color: "#666", marginLeft: 8 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: 8 }}>
                     {path}
                   </span>
                 </div>
@@ -403,7 +403,7 @@ function OutgoingLinks({ content, onNavigate }: { content: string; onNavigate: (
 
   if (links.length === 0) {
     return (
-      <div style={{ padding: "4px 12px", fontSize: 12, color: "#555" }}>
+      <div style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-faint)" }}>
         No outgoing links
       </div>
     );
@@ -423,7 +423,7 @@ function OutgoingLinks({ content, onNavigate }: { content: string; onNavigate: (
                   onNavigate(target);
                 }}
                 style={{
-                  color: "#7f6df2",
+                  color: "var(--accent-color)",
                   textDecoration: "none",
                   fontSize: 13,
                 }}
@@ -1051,11 +1051,11 @@ a:hover { text-decoration: underline; }
 code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; background: #2a2a2a; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
 pre { background: #2a2a2a; padding: 12px 16px; border-radius: 6px; overflow-x: auto; }
 pre code { background: none; padding: 0; }
-blockquote { border-left: 3px solid #7f6df2; margin: 8px 0; padding: 4px 16px; color: #aaa; }
+blockquote { border-left: 3px solid var(--accent-color); margin: 8px 0; padding: 4px 16px; color: #aaa; }
 table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
-th, td { border: 1px solid #444; padding: 6px 12px; text-align: left; }
+th, td { border: 1px solid var(--border-color); padding: 6px 12px; text-align: left; }
 th { background: #2a2a2a; font-weight: 600; color: #e0e0e0; }
-hr { border: none; border-top: 1px solid #333; margin: 24px 0; }
+hr { border: none; border-top: 1px solid var(--border-color); margin: 24px 0; }
 img { max-width: 100%; border-radius: 6px; }
 mark { background: rgba(255, 208, 0, 0.25); color: inherit; padding: 1px 2px; border-radius: 2px; }
 s { color: #888; }
@@ -1287,7 +1287,7 @@ ${rendered}
   // Show login if auth required
   if (!authChecked) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#1e1e1e", color: "#666" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg-primary)", color: "var(--text-faint)" }}>
         Loading...
       </div>
     );
@@ -1313,7 +1313,7 @@ ${rendered}
           display: "flex",
           flexDirection: "column",
           minWidth: 0,
-          outline: isSplit && isActive ? "1px solid #7f6df2" : "none",
+          outline: isSplit && isActive ? "1px solid var(--accent-color)" : "none",
           outlineOffset: "-1px",
         }}
         onClick={() => setActivePaneIdx(paneIdx)}
@@ -1360,7 +1360,7 @@ ${rendered}
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#888",
+                  color: "var(--text-muted)",
                   fontSize: 16,
                   cursor: "pointer",
                   padding: "4px 8px",
@@ -1471,7 +1471,7 @@ ${rendered}
                       className="tab-name"
                       autoFocus
                       defaultValue={tab.path.split("/").pop()?.replace(/\.md$/, "") ?? ""}
-                      style={{ background: "transparent", border: "1px solid #7f6df2", color: "#ddd", fontSize: 13, padding: "0 4px", borderRadius: 3, outline: "none", width: 120 }}
+                      style={{ background: "transparent", border: "1px solid var(--accent-color)", color: "var(--text-primary)", fontSize: 13, padding: "0 4px", borderRadius: 3, outline: "none", width: 120 }}
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -1508,7 +1508,7 @@ ${rendered}
                           setRenamingTabId(tab.id);
                         }}
                       >
-                        {tab.dirty && <span style={{ color: "#7f6df2", marginRight: 2 }}>●</span>}
+                        {tab.dirty && <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span>}
                         {tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path}
                       </span>
                       <button
@@ -1558,8 +1558,8 @@ ${rendered}
               gap: 2,
               padding: "3px 12px",
               fontSize: 11,
-              color: "#666",
-              borderBottom: "1px solid #2a2a2a",
+              color: "var(--text-faint)",
+              borderBottom: "1px solid var(--bg-tertiary)",
               flexShrink: 0,
               userSelect: "none",
               overflow: "hidden",
@@ -1571,15 +1571,15 @@ ${rendered}
                 const isLast = i === segments.length - 1;
                 return (
                   <React.Fragment key={i}>
-                    {i > 0 && <span style={{ color: "#444", margin: "0 2px" }}>›</span>}
+                    {i > 0 && <span style={{ color: "var(--border-color)", margin: "0 2px" }}>›</span>}
                     <span
                       style={{
-                        color: isLast ? "#999" : "#666",
+                        color: isLast ? "var(--text-secondary)" : "var(--text-faint)",
                         cursor: isLast ? "default" : "pointer",
                         whiteSpace: "nowrap",
                       }}
-                      onMouseEnter={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "#bbb"; }}
-                      onMouseLeave={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "#666"; }}
+                      onMouseEnter={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-secondary)"; }}
+                      onMouseLeave={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-faint)"; }}
                       onClick={() => {
                         if (!isLast) {
                           // Switch to files panel — the folder path helps user orient
@@ -1639,10 +1639,10 @@ ${rendered}
           {paneTab?.missing ? (
             <div style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              height: "100%", gap: 16, color: "#888", userSelect: "none",
+              height: "100%", gap: 16, color: "var(--text-muted)", userSelect: "none",
             }}>
-              <div style={{ fontSize: 16, color: "#666" }}>File not found</div>
-              <div style={{ fontSize: 13, color: "#555" }}>{paneTab.path}</div>
+              <div style={{ fontSize: 16, color: "var(--text-faint)" }}>File not found</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)" }}>{paneTab.path}</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={async () => {
@@ -1656,8 +1656,8 @@ ${rendered}
                     refreshTree();
                   }}
                   style={{
-                    padding: "6px 14px", border: "1px solid #444", borderRadius: 4,
-                    background: "#2a2a2a", color: "#ccc", cursor: "pointer", fontSize: 12,
+                    padding: "6px 14px", border: "1px solid var(--border-color)", borderRadius: 4,
+                    background: "var(--bg-tertiary)", color: "var(--text-primary)", cursor: "pointer", fontSize: 12,
                   }}
                 >
                   Create file
@@ -1665,8 +1665,8 @@ ${rendered}
                 <button
                   onClick={() => closeTab(paneTab.id, paneIdx)}
                   style={{
-                    padding: "6px 14px", border: "1px solid #444", borderRadius: 4,
-                    background: "#2a2a2a", color: "#999", cursor: "pointer", fontSize: 12,
+                    padding: "6px 14px", border: "1px solid var(--border-color)", borderRadius: 4,
+                    background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12,
                   }}
                 >
                   Close tab
@@ -1748,7 +1748,7 @@ ${rendered}
                 userSelect: "none",
               }}
             >
-              <div style={{ fontSize: 28, fontWeight: 300, color: "#555", letterSpacing: "-0.5px" }}>
+              <div style={{ fontSize: 28, fontWeight: 300, color: "var(--text-faint)", letterSpacing: "-0.5px" }}>
                 {vaultName}
               </div>
               <div style={{ display: "flex", gap: 12 }}>
@@ -1762,10 +1762,10 @@ ${rendered}
                     onClick={item.action}
                     style={{
                       padding: "8px 16px",
-                      border: "1px solid #444",
+                      border: "1px solid var(--border-color)",
                       borderRadius: 6,
-                      background: "#2a2a2a",
-                      color: "#999",
+                      background: "var(--bg-tertiary)",
+                      color: "var(--text-secondary)",
                       cursor: "pointer",
                       fontSize: 12,
                       display: "flex",
@@ -1775,20 +1775,20 @@ ${rendered}
                       minWidth: 110,
                     }}
                     onMouseEnter={(e) => {
-                      (e.target as HTMLElement).style.borderColor = "#7f6df2";
-                      (e.target as HTMLElement).style.color = "#ccc";
+                      (e.target as HTMLElement).style.borderColor = "var(--accent-color)";
+                      (e.target as HTMLElement).style.color = "var(--text-primary)";
                     }}
                     onMouseLeave={(e) => {
-                      (e.target as HTMLElement).style.borderColor = "#444";
-                      (e.target as HTMLElement).style.color = "#999";
+                      (e.target as HTMLElement).style.borderColor = "var(--border-color)";
+                      (e.target as HTMLElement).style.color = "var(--text-secondary)";
                     }}
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: 10, color: "#555" }}>{item.shortcut}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{item.shortcut}</span>
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: "#444" }}>
+              <div style={{ fontSize: 11, color: "var(--border-color)" }}>
                 Ctrl+/ for all shortcuts
               </div>
             </div>
@@ -1812,8 +1812,8 @@ ${rendered}
         <div
           style={{
             width: 44,
-            background: "#1a1a1a",
-            borderRight: "1px solid #2a2a2a",
+            background: "var(--bg-primary)",
+            borderRight: "1px solid var(--bg-tertiary)",
             display: (zenMode || isMobile) ? "none" : "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -1899,15 +1899,15 @@ ${rendered}
                 justifyContent: "center",
                 border: "none",
                 borderRadius: 4,
-                background: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "#2a2a2a" : "transparent",
-                color: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "#ddd" : "#666",
+                background: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--bg-tertiary)" : "transparent",
+                color: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--text-primary)" : "var(--text-faint)",
                 cursor: "pointer",
                 transition: "color 0.15s, background 0.15s",
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ccc"; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
               onMouseLeave={(e) => {
                 const isActive = item.id === "graph" ? showGraph : leftPanel === item.id;
-                (e.currentTarget as HTMLElement).style.color = isActive ? "#ddd" : "#666";
+                (e.currentTarget as HTMLElement).style.color = isActive ? "var(--text-primary)" : "var(--text-faint)";
               }}
             >
               {item.icon}
@@ -1951,12 +1951,12 @@ ${rendered}
               border: "none",
               borderRadius: 4,
               background: "transparent",
-              color: "#666",
+              color: "var(--text-faint)",
               cursor: "pointer",
               transition: "color 0.15s, background 0.15s",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ccc"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#666"; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -1986,12 +1986,12 @@ ${rendered}
               border: "none",
               borderRadius: 4,
               background: "transparent",
-              color: "#555",
+              color: "var(--text-faint)",
               cursor: "pointer",
               marginBottom: 4,
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#999"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -2014,12 +2014,12 @@ ${rendered}
               border: "none",
               borderRadius: 4,
               background: "transparent",
-              color: "#555",
+              color: "var(--text-faint)",
               cursor: "pointer",
               marginBottom: 8,
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#999"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -2046,9 +2046,9 @@ ${rendered}
           style={{
             width: leftCollapsed ? 0 : (isMobile ? "80vw" : leftWidth),
             minWidth: leftCollapsed ? 0 : (isMobile ? 200 : 140),
-            borderRight: leftCollapsed ? "none" : "1px solid #333",
-            background: "#252526",
-            color: "#ccc",
+            borderRight: leftCollapsed ? "none" : "1px solid var(--border-color)",
+            background: "var(--bg-secondary)",
+            color: "var(--text-primary)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -2069,7 +2069,7 @@ ${rendered}
           <div
             style={{
               padding: "10px 12px",
-              borderBottom: "1px solid #333",
+              borderBottom: "1px solid var(--border-color)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -2080,7 +2080,7 @@ ${rendered}
               fontSize: 11,
               textTransform: "uppercase",
               letterSpacing: "0.05em",
-              color: "#888",
+              color: "var(--text-muted)",
             }}>
               {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : "Plugins"}
             </span>
@@ -2098,12 +2098,12 @@ ${rendered}
                     border: "none",
                     borderRadius: 3,
                     background: "transparent",
-                    color: "#888",
+                    color: "var(--text-muted)",
                     cursor: "pointer",
                     fontSize: 16,
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ddd"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
@@ -2124,11 +2124,11 @@ ${rendered}
                     border: "none",
                     borderRadius: 3,
                     background: "transparent",
-                    color: "#888",
+                    color: "var(--text-muted)",
                     cursor: "pointer",
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#ddd"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#888"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 5h7l2 2h9v12H3z" />
@@ -2160,7 +2160,7 @@ ${rendered}
             ) : leftPanel === "starred" ? (
               <div style={{ padding: "8px" }}>
                 {starredNotes.length === 0 ? (
-                  <div style={{ padding: 12, fontSize: 13, color: "#666" }}>
+                  <div style={{ padding: 12, fontSize: 13, color: "var(--text-faint)" }}>
                     No starred notes yet. Right-click a tab to star a note.
                   </div>
                 ) : (
@@ -2178,8 +2178,8 @@ ${rendered}
                               padding: "4px 8px",
                               borderRadius: 3,
                               cursor: "pointer",
-                              background: isActive ? "#37373d" : "transparent",
-                              color: isActive ? "#fff" : "#bbb",
+                              background: isActive ? "var(--bg-hover)" : "transparent",
+                              color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                               fontSize: 13,
                               transition: "background 0.1s",
                             }}
@@ -2216,8 +2216,8 @@ ${rendered}
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          background: "#1e1e1e",
-          color: "#ddd",
+          background: "var(--bg-primary)",
+          color: "var(--text-primary)",
           minWidth: 0,
         }}
       >
@@ -2274,9 +2274,9 @@ ${rendered}
         style={{
           width: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : rightWidth,
           minWidth: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : 140,
-          borderLeft: isMobile || rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid #333",
-          background: "#252526",
-          color: "#ccc",
+          borderLeft: isMobile || rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid var(--border-color)",
+          background: "var(--bg-secondary)",
+          color: "var(--text-primary)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -2300,7 +2300,7 @@ ${rendered}
             </SidebarSection>
             <SidebarSection title={`Unlinked Mentions (${activeTab.unlinkedMentions.length})`}>
               {activeTab.unlinkedMentions.length === 0 ? (
-                <div style={{ padding: "4px 12px", fontSize: 12, color: "#555" }}>No unlinked mentions</div>
+                <div style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-faint)" }}>No unlinked mentions</div>
               ) : (
                 <div style={{ padding: "4px 12px 8px" }}>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -2317,7 +2317,7 @@ ${rendered}
                               href="#"
                               onClick={(e) => { e.preventDefault(); openTab(path); }}
                               title={path}
-                              style={{ color: "#7f6df2", textDecoration: "none", fontSize: 13, flex: 1 }}
+                              style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: 13, flex: 1 }}
                             >
                               {path.replace(/\.md$/, "").split("/").pop()}
                             </a>
@@ -2345,8 +2345,8 @@ ${rendered}
                                 }
                               }}
                               style={{
-                                background: "transparent", border: "1px solid #444", borderRadius: 3,
-                                color: "#7f6df2", fontSize: 10, padding: "1px 5px", cursor: "pointer",
+                                background: "transparent", border: "1px solid var(--border-color)", borderRadius: 3,
+                                color: "var(--accent-color)", fontSize: 10, padding: "1px 5px", cursor: "pointer",
                                 lineHeight: 1.4, flexShrink: 0,
                               }}
                             >
@@ -2355,8 +2355,8 @@ ${rendered}
                           </div>
                           {mentions.slice(0, 3).map((m, i) => (
                             <div key={i} style={{
-                              fontSize: 11, color: "#999", marginTop: 2,
-                              padding: "2px 0 2px 8px", borderLeft: "2px solid #333",
+                              fontSize: 11, color: "var(--text-secondary)", marginTop: 2,
+                              padding: "2px 0 2px 8px", borderLeft: "2px solid var(--border-color)",
                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                               cursor: "pointer",
                             }} onClick={() => openTab(path)}>
@@ -2364,7 +2364,7 @@ ${rendered}
                             </div>
                           ))}
                           {mentions.length > 3 && (
-                            <div style={{ fontSize: 10, color: "#555", paddingLeft: 8, marginTop: 2 }}>
+                            <div style={{ fontSize: 10, color: "var(--text-faint)", paddingLeft: 8, marginTop: 2 }}>
                               +{mentions.length - 3} more
                             </div>
                           )}
@@ -2656,8 +2656,8 @@ ${rendered}
               position: "absolute",
               left: tabCtxMenu.x,
               top: tabCtxMenu.y,
-              background: "#2a2a2a",
-              border: "1px solid #444",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
               borderRadius: 6,
               padding: "4px 0",
               minWidth: 160,
@@ -2733,16 +2733,16 @@ ${rendered}
               },
             ].map((item, i) =>
               "type" in item && item.type === "separator" ? (
-                <div key={i} style={{ borderTop: "1px solid #444", margin: "4px 0" }} />
+                <div key={i} style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
               ) : (
                 <div
                   key={i}
                   style={{
                     padding: "6px 12px",
                     cursor: "pointer",
-                    color: "#ccc",
+                    color: "var(--text-primary)",
                   }}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "#37373d"; }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "var(--bg-hover)"; }}
                   onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; }}
                   onClick={() => {
                     (item as { action: () => void }).action();
@@ -2802,8 +2802,8 @@ ${rendered}
         >
           <div
             style={{
-              background: "#2a2a2a",
-              border: "1px solid #444",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
               borderRadius: 8,
               padding: "24px 32px",
               maxWidth: 480,
@@ -2813,7 +2813,7 @@ ${rendered}
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#ddd", marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 16 }}>
               Keyboard Shortcuts
             </div>
             {([
@@ -2860,7 +2860,7 @@ ${rendered}
               ]],
             ] as [string, string[][]][]).map(([group, shortcuts]) => (
               <div key={group}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 0 4px", marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 0 4px", marginTop: 4 }}>
                   {group}
                 </div>
                 {shortcuts.map(([key, desc]) => (
@@ -2871,18 +2871,18 @@ ${rendered}
                       justifyContent: "space-between",
                       alignItems: "center",
                       padding: "5px 0",
-                      borderBottom: "1px solid #2a2a2a",
+                      borderBottom: "1px solid var(--bg-tertiary)",
                     }}
                   >
-                    <span style={{ color: "#bbb", fontSize: 13 }}>{desc}</span>
+                    <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{desc}</span>
                     <kbd
                       style={{
-                        background: "#1e1e1e",
-                        border: "1px solid #555",
+                        background: "var(--bg-primary)",
+                        border: "1px solid var(--text-faint)",
                         borderRadius: 4,
                         padding: "2px 8px",
                         fontSize: 12,
-                        color: "#ccc",
+                        color: "var(--text-primary)",
                         fontFamily: "system-ui, monospace",
                         whiteSpace: "nowrap",
                       }}
@@ -2893,7 +2893,7 @@ ${rendered}
                 ))}
               </div>
             ))}
-            <div style={{ marginTop: 12, fontSize: 11, color: "#555", textAlign: "center" }}>
+            <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-faint)", textAlign: "center" }}>
               Press Escape or Ctrl+/ to close
             </div>
           </div>
@@ -3013,8 +3013,8 @@ ${rendered}
           bottom: 32,
           left: "50%",
           transform: "translateX(-50%)",
-          background: "#333",
-          color: "#ddd",
+          background: "var(--border-color)",
+          color: "var(--text-primary)",
           padding: "8px 20px",
           borderRadius: 6,
           fontSize: 13,

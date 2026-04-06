@@ -52,8 +52,8 @@ const FolderIcon = ({ open }: { open: boolean }) => (
 
 function FileIcon({ name }: { name: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  let color = "#888";
-  if (ext === "md") color = "#7f6df2";
+  let color = "var(--text-muted)";
+  if (ext === "md") color = "var(--accent-color)";
   else if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) color = "#4ec9b0";
   else if (ext === "canvas") color = "#e6994a";
 
@@ -362,13 +362,13 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
             padding: "4px 8px",
             border: "1px solid transparent",
             borderRadius: 4,
-            background: "#1e1e1e",
-            color: "#ccc",
+            background: "var(--bg-primary)",
+            color: "var(--text-primary)",
             fontSize: 12,
             outline: "none",
             boxSizing: "border-box",
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "#7f6df2"; }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
         />
         <button
@@ -381,7 +381,7 @@ export function FileTree({ entries, onFileSelect, selectedPath, onMutate, onFile
           style={{
             background: "none",
             border: "none",
-            color: sortMode === "mtime" ? "#7f6df2" : "#666",
+            color: sortMode === "mtime" ? "var(--accent-color)" : "var(--text-faint)",
             cursor: "pointer",
             padding: "2px 4px",
             borderRadius: 3,
@@ -533,7 +533,7 @@ function FileTreeNode({
             paddingLeft: depth * 16 + 4,
             padding: "3px 8px 3px " + (depth * 16 + 4) + "px",
             cursor: "pointer",
-            color: isFocused ? "#ddd" : "#999",
+            color: isFocused ? "var(--text-primary)" : "var(--text-secondary)",
             userSelect: "none",
             display: "flex",
             alignItems: "center",
@@ -554,7 +554,7 @@ function FileTreeNode({
           </span>
           <FolderIcon open={expanded} />
           <span style={{ fontSize: 13, flex: 1 }}>{entry.path.split("/").pop()}</span>
-          <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{countFiles(entry)}</span>
+          <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0 }}>{countFiles(entry)}</span>
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -625,8 +625,8 @@ function FileTreeNode({
             paddingLeft: depth * 16 + 18,
             padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
             cursor: "pointer",
-            background: isSelected ? "#37373d" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
-            color: isSelected ? "#fff" : isFocused ? "#ddd" : "#bbb",
+            background: isSelected ? "var(--bg-hover)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            color: isSelected ? "var(--text-primary)" : isFocused ? "var(--text-primary)" : "var(--text-secondary)",
             borderRadius: 3,
             display: "flex",
             alignItems: "center",
@@ -683,10 +683,10 @@ function InlineInput({
       style={{
         marginLeft: depth * 16,
         width: `calc(100% - ${depth * 16 + 8}px)`,
-        background: "#2a2a2a",
-        border: "1px solid #7f6df2",
+        background: "var(--bg-tertiary)",
+        border: "1px solid var(--accent-color)",
         borderRadius: 3,
-        color: "#ddd",
+        color: "var(--text-primary)",
         fontSize: 13,
         padding: "2px 4px",
         outline: "none",
@@ -758,8 +758,8 @@ function ContextMenu({
         position: "fixed",
         left: x,
         top: y,
-        background: "#2a2a2a",
-        border: "1px solid #444",
+        background: "var(--bg-tertiary)",
+        border: "1px solid var(--border-color)",
         borderRadius: 4,
         padding: "4px 0",
         zIndex: 1000,
@@ -775,10 +775,10 @@ function ContextMenu({
             padding: "6px 12px",
             cursor: "pointer",
             fontSize: 13,
-            color: item.danger ? "#f88" : "#ddd",
+            color: item.danger ? "#f88" : "var(--text-primary)",
           }}
           onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = "#37373d";
+            (e.target as HTMLElement).style.background = "var(--bg-hover)";
           }}
           onMouseLeave={(e) => {
             (e.target as HTMLElement).style.background = "transparent";
