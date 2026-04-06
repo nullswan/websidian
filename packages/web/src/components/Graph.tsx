@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface GraphNode {
   id: string;
   name: string;
+  wordCount?: number;
   x: number;
   y: number;
   vx: number;
@@ -28,6 +29,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [loaded, setLoaded] = useState(false);
   const [graphFilter, setGraphFilter] = useState("");
   const [showOrphans, setShowOrphans] = useState(true);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; words: number; links: number } | null>(null);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
@@ -45,7 +47,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       .then((r) => r.json())
       .then((data) => {
         const nodes: GraphNode[] = (data.nodes ?? []).map(
-          (n: { id: string; name: string }, i: number) => {
+          (n: { id: string; name: string; wordCount?: number }, i: number) => {
             const angle = (i / data.nodes.length) * Math.PI * 2;
             const radius = 150 + Math.random() * 100;
             return {
@@ -353,6 +355,23 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         if (newHover !== hoverNodeRef.current) {
           hoverNodeRef.current = newHover;
           canvas.style.cursor = newHover ? "pointer" : "default";
+          if (node) {
+            const linkCount = edgesRef.current.filter(
+              (e) => e.source === node.id || e.target === node.id,
+            ).length;
+            setTooltip({
+              x: e.clientX,
+              y: e.clientY,
+              name: node.name,
+              words: node.wordCount ?? 0,
+              links: linkCount,
+            });
+          } else {
+            setTooltip(null);
+          }
+        } else if (node && tooltip) {
+          // Update position as mouse moves over same node
+          setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
         }
       }
     };
@@ -374,6 +393,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     const handleMouseLeave = () => {
       hoverNodeRef.current = null;
       canvas.style.cursor = "default";
+      setTooltip(null);
     };
 
     canvas.addEventListener("wheel", handleWheel, { passive: false });
@@ -438,6 +458,30 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
       >
         Scroll to zoom · Drag nodes · Double-click to open
       </div>
+      {tooltip && (
+        <div
+          style={{
+            position: "fixed",
+            left: tooltip.x + 12,
+            top: tooltip.y - 10,
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 6,
+            padding: "6px 10px",
+            fontSize: 12,
+            color: "var(--text-primary)",
+            pointerEvents: "none",
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 2 }}>{tooltip.name}</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 11 }}>
+            {tooltip.words.toLocaleString()} words · {tooltip.links} link{tooltip.links !== 1 ? "s" : ""}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
