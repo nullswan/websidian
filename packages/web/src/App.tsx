@@ -1955,6 +1955,12 @@ ${rendered}
               {paneTab.path.split("/").pop()?.replace(/\.md$/, "") ?? paneTab.path}
             </div>
           )}
+          {paneTab && paneIsMarkdown && paneTab.mode === "read" && (paneTab.fileCreated || paneTab.fileModified) && (
+            <div style={{ padding: "0 40px 8px", fontSize: 11, color: "var(--text-faint)", display: "flex", gap: 12 }}>
+              {paneTab.fileCreated && <span>Created {new Date(paneTab.fileCreated).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>}
+              {paneTab.fileModified && <span>Modified {new Date(paneTab.fileModified).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>}
+            </div>
+          )}
           {paneTab?.missing ? (
             <div style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
