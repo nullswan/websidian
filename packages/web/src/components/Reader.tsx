@@ -799,6 +799,148 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => { cancelled = true; };
   }, [html]);
 
+  // Hydrate dataview-style query blocks
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const codeBlocks = container.querySelectorAll<HTMLElement>("code.language-dataview, code.hljs.language-dataview");
+    if (codeBlocks.length === 0) return;
+
+    let cancelled = false;
+
+    for (const code of codeBlocks) {
+      const pre = code.closest("pre");
+      if (!pre) continue;
+      const query = (code.textContent ?? "").trim();
+      if (!query) continue;
+
+      // Parse the query
+      const lines = query.split("\n").map((l) => l.trim()).filter(Boolean);
+      const typeLine = lines[0]?.toUpperCase() ?? "";
+      const isTable = typeLine.startsWith("TABLE");
+      const isList = typeLine.startsWith("LIST");
+      if (!isTable && !isList) continue;
+
+      // Parse TABLE fields
+      const tableFields = isTable
+        ? typeLine.replace(/^TABLE\s*/i, "").split(",").map((f) => f.trim()).filter(Boolean)
+        : [];
+
+      // Parse FROM / WHERE / SORT / LIMIT
+      let fromClause = "";
+      let sortField = "name";
+      let sortDir: "asc" | "desc" = "asc";
+      let limit = 50;
+
+      for (const line of lines.slice(1)) {
+        const upper = line.toUpperCase();
+        if (upper.startsWith("FROM")) {
+          fromClause = line.slice(4).trim();
+        } else if (upper.startsWith("SORT")) {
+          const parts = line.slice(4).trim().split(/\s+/);
+          sortField = parts[0] ?? "name";
+          if (parts[1]?.toUpperCase() === "DESC") sortDir = "desc";
+        } else if (upper.startsWith("LIMIT")) {
+          limit = parseInt(line.slice(5).trim(), 10) || 50;
+        }
+      }
+
+      // Build search query from FROM clause
+      let searchQ = "";
+      if (fromClause.startsWith("#")) {
+        searchQ = fromClause; // tag search
+      } else if (fromClause.startsWith('"') && fromClause.endsWith('"')) {
+        searchQ = `path:${fromClause.slice(1, -1)}`; // folder search
+      } else if (fromClause) {
+        searchQ = fromClause;
+      }
+
+      // Replace code block with loading indicator
+      const resultDiv = document.createElement("div");
+      resultDiv.style.cssText = "padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); margin: 8px 0; font-size: 13px;";
+      resultDiv.innerHTML = '<span style="color: var(--text-faint); font-size: 11px;">Running query...</span>';
+      pre.replaceWith(resultDiv);
+
+      // Fetch results
+      const url = searchQ
+        ? `/api/vault/search?q=${encodeURIComponent(searchQ)}`
+        : "/api/vault/tree";
+
+      fetch(url, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (cancelled) return;
+
+          let files: Array<{ path: string; name: string }> = [];
+
+          if (data.results) {
+            // Search results
+            files = (data.results as Array<{ path: string }>).map((r) => ({
+              path: r.path,
+              name: r.path.replace(/\.md$/, "").split("/").pop() ?? r.path,
+            }));
+          } else if (data.tree) {
+            // Tree results — flatten
+            const flatten = (entries: Array<{ type: string; path: string; children?: unknown[] }>): Array<{ path: string; name: string }> => {
+              const out: Array<{ path: string; name: string }> = [];
+              for (const e of entries) {
+                if (e.type === "file" && e.path.endsWith(".md")) {
+                  // Filter by folder if needed
+                  const folder = fromClause.replace(/^"|"$/g, "");
+                  if (folder && !e.path.startsWith(folder)) continue;
+                  out.push({ path: e.path, name: e.path.replace(/\.md$/, "").split("/").pop() ?? e.path });
+                }
+                if (e.children) out.push(...flatten(e.children as Array<{ type: string; path: string; children?: unknown[] }>));
+              }
+              return out;
+            };
+            files = flatten(data.tree);
+          }
+
+          // Sort
+          if (sortField === "name" || sortField === "file.name") {
+            files.sort((a, b) => sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+          }
+
+          // Limit
+          files = files.slice(0, limit);
+
+          if (files.length === 0) {
+            resultDiv.innerHTML = '<span style="color: var(--text-faint); font-style: italic;">No results</span>';
+            return;
+          }
+
+          if (isList) {
+            resultDiv.innerHTML = `<div style="color: var(--text-faint); font-size: 10px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">LIST (${files.length})</div>` +
+              files.map((f) =>
+                `<div style="padding: 2px 0;"><a class="wikilink" data-target="${f.path.replace(/"/g, "&quot;")}" href="#" style="color: var(--accent-color); text-decoration: none;">${f.name}</a></div>`
+              ).join("");
+          } else {
+            // TABLE
+            const headers = ["Name", ...tableFields];
+            resultDiv.innerHTML = `<div style="color: var(--text-faint); font-size: 10px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">TABLE (${files.length})</div>` +
+              `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">` +
+              `<thead><tr>${headers.map((h) => `<th style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">${h}</th>`).join("")}</tr></thead>` +
+              `<tbody>${files.map((f) => {
+                const cells = [`<a class="wikilink" data-target="${f.path.replace(/"/g, "&quot;")}" href="#" style="color: var(--accent-color); text-decoration: none;">${f.name}</a>`];
+                for (const field of tableFields) {
+                  cells.push(`<span style="color: var(--text-secondary);">-</span>`);
+                }
+                return `<tr>${cells.map((c) => `<td style="padding: 4px 8px; border-bottom: 1px solid var(--border-color);">${c}</td>`).join("")}</tr>`;
+              }).join("")}</tbody></table>`;
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            resultDiv.innerHTML = '<span style="color: #f88; font-size: 12px;">Query failed</span>';
+          }
+        });
+    }
+
+    return () => { cancelled = true; };
+  }, [html, filePath]);
+
   // Highlight search matches in rendered content
   useEffect(() => {
     const container = containerRef.current;
