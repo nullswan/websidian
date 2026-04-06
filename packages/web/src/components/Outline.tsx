@@ -4,16 +4,20 @@ interface Heading {
   level: number;
   text: string;
   id: string;
+  lineNumber: number;
 }
 
 interface OutlineProps {
   content: string;
   onScrollToHeading?: (heading: string, level: number) => void;
+  onReorderSection?: (fromHeadingLine: number, fromHeadingLevel: number, toHeadingLine: number) => void;
 }
 
-export function Outline({ content, onScrollToHeading }: OutlineProps) {
+export function Outline({ content, onScrollToHeading, onReorderSection }: OutlineProps) {
   const headings = useMemo(() => extractHeadings(content), [content]);
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [dragIdx, setDragIdx] = useState(-1);
+  const [dropIdx, setDropIdx] = useState(-1);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Track which heading is currently visible in the reader
@@ -85,6 +89,28 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
         {headings.map((h, i) => (
           <li key={i}>
             <div
+              draggable={!!onReorderSection}
+              onDragStart={(e) => {
+                setDragIdx(i);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", String(i));
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setDropIdx(i);
+              }}
+              onDragLeave={() => { if (dropIdx === i) setDropIdx(-1); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromIdx = dragIdx;
+                setDragIdx(-1);
+                setDropIdx(-1);
+                if (fromIdx !== -1 && fromIdx !== i && onReorderSection) {
+                  onReorderSection(headings[fromIdx].lineNumber, headings[fromIdx].level, headings[i].lineNumber);
+                }
+              }}
+              onDragEnd={() => { setDragIdx(-1); setDropIdx(-1); }}
               style={{
                 paddingLeft: (h.level - minLevel) * 12,
                 padding: `2px 0 2px ${(h.level - minLevel) * 12}px`,
@@ -92,11 +118,14 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
                 color: i === activeIdx
                   ? "var(--accent-color)"
                   : h.level === 1 ? "var(--text-primary)" : h.level === 2 ? "var(--text-secondary)" : "var(--text-muted)",
-                cursor: "pointer",
+                cursor: onReorderSection ? "grab" : "pointer",
                 borderRadius: 3,
                 fontWeight: i === activeIdx ? 600 : "normal",
                 borderLeft: i === activeIdx ? "2px solid var(--accent-color)" : "2px solid transparent",
                 marginLeft: -2,
+                opacity: dragIdx === i ? 0.4 : 1,
+                borderTop: dropIdx === i && dragIdx !== i ? "2px solid var(--accent-color)" : "2px solid transparent",
+                transition: "opacity 0.15s",
               }}
               onClick={() => {
                 const flashEl = (el: Element) => {
@@ -145,11 +174,13 @@ function extractHeadings(content: string): Heading[] {
   // Strip frontmatter
   const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(content);
   const body = fmMatch ? content.slice(fmMatch[0].length) : content;
+  const fmLineCount = fmMatch ? fmMatch[0].split("\n").length - 1 : 0;
 
   const headings: Heading[] = [];
   const slugCounts: Record<string, number> = {};
   const lines = body.split("\n");
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const match = /^(#{1,6})\s+(.+)$/.exec(line);
     if (match) {
       const text = match[2].trim().replace(/\s*\^[\w-]+$/, "");
@@ -158,7 +189,7 @@ function extractHeadings(content: string): Heading[] {
       const count = slugCounts[slug] || 0;
       slugCounts[slug] = count + 1;
       const id = count > 0 ? `${slug}-${count}` : slug;
-      headings.push({ level: match[1].length, text, id });
+      headings.push({ level: match[1].length, text, id, lineNumber: i + fmLineCount + 1 });
     }
   }
   return headings;

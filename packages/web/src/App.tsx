@@ -3017,6 +3017,35 @@ ${rendered}
               <Outline
                 content={activeTab.content}
                 onScrollToHeading={(heading, level) => scrollToHeadingRef.current?.(heading, level)}
+                onReorderSection={(fromLine, fromLevel, toLine) => {
+                  if (!activeTab) return;
+                  const lines = activeTab.content.split("\n");
+                  // Find section end: next heading at same or higher level, or EOF
+                  let sectionEnd = lines.length;
+                  for (let i = fromLine; i < lines.length; i++) { // fromLine is 1-based, lines[fromLine] is next line
+                    const m = /^(#{1,6})\s/.exec(lines[i]);
+                    if (m && m[1].length <= fromLevel) { sectionEnd = i; break; }
+                  }
+                  // Extract section (fromLine-1 is 0-based index)
+                  const section = lines.slice(fromLine - 1, sectionEnd);
+                  // Remove section from original
+                  const remaining = [...lines.slice(0, fromLine - 1), ...lines.slice(sectionEnd)];
+                  // Find new insert position (toLine adjusted for removed lines)
+                  let insertAt = toLine - 1;
+                  if (toLine > fromLine) insertAt -= section.length;
+                  insertAt = Math.max(0, Math.min(insertAt, remaining.length));
+                  // Insert
+                  remaining.splice(insertAt, 0, ...section);
+                  const newContent = remaining.join("\n");
+                  updateTab(activeTab.id, { content: newContent, dirty: true });
+                  // Save
+                  fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ content: newContent }),
+                  }).catch(() => {});
+                }}
               />
             </SidebarSection>
             <SidebarSection title="Tags">
