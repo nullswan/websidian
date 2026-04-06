@@ -3389,7 +3389,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode !== "read" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} lineWrap={activeTab.mode !== "read" ? appSettings.lineWrap : undefined} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode !== "read" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} lineWrap={activeTab.mode !== "read" ? appSettings.lineWrap : undefined} onToggleLineWrap={activeTab.mode !== "read" ? () => setAppSettings((s) => ({ ...s, lineWrap: !s.lineWrap })) : undefined} />
         )}
         </div>
       </div>
