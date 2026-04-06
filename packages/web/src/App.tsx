@@ -1823,6 +1823,30 @@ ${rendered}
                       >
                         {tab.dirty && <span style={{ color: "var(--accent-color)", marginRight: 2 }}>●</span>}
                         {tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path}
+                        {(() => {
+                          if (!tab.content) return null;
+                          const fmMatch = tab.content.match(/^---[\t ]*\r?\n([\s\S]*?)\n---/);
+                          if (!fmMatch) return null;
+                          const goalMatch = fmMatch[1].match(/wordGoal:\s*(\d+)/i);
+                          if (!goalMatch) return null;
+                          const goal = parseInt(goalMatch[1], 10);
+                          if (goal <= 0) return null;
+                          const body = tab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
+                          const words = body.trim().split(/\s+/).filter(Boolean).length;
+                          const pct = Math.min(words / goal, 1);
+                          const r = 5; const circ = 2 * Math.PI * r;
+                          const color = pct >= 1 ? "#4caf50" : "var(--accent-color)";
+                          return (
+                            <span title={`${words}/${goal} words (${Math.round(pct * 100)}%)`} style={{ display: "inline-flex", marginLeft: 3, flexShrink: 0 }}>
+                              <svg width="14" height="14" viewBox="0 0 14 14" style={{ transform: "rotate(-90deg)" }}>
+                                <circle cx="7" cy="7" r={r} fill="none" stroke="var(--border-color)" strokeWidth="1.5" />
+                                <circle cx="7" cy="7" r={r} fill="none" stroke={color} strokeWidth="1.5"
+                                  strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+                                  strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.3s" }} />
+                              </svg>
+                            </span>
+                          );
+                        })()}
                       </span>
                       <button
                         className="tab-close"
