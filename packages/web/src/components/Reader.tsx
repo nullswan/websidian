@@ -998,6 +998,68 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Table sort on header click
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const tables = container.querySelectorAll("table");
+    const cleanups: (() => void)[] = [];
+
+    tables.forEach((table) => {
+      const thead = table.querySelector("thead");
+      const tbody = table.querySelector("tbody");
+      if (!thead || !tbody) return;
+
+      const ths = thead.querySelectorAll("th");
+      let sortCol = -1;
+      let sortAsc = true;
+
+      ths.forEach((th, colIdx) => {
+        th.style.cursor = "pointer";
+        th.style.userSelect = "none";
+        th.title = "Click to sort";
+
+        const handler = () => {
+          if (sortCol === colIdx) {
+            sortAsc = !sortAsc;
+          } else {
+            sortCol = colIdx;
+            sortAsc = true;
+          }
+          // Update indicators
+          ths.forEach((h, i) => {
+            const existing = h.querySelector(".sort-indicator");
+            if (existing) existing.remove();
+            if (i === sortCol) {
+              const span = document.createElement("span");
+              span.className = "sort-indicator";
+              span.textContent = sortAsc ? " ▲" : " ▼";
+              span.style.fontSize = "10px";
+              span.style.opacity = "0.6";
+              h.appendChild(span);
+            }
+          });
+          // Sort rows
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+          rows.sort((a, b) => {
+            const aText = (a.cells[colIdx]?.textContent ?? "").trim();
+            const bText = (b.cells[colIdx]?.textContent ?? "").trim();
+            const aNum = parseFloat(aText);
+            const bNum = parseFloat(bText);
+            if (!isNaN(aNum) && !isNaN(bNum)) return sortAsc ? aNum - bNum : bNum - aNum;
+            return sortAsc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+          });
+          rows.forEach((row) => tbody.appendChild(row));
+        };
+        th.addEventListener("click", handler);
+        cleanups.push(() => th.removeEventListener("click", handler));
+      });
+    });
+
+    return () => cleanups.forEach((fn) => fn());
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
