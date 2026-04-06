@@ -2798,6 +2798,21 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       // Copy line up/down
       { key: "Alt-Shift-ArrowUp", run: copyLineUp },
       { key: "Alt-Shift-ArrowDown", run: copyLineDown },
+      // Delete entire line
+      {
+        key: "Mod-Shift-k",
+        run: (view) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          // Include trailing newline, or leading newline if last line
+          const from = line.from;
+          const to = line.to < view.state.doc.length ? line.to + 1 : from > 0 ? from - 1 : line.to;
+          view.dispatch({
+            changes: { from: Math.min(from, to), to: Math.max(from, to) },
+            selection: { anchor: Math.min(from, to) },
+          });
+          return true;
+        },
+      },
       // Toggle task list: plain → - → - [ ] → - [x] → plain
       {
         key: "Mod-Enter",
