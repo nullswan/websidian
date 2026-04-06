@@ -110,6 +110,16 @@ body {
   text-decoration: underline;
 }
 
+.reader-view a.wikilink-unresolved {
+  opacity: 0.5;
+  text-decoration: none;
+}
+
+.reader-view a.wikilink-unresolved:hover {
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
 .reader-view .tag {
   color: #e6994a;
   background: rgba(230, 153, 74, 0.1);

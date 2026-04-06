@@ -264,6 +264,30 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => { cancelled = true; };
   }, [html, filePath]);
 
+  // Hydrate unresolved wikilinks — dim links to non-existent notes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const links = container.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-target]");
+    if (links.length === 0) return;
+
+    let cancelled = false;
+    for (const link of links) {
+      const target = link.dataset.target;
+      if (!target) continue;
+      fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(filePath)}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (cancelled) return;
+          if (!data.resolved) {
+            link.classList.add("wikilink-unresolved");
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [html, filePath]);
+
   // Hydrate mermaid diagrams after render
   useEffect(() => {
     const container = containerRef.current;
