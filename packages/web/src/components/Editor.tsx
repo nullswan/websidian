@@ -2609,7 +2609,31 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           break;
         }
       }
-      if (!found) { removeHover(); return; }
+      // Also check for [text](url) external links
+      if (!found) {
+        const linkRe = /\[([^\]]+)\]\(([^)]+)\)/g;
+        let lm;
+        while ((lm = linkRe.exec(text)) !== null) {
+          if (offset >= lm.index && offset <= lm.index + lm[0].length) {
+            const url = lm[2];
+            // Show URL tooltip
+            removeHover();
+            hoverTarget = "__url__" + url;
+            hoverEl = document.createElement("div");
+            hoverEl.style.cssText = "position: absolute; z-index: 100; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--text-faint); max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);";
+            hoverEl.textContent = url;
+            const editorDom = view.dom;
+            editorDom.style.position = "relative";
+            const editorRect = editorDom.getBoundingClientRect();
+            hoverEl.style.left = `${e.clientX - editorRect.left}px`;
+            hoverEl.style.top = `${e.clientY - editorRect.top + 18}px`;
+            editorDom.appendChild(hoverEl);
+            return;
+          }
+        }
+        removeHover();
+        return;
+      }
       if (found === hoverTarget) return;
       removeHover();
       hoverTarget = found;
