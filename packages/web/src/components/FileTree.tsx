@@ -978,6 +978,20 @@ function ContextMenu({
     menuItems.push({ label: "Open in new window", action: () => { onClose(); window.open(`#/note/${encodeURIComponent(entry.path)}`, "_blank"); } });
   }
 
+  if (entry && entry.kind === "folder" && onOpenInNewTab) {
+    const collectMdFiles = (e: VaultEntry): string[] => {
+      if (e.kind === "file") return e.path.endsWith(".md") ? [e.path] : [];
+      return e.children.flatMap(collectMdFiles);
+    };
+    const mdFiles = collectMdFiles(entry);
+    if (mdFiles.length > 0 && mdFiles.length <= 20) {
+      menuItems.push({
+        label: `Open all notes (${mdFiles.length})`,
+        action: () => { onClose(); mdFiles.forEach((p) => onOpenInNewTab!(p)); },
+      });
+    }
+  }
+
   menuItems.push({ label: "New Note", action: () => onCreate(folderPath, "file") });
   menuItems.push({ label: "New Folder", action: () => onCreate(folderPath, "folder") });
 
