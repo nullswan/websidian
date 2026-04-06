@@ -26,6 +26,7 @@ import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
 import { VaultStats } from "./components/VaultStats.js";
+import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
@@ -3926,10 +3927,10 @@ ${rendered}
               while ((m = re.exec(activeTab.content)) !== null) links.add(m[1].trim());
               return links.size;
             })()}>
-              <OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} tree={tree} />
+              <ErrorBoundary><OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} tree={tree} /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Local Graph">
-              <LocalGraph
+              <ErrorBoundary><LocalGraph
                 currentPath={activeTab.path}
                 outgoingLinks={(() => {
                   const re = /\[\[([^\]|#]+)/g;
@@ -3945,13 +3946,13 @@ ${rendered}
                 })()}
                 backlinkPaths={activeTab.backlinks.map((bl) => bl.path)}
                 onNavigate={(path) => openTab(path)}
-              />
+              /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Word Frequency">
-              <WordFrequency content={activeTab.content} />
+              <ErrorBoundary><WordFrequency content={activeTab.content} /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Outline">
-              <Outline
+              <ErrorBoundary><Outline
                 content={activeTab.content}
                 showNumbers={appSettings.headingNumbers}
                 noteTitle={activeTab.path.replace(/\.md$/, "").split("/").pop() || ""}
@@ -3985,23 +3986,23 @@ ${rendered}
                     body: JSON.stringify({ content: newContent }),
                   }).catch(() => {});
                 }}
-              />
+              /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Keywords">
-              <Keywords
+              <ErrorBoundary><Keywords
                 content={activeTab?.content ?? ""}
                 onSearch={(query) => {
                   setLeftPanel("search");
                   setLeftCollapsed(false);
                   setSearchQuery(query);
                 }}
-              />
+              /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="Tags">
-              <Tags onNavigate={openTab} />
+              <ErrorBoundary><Tags onNavigate={openTab} /></ErrorBoundary>
             </SidebarSection>
             <SidebarSection title="CSS Snippets">
-              <Snippets />
+              <ErrorBoundary><Snippets /></ErrorBoundary>
             </SidebarSection>
           </>
         )}
