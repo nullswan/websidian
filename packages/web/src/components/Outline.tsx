@@ -13,9 +13,10 @@ interface OutlineProps {
   onScrollToHeading?: (heading: string, level: number) => void;
   onReorderSection?: (fromHeadingLine: number, fromHeadingLevel: number, toHeadingLine: number) => void;
   showNumbers?: boolean;
+  noteTitle?: string;
 }
 
-export function Outline({ content, onScrollToHeading, onReorderSection, showNumbers = false }: OutlineProps) {
+export function Outline({ content, onScrollToHeading, onReorderSection, showNumbers = false, noteTitle }: OutlineProps) {
   const headings = useMemo(() => extractHeadings(content), [content]);
   const [activeIdx, setActiveIdx] = useState(-1);
   const [dragIdx, setDragIdx] = useState(-1);
@@ -227,6 +228,23 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
             pointerEvents: "none",
           }} />
         ))}
+        {noteTitle && (
+          <li style={{ marginBottom: 4 }}>
+            <div style={{
+              padding: "3px 6px",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              borderBottom: "1px solid var(--border-color)",
+              marginBottom: 4,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>
+              {noteTitle}
+            </div>
+          </li>
+        )}
         {headings.map((h, i) => {
           if (!isVisible(i)) return null;
           return (

@@ -3874,6 +3874,7 @@ ${rendered}
               <Outline
                 content={activeTab.content}
                 showNumbers={appSettings.headingNumbers}
+                noteTitle={activeTab.path.replace(/\.md$/, "").split("/").pop() || ""}
                 onScrollToHeading={(heading, level) => scrollToHeadingRef.current?.(heading, level)}
                 onReorderSection={(fromLine, fromLevel, toLine) => {
                   if (!activeTab) return;
