@@ -2260,6 +2260,64 @@ const pairDeletionKeymap = keymap.of([{
   },
 }]);
 
+// Sticky heading: shows current section heading at top of editor when scrolled past
+const stickyHeadingPlugin = ViewPlugin.fromClass(class {
+  bar: HTMLDivElement;
+  constructor(view: EditorView) {
+    this.bar = document.createElement("div");
+    this.bar.className = "cm-sticky-heading";
+    this.bar.style.cssText = "position: sticky; top: 0; z-index: 5; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); padding: 2px 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: none; cursor: pointer; user-select: none; opacity: 0.9;";
+    this.bar.addEventListener("click", () => {
+      // Scroll to the heading
+      const headingLine = parseInt(this.bar.dataset.line || "0");
+      if (headingLine > 0) {
+        const line = view.state.doc.line(headingLine);
+        view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+      }
+    });
+    view.scrollDOM.style.position = "relative";
+    view.scrollDOM.prepend(this.bar);
+    this.update_heading(view);
+  }
+  update(update: { view: EditorView; docChanged: boolean; geometryChanged: boolean }) {
+    if (update.docChanged || update.geometryChanged) {
+      this.update_heading(update.view);
+    }
+  }
+  update_heading(view: EditorView) {
+    const scrollTop = view.scrollDOM.scrollTop;
+    if (scrollTop < 10) {
+      this.bar.style.display = "none";
+      return;
+    }
+    // Find the visible top line
+    const topBlock = view.lineBlockAtHeight(scrollTop);
+    const topLine = view.state.doc.lineAt(topBlock.from);
+    // Walk backwards to find last heading at or before this line
+    let heading = "";
+    let headingLine = 0;
+    for (let i = topLine.number; i >= 1; i--) {
+      const line = view.state.doc.line(i);
+      const m = line.text.match(/^(#{1,6})\s+(.+)/);
+      if (m) {
+        heading = m[2];
+        headingLine = i;
+        break;
+      }
+    }
+    if (heading) {
+      this.bar.textContent = heading;
+      this.bar.dataset.line = String(headingLine);
+      this.bar.style.display = "block";
+    } else {
+      this.bar.style.display = "none";
+    }
+  }
+  destroy() {
+    this.bar.remove();
+  }
+});
+
 export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -2779,6 +2837,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         search(),
         codeFolding(),
         markdownHeadingFold,
+        stickyHeadingPlugin,
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
