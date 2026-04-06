@@ -7,6 +7,7 @@ interface StatusBarProps {
   saveStatus?: "idle" | "saving" | "saved";
   fileCreated?: string;
   fileModified?: string;
+  scrollProgress?: number;
 }
 
 function formatDate(iso: string): string {
@@ -14,7 +15,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified }: StatusBarProps) {
+export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress }: StatusBarProps) {
   const stats = useMemo(() => {
     const text = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
     const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -87,6 +88,13 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
           )}
           {cursorPos.selectedChars > 0 && `${cursorPos.selectedChars} selected  `}
           Ln {cursorPos.line}, Col {cursorPos.col}
+        </span>
+      )}
+      {scrollProgress != null && !cursorPos && (
+        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ color: scrollProgress >= 0.95 ? "#4ec9b0" : undefined }}>
+            {Math.round(scrollProgress * 100)}% read
+          </span>
         </span>
       )}
     </div>

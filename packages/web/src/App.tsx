@@ -79,7 +79,7 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
@@ -87,6 +87,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
   className?: string;
   noteContent?: string;
   showMinimap?: boolean;
+  onProgressChange?: (progress: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
@@ -110,7 +111,9 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
 
     const handleScroll = () => {
       const max = el.scrollHeight - el.clientHeight;
-      setProgress(max > 0 ? el.scrollTop / max : 0);
+      const p = max > 0 ? el.scrollTop / max : 0;
+      setProgress(p);
+      onProgressChange?.(p);
       setScrollMetrics({ scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight });
 
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
@@ -590,6 +593,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred" | "recent">("files");
   const [recentFiles, setRecentFiles] = useState<string[]>(() => {
@@ -1868,7 +1872,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
@@ -2803,7 +2807,7 @@ ${rendered}
 
         {/* Status bar */}
         {!zenMode && activeTab && (
-          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} />
+          <StatusBar content={activeTab.content} path={activeTab.path} cursorPos={activeTab.mode === "edit" ? cursorPos : null} saveStatus={saveStatus} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} scrollProgress={activeTab.mode === "read" ? scrollProgress : undefined} />
         )}
         </div>
       </div>
