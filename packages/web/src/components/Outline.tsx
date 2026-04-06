@@ -161,10 +161,20 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
     prevActiveIdx.current = activeIdx;
   }, [activeIdx]);
 
+  const [filterQuery, setFilterQuery] = useState("");
+  const filterInputRef = useRef<HTMLInputElement>(null);
+
   if (headings.length === 0) return null;
 
+  // Filter headings by search query
+  const filterLower = filterQuery.toLowerCase();
+  const matchesFilter = (idx: number): boolean => {
+    if (!filterQuery) return true;
+    return headings[idx].text.toLowerCase().includes(filterLower);
+  };
+
   // Compute visible item indices for position indicator
-  const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i));
+  const visibleIndices = headings.map((_, i) => i).filter(i => isVisible(i) && matchesFilter(i));
   const activeVisiblePos = visibleIndices.indexOf(activeIdx);
 
   const collapseAll = () => {
@@ -196,6 +206,51 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
           >
             {someCollapsed ? "▼ Expand" : "▲ Collapse"}
           </button>
+        </div>
+      )}
+      {headings.length >= 5 && (
+        <div style={{ position: "relative", marginBottom: 6 }}>
+          <input
+            ref={filterInputRef}
+            type="text"
+            placeholder="Filter headings..."
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { setFilterQuery(""); filterInputRef.current?.blur(); }
+            }}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "3px 22px 3px 6px",
+              fontSize: 11,
+              border: "1px solid var(--border-color)",
+              borderRadius: 4,
+              background: "var(--bg-secondary)",
+              color: "var(--text-primary)",
+              outline: "none",
+            }}
+          />
+          {filterQuery && (
+            <button
+              onClick={() => { setFilterQuery(""); filterInputRef.current?.focus(); }}
+              style={{
+                position: "absolute",
+                right: 4,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: "var(--text-faint)",
+                cursor: "pointer",
+                fontSize: 11,
+                padding: 0,
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
       )}
       <ul style={{ listStyle: "none", padding: 0, margin: 0, position: "relative" }}>
@@ -256,7 +311,7 @@ export function Outline({ content, onScrollToHeading, onReorderSection, showNumb
           </li>
         )}
         {headings.map((h, i) => {
-          if (!isVisible(i)) return null;
+          if (!isVisible(i) || !matchesFilter(i)) return null;
           return (
           <li key={i} ref={i === activeIdx ? activeItemRef : undefined}>
             <div
