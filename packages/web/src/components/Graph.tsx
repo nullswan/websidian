@@ -4,6 +4,7 @@ interface GraphNode {
   id: string;
   name: string;
   wordCount?: number;
+  mtime?: number;
   x: number;
   y: number;
   vx: number;
@@ -32,6 +33,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const [showOrphans, setShowOrphans] = useState(true);
   const [filterDepth, setFilterDepth] = useState(1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; words: number; links: number } | null>(null);
+  const [timelineFilter, setTimelineFilter] = useState(0); // 0 = show all, 1-100 = percentage of time range
   const [folderLegend, setFolderLegend] = useState<Array<{ folder: string; color: string }>>([]);
   const animRef = useRef<number>(0);
   const panRef = useRef({ x: 0, y: 0 });
@@ -103,6 +105,17 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
 
     let filteredNodes = all.filter(n => filteredIds.has(n.id));
 
+    // Timeline filter: only show notes modified before the cutoff
+    if (timelineFilter > 0) {
+      const mtimes = all.map((n) => n.mtime ?? 0).filter((t) => t > 0);
+      if (mtimes.length > 0) {
+        const minT = Math.min(...mtimes);
+        const maxT = Math.max(...mtimes);
+        const cutoff = minT + ((maxT - minT) * timelineFilter) / 100;
+        filteredNodes = filteredNodes.filter((n) => (n.mtime ?? 0) <= cutoff);
+      }
+    }
+
     if (!showOrphans) {
       const connected = new Set<string>();
       for (const e of allEdges) { connected.add(e.source); connected.add(e.target); }
@@ -114,7 +127,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
 
     nodesRef.current = filteredNodes;
     edgesRef.current = filteredEdges;
-  }, [loaded, graphFilter, showOrphans, filterDepth]);
+  }, [loaded, graphFilter, showOrphans, filterDepth, timelineFilter]);
 
   // Screen to world coordinates
   const screenToWorld = useCallback((sx: number, sy: number, canvas: HTMLCanvasElement) => {
@@ -509,6 +522,21 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           {fullscreen ? "⤓" : "⤢"}
         </button>
         <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{nodesRef.current.length} notes · {edgesRef.current.length} links</span>
+      </div>
+      {/* Timeline slider */}
+      <div style={{ padding: "2px 8px 4px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <span style={{ fontSize: 10, color: "var(--text-faint)", flexShrink: 0 }}>Timeline</span>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={timelineFilter}
+          onChange={(e) => setTimelineFilter(parseInt(e.target.value))}
+          style={{ flex: 1, accentColor: "var(--accent-color)", height: 12 }}
+        />
+        <span style={{ fontSize: 10, color: timelineFilter > 0 ? "var(--accent-color)" : "var(--text-faint)", minWidth: 24, textAlign: "right" }}>
+          {timelineFilter === 0 ? "All" : `${timelineFilter}%`}
+        </span>
       </div>
       <canvas
         ref={canvasRef}

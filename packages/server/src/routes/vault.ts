@@ -680,7 +680,7 @@ export async function vaultRoutes(app: FastifyInstance) {
     const files = flattenFiles(tree);
     const { notes, index } = await indexVault(vaultRoot, files);
 
-    const nodes: Array<{ id: string; name: string; wordCount?: number }> = [];
+    const nodes: Array<{ id: string; name: string; wordCount?: number; mtime?: number }> = [];
     const edges: Array<{ source: string; target: string }> = [];
 
     for (const file of files) {
@@ -688,7 +688,6 @@ export async function vaultRoutes(app: FastifyInstance) {
       let wordCount = 0;
       try {
         const content = await readFile(join(vaultRoot, file.path), "utf-8");
-        // Strip frontmatter then count words
         const body = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
         wordCount = body.split(/\s+/).filter(Boolean).length;
       } catch { /* ignore */ }
@@ -696,6 +695,7 @@ export async function vaultRoutes(app: FastifyInstance) {
         id: file.path,
         name: file.path.replace(/\.md$/, "").split("/").pop() ?? file.path,
         wordCount,
+        mtime: file.mtime,
       });
     }
 
