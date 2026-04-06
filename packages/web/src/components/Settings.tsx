@@ -13,6 +13,7 @@ export interface AppSettings {
   focusMode: boolean;
   vimMode: boolean;
   accentColor: string;
+  lineWrap: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -28,6 +29,7 @@ const DEFAULTS: AppSettings = {
   focusMode: false,
   vimMode: false,
   accentColor: "#7f6df2",
+  lineWrap: true,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -315,6 +317,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Enable Vim modal editing (hjkl navigation, insert/normal mode)"
               >
                 <Toggle checked={settings.vimMode} onChange={(v) => update("vimMode", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Line wrap"
+                description="Wrap long lines in the editor instead of scrolling horizontally"
+              >
+                <Toggle checked={settings.lineWrap} onChange={(v) => update("lineWrap", v)} />
               </SettingItem>
 
               <SettingItem

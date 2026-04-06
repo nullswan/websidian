@@ -1864,6 +1864,7 @@ ${rendered}
                 typewriterMode={appSettings.typewriterMode}
                 focusMode={appSettings.focusMode}
                 vimMode={appSettings.vimMode}
+                lineWrap={appSettings.lineWrap}
                 scrollToHeadingRef={scrollToHeadingRef}
               />
             )

@@ -30,6 +30,7 @@ interface EditorProps {
   typewriterMode?: boolean;
   focusMode?: boolean;
   vimMode?: boolean;
+  lineWrap?: boolean;
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -1702,7 +1703,7 @@ const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1716,6 +1717,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const typewriterComp = useRef(new Compartment());
   const focusModeComp = useRef(new Compartment());
   const vimComp = useRef(new Compartment());
+  const lineWrapComp = useRef(new Compartment());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -2162,7 +2164,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
         indentUnitComp.current.of(indentUnit.of(" ".repeat(tabSize))),
         vimComp.current.of(vimMode ? vim() : []),
-        EditorView.lineWrapping,
+        lineWrapComp.current.of(lineWrap ? EditorView.lineWrapping : []),
         spellCheckComp.current.of(EditorView.contentAttributes.of({ spellcheck: spellCheck ? "true" : "false" })),
         focusModeComp.current.of(focusMode ? EditorView.theme({
           ".cm-line:not(.cm-activeLine)": { opacity: "0.3", transition: "opacity 0.15s" },
@@ -2347,6 +2349,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           ".cm-line.cm-activeLine": { opacity: "1" },
         }) : []),
         vimComp.current.reconfigure(vimMode ? vim() : []),
+        lineWrapComp.current.reconfigure(lineWrap ? EditorView.lineWrapping : []),
         typewriterComp.current.reconfigure(typewriterMode ? EditorView.updateListener.of((update) => {
           if (update.docChanged || update.selectionSet) {
             const head = update.state.selection.main.head;
@@ -2366,7 +2369,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         }) : []),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
