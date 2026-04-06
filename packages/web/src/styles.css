@@ -1306,6 +1306,15 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   border-radius: 3px;
 }
 
+/* Editor line flash when navigating from search */
+@keyframes cm-line-flash {
+  0% { background: rgba(127, 109, 242, 0.2); }
+  100% { background: transparent; }
+}
+.cm-line-flash {
+  animation: cm-line-flash 1.5s ease-out;
+}
+
 @keyframes reveal-flash {
   0% { background: rgba(127, 109, 242, 0.3) !important; }
   100% { background: transparent !important; }

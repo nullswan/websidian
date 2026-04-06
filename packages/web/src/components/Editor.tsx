@@ -5203,6 +5203,15 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       scrollIntoView: true,
     });
     view.focus();
+    // Flash the line with a highlight effect
+    requestAnimationFrame(() => {
+      const lineEl = view.domAtPos(line.from)?.node?.parentElement;
+      if (lineEl instanceof HTMLElement) {
+        const lineDiv = lineEl.closest(".cm-line") ?? lineEl;
+        lineDiv.classList.add("cm-line-flash");
+        setTimeout(() => lineDiv.classList.remove("cm-line-flash"), 1500);
+      }
+    });
   }, [initialLine]);
 
   // Hot-swap settings via Compartments (no editor recreation)
