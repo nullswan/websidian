@@ -258,6 +258,12 @@ details.callout > div {
   box-shadow: 0 4px 16px var(--shadow);
   z-index: 100;
   pointer-events: none;
+  animation: hover-preview-in 0.15s ease-out;
+}
+
+@keyframes hover-preview-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .hover-preview h1, .hover-preview h2, .hover-preview h3 {

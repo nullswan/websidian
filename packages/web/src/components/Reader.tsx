@@ -226,10 +226,13 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       previewEl.style.top = `${rect.bottom - containerRect.top + 4}px`;
       container.appendChild(previewEl);
 
-      // Flip up if below viewport
+      // Reposition if it overflows viewport
       const previewRect = previewEl.getBoundingClientRect();
       if (previewRect.bottom > window.innerHeight - 20) {
         previewEl.style.top = `${rect.top - containerRect.top - previewRect.height - 4}px`;
+      }
+      if (previewRect.right > window.innerWidth - 20) {
+        previewEl.style.left = `${Math.max(0, window.innerWidth - 20 - previewRect.width - containerRect.left)}px`;
       }
     };
 
@@ -546,10 +549,13 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
                 previewEl.innerHTML = md.render(previewContent);
 
-                // Flip up if it goes below viewport
+                // Reposition if it overflows viewport
                 const previewRect = previewEl.getBoundingClientRect();
                 if (previewRect.bottom > window.innerHeight - 20) {
                   previewEl.style.top = `${rect.top - containerRect.top - previewRect.height - 4}px`;
+                }
+                if (previewRect.right > window.innerWidth - 20) {
+                  previewEl.style.left = `${Math.max(0, window.innerWidth - 20 - previewRect.width - containerRect.left)}px`;
                 }
               });
           })
