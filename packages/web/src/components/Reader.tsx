@@ -1668,20 +1668,57 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       if (!img || img.closest("a")) return; // skip linked images
       e.stopPropagation();
 
+      // Capture source image position for smooth zoom animation
+      const rect = img.getBoundingClientRect();
       overlay = document.createElement("div");
-      overlay.style.cssText = "position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(4px); animation: fade-in 0.15s ease;";
+      overlay.style.cssText = "position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0); cursor: zoom-out; backdrop-filter: blur(0px); transition: background 0.3s ease, backdrop-filter 0.3s ease;";
       const zoomImg = document.createElement("img");
       zoomImg.src = img.src;
       zoomImg.alt = img.alt || "";
-      zoomImg.style.cssText = "max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);";
+      // Start at source image position
+      zoomImg.style.cssText = `position: fixed; left: ${rect.left}px; top: ${rect.top}px; width: ${rect.width}px; height: ${rect.height}px; object-fit: contain; border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1);`;
       overlay.appendChild(zoomImg);
 
-      const close = () => { overlay?.remove(); overlay = null; };
+      const close = () => {
+        if (!overlay) return;
+        // Animate back to source
+        const curRect = img.getBoundingClientRect();
+        overlay.style.background = "rgba(0,0,0,0)";
+        overlay.style.backdropFilter = "blur(0px)";
+        zoomImg.style.left = `${curRect.left}px`;
+        zoomImg.style.top = `${curRect.top}px`;
+        zoomImg.style.width = `${curRect.width}px`;
+        zoomImg.style.height = `${curRect.height}px`;
+        zoomImg.style.borderRadius = "4px";
+        zoomImg.style.boxShadow = "none";
+        setTimeout(() => { overlay?.remove(); overlay = null; }, 300);
+      };
       overlay.addEventListener("click", close);
       const keyHandler = (ke: KeyboardEvent) => { if (ke.key === "Escape") { close(); document.removeEventListener("keydown", keyHandler); } };
       document.addEventListener("keydown", keyHandler);
 
       document.body.appendChild(overlay);
+
+      // Animate to center after layout
+      requestAnimationFrame(() => {
+        if (!overlay) return;
+        overlay.style.background = "rgba(0,0,0,0.85)";
+        overlay.style.backdropFilter = "blur(4px)";
+        // Calculate centered position
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const maxW = vw * 0.9;
+        const maxH = vh * 0.9;
+        const naturalW = img.naturalWidth || rect.width;
+        const naturalH = img.naturalHeight || rect.height;
+        const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+        const finalW = naturalW * scale;
+        const finalH = naturalH * scale;
+        zoomImg.style.left = `${(vw - finalW) / 2}px`;
+        zoomImg.style.top = `${(vh - finalH) / 2}px`;
+        zoomImg.style.width = `${finalW}px`;
+        zoomImg.style.height = `${finalH}px`;
+      });
     };
 
     container.addEventListener("click", handleImgClick);
