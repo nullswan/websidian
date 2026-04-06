@@ -380,13 +380,18 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
         });
       }
 
-      // Find and replace blockquote_close
-      for (let j = inlineIdx + 1; j < tokens.length; j++) {
-        if (tokens[j].type === "blockquote_close") {
-          tokens[j] = Object.assign(new state.Token("html_block", "", 0), {
-            content: isCollapsible ? `</div></details>` : `</div></div>`,
-          });
-          break;
+      // Find and replace the matching blockquote_close (respecting nesting depth)
+      let depth = 1;
+      for (let j = i + 1; j < tokens.length; j++) {
+        if (tokens[j].type === "blockquote_open") depth++;
+        else if (tokens[j].type === "blockquote_close") {
+          depth--;
+          if (depth === 0) {
+            tokens[j] = Object.assign(new state.Token("html_block", "", 0), {
+              content: isCollapsible ? `</div></details>` : `</div></div>`,
+            });
+            break;
+          }
         }
       }
     }
