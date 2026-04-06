@@ -99,6 +99,7 @@ interface FileTreeProps {
   onFileRenamed?: (from: string, to: string, updatedFiles: string[]) => void;
   onDuplicate?: (path: string) => void;
   backlinkCounts?: Record<string, number>;
+  todoCounts?: Record<string, number>;
 }
 
 interface ContextMenuState {
@@ -177,7 +178,7 @@ function flattenVisible(entries: VaultEntry[], expandedPaths: Set<string>, sortM
   return result;
 }
 
-export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts }: FileTreeProps) {
+export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight, selectedPath, onMutate, onFileRenamed, onDuplicate, backlinkCounts, todoCounts }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; kind: "file" | "folder" } | null>(null);
@@ -514,6 +515,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             onFileHover={handleFileHover}
             onClearHover={clearHoverPreview}
             filterQuery={filter.trim() || undefined}
+            todoCounts={todoCounts}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -657,6 +659,7 @@ function FileTreeNode({
   onFileHover,
   onClearHover,
   filterQuery,
+  todoCounts,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -678,6 +681,7 @@ function FileTreeNode({
   onFileHover?: (e: React.MouseEvent, path: string) => void;
   onClearHover?: () => void;
   filterQuery?: string;
+  todoCounts?: Record<string, number>;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -761,6 +765,7 @@ function FileTreeNode({
                 onFileHover={onFileHover}
                 onClearHover={onClearHover}
                 filterQuery={filterQuery}
+                todoCounts={todoCounts}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -861,6 +866,25 @@ function FileTreeNode({
               );
             } catch { return null; }
           })()}
+          {todoCounts && todoCounts[entry.path] > 0 && (
+            <span title={`${todoCounts[entry.path]} open task${todoCounts[entry.path] > 1 ? "s" : ""}`} style={{
+              fontSize: 10,
+              color: "#4ec9b0",
+              background: "rgba(78,201,176,0.12)",
+              borderRadius: 8,
+              padding: "0 5px",
+              lineHeight: "16px",
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 2,
+            }}>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="#4ec9b0" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="0.5" y="0.5" width="7" height="7" rx="1" />
+              </svg>
+              {todoCounts[entry.path]}
+            </span>
+          )}
           {backlinkCounts && backlinkCounts[entry.path] > 0 && (
             <span style={{
               fontSize: 10,

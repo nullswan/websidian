@@ -665,6 +665,7 @@ export function App() {
   const [user, setUser] = useState<string | null>(null);
   const [tree, setTree] = useState<VaultEntry[]>([]);
   const [backlinkCounts, setBacklinkCounts] = useState<Record<string, number>>({});
+  const [todoCounts, setTodoCounts] = useState<Record<string, number>>({});
   const [tabsMap, setTabsMap] = useState<Record<string, Tab>>({});
   const [panes, setPanes] = useState<Pane[]>([{ tabIds: [], activeTabId: null }]);
   const [activePaneIdx, setActivePaneIdx] = useState(0);
@@ -858,6 +859,17 @@ export function App() {
               counts[edge.target] = (counts[edge.target] ?? 0) + 1;
             }
             setBacklinkCounts(counts);
+          })
+          .catch(() => {});
+        // Fetch TODO counts for file tree badges
+        fetch(`/api/vault/search?q=${encodeURIComponent("- [ ]")}`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((searchData) => {
+            const tc: Record<string, number> = {};
+            for (const result of (searchData.results ?? [])) {
+              tc[result.path] = (tc[result.path] ?? 0) + (result.matches?.length ?? 1);
+            }
+            setTodoCounts(tc);
           })
           .catch(() => {});
         // Restore workspace from localStorage after tree is loaded
@@ -2691,6 +2703,7 @@ ${rendered}
                   onFileRenamed={handleFileRenamed}
                   onDuplicate={duplicateNote}
                   backlinkCounts={backlinkCounts}
+                  todoCounts={todoCounts}
                 />
               ) : (
                 <div style={{ padding: 12, opacity: 0.5, fontSize: 13 }}>
