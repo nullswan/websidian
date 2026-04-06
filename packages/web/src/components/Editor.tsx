@@ -3627,6 +3627,44 @@ const floatingToolbarPlugin = ViewPlugin.fromClass(class {
       this.toolbar.appendChild(el);
     }
 
+    // Highlight color picker button
+    const hlColors: Array<{ name: string; bg: string }> = [
+      { name: "red", bg: "#e0525240" },
+      { name: "orange", bg: "#e6994a40" },
+      { name: "yellow", bg: "#dcdcaa40" },
+      { name: "green", bg: "#4ec9b040" },
+      { name: "blue", bg: "#56b6e640" },
+      { name: "purple", bg: "#c98ce640" },
+    ];
+    const hlBtn = document.createElement("button");
+    hlBtn.textContent = "🎨";
+    hlBtn.title = "Highlight color";
+    hlBtn.style.cssText = "background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 3px 6px; font-size: 12px; border-radius: 3px; min-width: 24px; line-height: 1; position: relative;";
+    const hlDropdown = document.createElement("div");
+    hlDropdown.style.cssText = "display:none;position:absolute;bottom:100%;left:0;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:4px;margin-bottom:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);gap:3px;flex-wrap:wrap;width:80px;";
+    for (const c of hlColors) {
+      const dot = document.createElement("button");
+      dot.style.cssText = `width:20px;height:20px;border-radius:4px;border:1px solid var(--border-color);cursor:pointer;background:${c.bg};`;
+      dot.title = c.name;
+      dot.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        const sel = this.view.state.selection.main;
+        if (sel.empty) return;
+        const text = this.view.state.sliceDoc(sel.from, sel.to);
+        const wrapped = `<mark class="hltr-${c.name}">${text}</mark>`;
+        this.view.dispatch({
+          changes: { from: sel.from, to: sel.to, insert: wrapped },
+          selection: { anchor: sel.from + `<mark class="hltr-${c.name}">`.length, head: sel.from + `<mark class="hltr-${c.name}">`.length + text.length },
+        });
+        hlDropdown.style.display = "none";
+      });
+      hlDropdown.appendChild(dot);
+    }
+    hlBtn.appendChild(hlDropdown);
+    hlBtn.addEventListener("mouseenter", () => { hlBtn.style.background = "var(--bg-tertiary)"; hlDropdown.style.display = "flex"; });
+    hlBtn.addEventListener("mouseleave", () => { hlBtn.style.background = "none"; hlDropdown.style.display = "none"; });
+    this.toolbar.appendChild(hlBtn);
+
     view.dom.appendChild(this.toolbar);
   }
 

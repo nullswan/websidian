@@ -506,6 +506,12 @@ details.callout > div {
   padding: 1px 2px;
   border-radius: 2px;
 }
+mark.hltr-red { background: rgba(224, 82, 82, 0.25) !important; }
+mark.hltr-orange { background: rgba(230, 153, 74, 0.25) !important; }
+mark.hltr-yellow { background: rgba(220, 220, 170, 0.25) !important; }
+mark.hltr-green { background: rgba(78, 201, 176, 0.25) !important; }
+mark.hltr-blue { background: rgba(86, 182, 230, 0.25) !important; }
+mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
 
 .reader-view s {
   color: var(--text-muted);
