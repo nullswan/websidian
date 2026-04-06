@@ -1940,6 +1940,41 @@ ${rendered}
               ro.observe(tabBar);
             }}
           >
+          {/* Navigation back/forward buttons */}
+          <div style={{ display: "flex", gap: 1, alignItems: "center", paddingLeft: 4, flexShrink: 0 }}>
+            <button
+              onClick={() => {
+                if (navIdx.current > 0) {
+                  navIdx.current--;
+                  navIgnore.current = true;
+                  openTab(navHistory.current[navIdx.current]);
+                }
+              }}
+              disabled={navIdx.current <= 0}
+              title="Navigate back (Alt+←)"
+              style={{
+                background: "none", border: "none", color: navIdx.current > 0 ? "var(--text-secondary)" : "var(--text-faint)",
+                cursor: navIdx.current > 0 ? "pointer" : "default", fontSize: 14, padding: "2px 4px", lineHeight: 1,
+                opacity: navIdx.current > 0 ? 0.8 : 0.3,
+              }}
+            >←</button>
+            <button
+              onClick={() => {
+                if (navIdx.current < navHistory.current.length - 1) {
+                  navIdx.current++;
+                  navIgnore.current = true;
+                  openTab(navHistory.current[navIdx.current]);
+                }
+              }}
+              disabled={navIdx.current >= navHistory.current.length - 1}
+              title="Navigate forward (Alt+→)"
+              style={{
+                background: "none", border: "none", color: navIdx.current < navHistory.current.length - 1 ? "var(--text-secondary)" : "var(--text-faint)",
+                cursor: navIdx.current < navHistory.current.length - 1 ? "pointer" : "default", fontSize: 14, padding: "2px 4px", lineHeight: 1,
+                opacity: navIdx.current < navHistory.current.length - 1 ? 0.8 : 0.3,
+              }}
+            >→</button>
+          </div>
           <button className="tab-bar-scroll-btn left" onClick={(e) => {
             const bar = (e.currentTarget as HTMLElement).parentElement?.querySelector(".tab-bar");
             if (bar) bar.scrollBy({ left: -120, behavior: "smooth" });
