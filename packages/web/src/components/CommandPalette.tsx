@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react";
 
 const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 function kbd(s: string): string {
@@ -71,6 +71,20 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
+const RECENT_KEY = "command-palette-recent";
+const MAX_RECENT = 8;
+
+function getRecentIds(): string[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function pushRecent(id: string) {
+  const recent = getRecentIds().filter((r) => r !== id);
+  recent.unshift(id);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+}
+
 export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -81,11 +95,22 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!query) return commands.map((c) => ({ cmd: c, indices: [] as number[] }));
-    const results: { cmd: Command; indices: number[]; score: number }[] = [];
+    if (!query) {
+      // Show recent commands first, then all commands
+      const recentIds = getRecentIds();
+      const recentSet = new Set(recentIds);
+      const cmdMap = new Map(commands.map((c) => [c.id, c]));
+      const recentCmds = recentIds.map((id) => cmdMap.get(id)).filter(Boolean) as Command[];
+      const restCmds = commands.filter((c) => !recentSet.has(c.id));
+      return [
+        ...recentCmds.map((c) => ({ cmd: c, indices: [] as number[], isRecent: true })),
+        ...restCmds.map((c) => ({ cmd: c, indices: [] as number[], isRecent: false })),
+      ];
+    }
+    const results: { cmd: Command; indices: number[]; score: number; isRecent: boolean }[] = [];
     for (const cmd of commands) {
       const match = fuzzyMatch(cmd.name, query);
-      if (match) results.push({ cmd, indices: match.indices, score: match.score });
+      if (match) results.push({ cmd, indices: match.indices, score: match.score, isRecent: false });
     }
     results.sort((a, b) => b.score - a.score);
     return results;
@@ -106,6 +131,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (filtered[selectedIdx]) {
+          pushRecent(filtered[selectedIdx].cmd.id);
           filtered[selectedIdx].cmd.action();
           onClose();
         }
@@ -162,8 +188,14 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         />
         <div style={{ overflow: "auto", flex: 1 }}>
           {filtered.map((item, i) => (
+            <Fragment key={item.cmd.id}>
+              {!query && i === 0 && item.isRecent && (
+                <div style={{ padding: "6px 16px 2px", fontSize: 10, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Recent</div>
+              )}
+              {!query && i > 0 && !item.isRecent && filtered[i - 1]?.isRecent && (
+                <div style={{ padding: "6px 16px 2px", fontSize: 10, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em", borderTop: "1px solid var(--border-color)", marginTop: 4 }}>All Commands</div>
+              )}
             <div
-              key={item.cmd.id}
               ref={(el) => { if (el && i === selectedIdx) el.scrollIntoView({ block: "nearest" }); }}
               style={{
                 padding: "8px 16px",
@@ -174,6 +206,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                 justifyContent: "space-between",
               }}
               onClick={() => {
+                pushRecent(item.cmd.id);
                 item.cmd.action();
                 onClose();
               }}
@@ -196,6 +229,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                 </span>
               )}
             </div>
+            </Fragment>
           ))}
           {filtered.length === 0 && (
             <div style={{ padding: "12px 16px", color: "var(--text-faint)", fontSize: 13 }}>
