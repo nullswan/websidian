@@ -27,6 +27,10 @@ export const HOTKEY_ACTIONS: HotkeyDef[] = [
   { id: "prev-tab", name: "Previous tab", defaultKey: "Ctrl+Shift+Tab" },
   { id: "navigate-back", name: "Navigate back", defaultKey: "Alt+ArrowLeft" },
   { id: "navigate-forward", name: "Navigate forward", defaultKey: "Alt+ArrowRight" },
+  { id: "split-right", name: "Split editor right", defaultKey: "Ctrl+Alt+\\" },
+  { id: "close-split", name: "Close split pane", defaultKey: "Ctrl+Alt+W" },
+  { id: "focus-pane-1", name: "Focus pane 1", defaultKey: "Ctrl+Alt+1" },
+  { id: "focus-pane-2", name: "Focus pane 2", defaultKey: "Ctrl+Alt+2" },
 ];
 
 const STORAGE_KEY = "obsidian-web-hotkeys";

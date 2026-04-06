@@ -1578,11 +1578,15 @@ ${rendered}
             openTab(navHistory.current[navIdx.current]);
           }
           break;
+        case "split-right": splitRight(); break;
+        case "close-split": closeSplit(); break;
+        case "focus-pane-1": setActivePaneIdx(0); break;
+        case "focus-pane-2": if (panes.length > 1) setActivePaneIdx(1); break;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, openTab, showShortcuts, toggleZenMode, zenMode]);
+  }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, openTab, showShortcuts, toggleZenMode, zenMode, splitRight, closeSplit, panes.length]);
 
   // Warn before closing browser with unsaved changes
   useEffect(() => {
@@ -4151,6 +4155,10 @@ ${rendered}
                 [hk("zen-mode"), "Toggle zen mode"],
                 [hk("settings"), "Open settings"],
                 [hk("shortcuts-help"), "Keyboard shortcuts"],
+                [hk("split-right"), "Split editor right"],
+                [hk("close-split"), "Close split pane"],
+                [hk("focus-pane-1"), "Focus pane 1"],
+                [hk("focus-pane-2"), "Focus pane 2"],
               ]],
             ] as [string, string[][]][];
             })().map(([group, shortcuts]) => (
