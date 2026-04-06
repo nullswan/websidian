@@ -426,6 +426,51 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // External link hover preview: show page title on hover
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const titleCache = new Map<string, string>();
+    const links = container.querySelectorAll<HTMLAnchorElement>('a[target="_blank"]');
+    links.forEach((a) => {
+      let tooltip: HTMLDivElement | null = null;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      a.addEventListener("mouseenter", () => {
+        timer = setTimeout(() => {
+          const href = a.href;
+          const show = (title: string) => {
+            if (tooltip) return;
+            tooltip = document.createElement("div");
+            tooltip.style.cssText = "position:absolute;z-index:1000;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-primary);box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;";
+            tooltip.textContent = title;
+            const rect = a.getBoundingClientRect();
+            const cRect = container.getBoundingClientRect();
+            tooltip.style.left = `${rect.left - cRect.left}px`;
+            tooltip.style.top = `${rect.bottom - cRect.top + 4}px`;
+            container.style.position = "relative";
+            container.appendChild(tooltip);
+          };
+          if (titleCache.has(href)) {
+            const cached = titleCache.get(href)!;
+            if (cached) show(cached);
+          } else {
+            fetch(`/api/vault/fetch-title?url=${encodeURIComponent(href)}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((data) => {
+                titleCache.set(href, data.title || "");
+                if (data.title) show(data.title);
+              })
+              .catch(() => titleCache.set(href, ""));
+          }
+        }, 400);
+      });
+      a.addEventListener("mouseleave", () => {
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (tooltip) { tooltip.remove(); tooltip = null; }
+      });
+    });
+  }, [html]);
+
   // Link cards: bare URLs on their own line become rich cards
   useEffect(() => {
     const container = containerRef.current;
