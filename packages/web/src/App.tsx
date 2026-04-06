@@ -1576,6 +1576,8 @@ ${rendered}
     const paneTab = pane.activeTabId ? tabsMap[pane.activeTabId] ?? null : null;
     const paneIsMarkdown = paneTab?.path.endsWith(".md");
     const paneIsCanvas = paneTab?.path.endsWith(".canvas");
+    const paneIsPdf = paneTab?.path.endsWith(".pdf");
+    const paneIsImage = /\.(png|jpe?g|gif|svg|webp|bmp|avif|ico)$/i.test(paneTab?.path ?? "");
     const isActive = paneIdx === activePaneIdx;
 
     return (
@@ -1996,6 +1998,20 @@ ${rendered}
                   openTab(path);
                 }}
               />
+            ) : paneIsPdf ? (
+              <iframe
+                src={`/api/vault/raw?path=${encodeURIComponent(paneTab.path)}`}
+                style={{ width: "100%", height: "100%", border: "none", background: "var(--bg-secondary)" }}
+                title={paneTab.path.split("/").pop() ?? "PDF"}
+              />
+            ) : paneIsImage ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: 20, background: "var(--bg-primary)" }}>
+                <img
+                  src={`/api/vault/raw?path=${encodeURIComponent(paneTab.path)}`}
+                  alt={paneTab.path.split("/").pop() ?? ""}
+                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 4 }}
+                />
+              </div>
             ) : paneIsMarkdown && paneTab.mode === "read" ? (
               <Reader
                 key={paneTab.path}
