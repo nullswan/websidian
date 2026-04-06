@@ -2570,6 +2570,24 @@ const smartQuotesHandler = EditorView.inputHandler.of((view, from, _to, text) =>
 });
 
 // Format markdown table: align pipes and pad cells
+function sortSelectedLines(view: EditorView, reverse: boolean): boolean {
+  const sel = view.state.selection.main;
+  if (sel.from === sel.to) return false;
+  const fromLine = view.state.doc.lineAt(sel.from);
+  const toLine = view.state.doc.lineAt(sel.to);
+  const lines: string[] = [];
+  for (let i = fromLine.number; i <= toLine.number; i++) {
+    lines.push(view.state.doc.line(i).text);
+  }
+  lines.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  if (reverse) lines.reverse();
+  view.dispatch({
+    changes: { from: fromLine.from, to: toLine.to, insert: lines.join("\n") },
+    selection: EditorSelection.range(fromLine.from, fromLine.from + lines.join("\n").length),
+  });
+  return true;
+}
+
 function formatMarkdownTable(view: EditorView): boolean {
   const state = view.state;
   const cursorLine = state.doc.lineAt(state.selection.main.head);
@@ -3682,7 +3700,11 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         history(),
         pairDeletionKeymap,
         tableNavigationKeymap,
-        keymap.of([{ key: "Shift-Alt-f", run: formatMarkdownTable }]),
+        keymap.of([
+          { key: "Shift-Alt-f", run: formatMarkdownTable },
+          { key: "Shift-Alt-s", run: (view: EditorView) => sortSelectedLines(view, false) },
+          { key: "Shift-Alt-r", run: (view: EditorView) => sortSelectedLines(view, true) },
+        ]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
