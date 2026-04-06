@@ -152,10 +152,29 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
           }} />
         </div>
       )}
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+      <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
         <div ref={ref} className={className} style={{ flex: 1, overflow: "auto" }}>
           <div key={tabId} className="note-content-fade">{children}</div>
         </div>
+        {progress > 0.3 && (
+          <button
+            onClick={() => { if (ref.current) ref.current.scrollTo({ top: 0, behavior: "smooth" }); }}
+            title="Back to top"
+            style={{
+              position: "absolute", bottom: 16, right: 20, zIndex: 10,
+              width: 32, height: 32, borderRadius: "50%",
+              background: "var(--bg-tertiary)", border: "1px solid var(--border-color)",
+              color: "var(--text-secondary)", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, opacity: 0.7, transition: "opacity 0.15s",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            }}
+            onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = "1"; }}
+            onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = "0.7"; }}
+          >
+            ↑
+          </button>
+        )}
         {showMinimap && noteContent && (
           <Minimap
             content={noteContent}
