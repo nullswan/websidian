@@ -1664,6 +1664,48 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Image gallery grid: 3+ consecutive image paragraphs become a grid
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const paragraphs = Array.from(container.children) as HTMLElement[];
+    let i = 0;
+    while (i < paragraphs.length) {
+      const el = paragraphs[i];
+      if (el.tagName !== "P" || el.children.length !== 1 || el.children[0].tagName !== "IMG") { i++; continue; }
+      // Scan forward for consecutive image paragraphs
+      let end = i + 1;
+      while (end < paragraphs.length) {
+        const next = paragraphs[end];
+        if (next.tagName !== "P" || next.children.length !== 1 || next.children[0].tagName !== "IMG") break;
+        end++;
+      }
+      const count = end - i;
+      if (count >= 3) {
+        const grid = document.createElement("div");
+        grid.style.cssText = `display: grid; grid-template-columns: repeat(${Math.min(count, 4)}, 1fr); gap: 6px; margin: 12px 0; border-radius: 6px; overflow: hidden;`;
+        for (let j = i; j < end; j++) {
+          const img = paragraphs[j].querySelector("img");
+          if (img) {
+            const wrapper = document.createElement("div");
+            wrapper.style.cssText = "overflow: hidden; border-radius: 4px; aspect-ratio: 1; cursor: pointer;";
+            img.style.cssText = "width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;";
+            img.addEventListener("mouseenter", () => { img.style.transform = "scale(1.05)"; });
+            img.addEventListener("mouseleave", () => { img.style.transform = "scale(1)"; });
+            wrapper.appendChild(img);
+            grid.appendChild(wrapper);
+          }
+        }
+        // Replace the first paragraph with the grid, remove the rest
+        paragraphs[i].replaceWith(grid);
+        for (let j = i + 1; j < end; j++) {
+          paragraphs[j].remove();
+        }
+      }
+      i = end;
+    }
+  }, [html]);
+
   // Table sort on header click
   useEffect(() => {
     const container = containerRef.current;
