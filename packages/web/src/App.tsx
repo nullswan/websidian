@@ -2593,6 +2593,117 @@ ${rendered}
               }}
               activePath={activeTab?.path}
             />
+          ) : appSettings.stackedTabs ? (
+            <div
+              className="stacked-panes-container"
+              style={{
+                flex: 1,
+                display: "flex",
+                overflowX: "auto",
+                overflowY: "hidden",
+                scrollSnapType: "x mandatory",
+              }}
+            >
+              {panes.flatMap((pane, paneIdx) =>
+                pane.tabIds.map((tabId) => {
+                  const tab = tabsMap[tabId];
+                  if (!tab) return null;
+                  const isActive = pane.activeTabId === tabId && paneIdx === activePaneIdx;
+                  return (
+                    <div
+                      key={tabId}
+                      className="stacked-pane-card"
+                      style={{
+                        minWidth: 500,
+                        maxWidth: 700,
+                        flex: "0 0 auto",
+                        width: "50vw",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderRight: "1px solid var(--border-color)",
+                        scrollSnapAlign: "start",
+                        position: "relative",
+                        background: isActive ? "var(--bg-primary)" : "var(--bg-secondary)",
+                      }}
+                      onClick={() => {
+                        setActivePaneIdx(paneIdx);
+                        setPanes((prev) => {
+                          const next = [...prev];
+                          next[paneIdx] = { ...prev[paneIdx], activeTabId: tabId };
+                          return next;
+                        });
+                      }}
+                    >
+                      {/* Stacked pane header */}
+                      <div
+                        style={{
+                          padding: "8px 16px",
+                          borderBottom: "1px solid var(--border-color)",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                          background: isActive ? "var(--bg-tertiary)" : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          position: "sticky",
+                          top: 0,
+                          zIndex: 1,
+                        }}
+                      >
+                        <span>{tab.path.replace(/\.md$/, "").split("/").pop()}</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); closeTab(tabId, paneIdx); }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "var(--text-faint)",
+                            cursor: "pointer",
+                            fontSize: 14,
+                            padding: "2px 4px",
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {/* Stacked pane content */}
+                      <div style={{ flex: 1, overflow: "auto", padding: 0 }}>
+                        {tab.path.endsWith(".md") && tab.mode === "read" ? (
+                          <Reader
+                            content={tab.content}
+                            filePath={tab.path}
+                            onNavigate={handleNavigate}
+                            searchHighlight=""
+                            scrollToLine={null}
+                            onScrollToLineDone={() => {}}
+                          />
+                        ) : tab.path.endsWith(".md") && tab.mode === "edit" ? (
+                          <Editor
+                            content={tab.content}
+                            filePath={tab.path}
+                            onSave={(c: string) => { updateTab(tabId, { content: c }); handleSave(c); }}
+                            onNavigate={handleNavigate}
+                            onDirty={() => updateTab(tabId, { dirty: true })}
+                            fontSize={appSettings.editorFontSize}
+                            spellCheck={appSettings.spellCheck}
+                            showLineNumbers={appSettings.showLineNumbers}
+                            tabSize={appSettings.tabSize}
+                            typewriterMode={appSettings.typewriterMode}
+                            focusMode={appSettings.focusMode}
+                            vimMode={appSettings.vimMode}
+                            lineWrap={appSettings.lineWrap}
+                          />
+                        ) : (
+                          <div style={{ padding: 20, color: "var(--text-muted)", fontSize: 13 }}>
+                            {tab.path}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           ) : (
             panes.map((pane, idx) => (
               <React.Fragment key={idx}>
@@ -2939,6 +3050,15 @@ ${rendered}
                 // Trigger the daily note button click
                 const btn = document.querySelector('[title="Open today\'s daily note"]') as HTMLButtonElement;
                 btn?.click();
+              },
+            },
+            {
+              id: "toggle-stacked-tabs",
+              name: appSettings.stackedTabs ? "Disable stacked tabs" : "Enable stacked tabs (sliding panes)",
+              action: () => {
+                const next = { ...appSettings, stackedTabs: !appSettings.stackedTabs };
+                setAppSettings(next);
+                import("./components/Settings.js").then(({ saveSettings }) => saveSettings(next));
               },
             },
             {

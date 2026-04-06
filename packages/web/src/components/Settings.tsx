@@ -16,6 +16,7 @@ export interface AppSettings {
   accentColor: string;
   lineWrap: boolean;
   fontFamily: "system" | "sans-serif" | "serif" | "monospace";
+  stackedTabs: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -33,6 +34,7 @@ const DEFAULTS: AppSettings = {
   accentColor: "#7f6df2",
   lineWrap: true,
   fontFamily: "system",
+  stackedTabs: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -365,6 +367,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Wrap long lines in the editor instead of scrolling horizontally"
               >
                 <Toggle checked={settings.lineWrap} onChange={(v) => update("lineWrap", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Stacked tabs"
+                description="Open notes as sliding panes side by side (Andy Matuschak mode)"
+              >
+                <Toggle checked={settings.stackedTabs} onChange={(v) => update("stackedTabs", v)} />
               </SettingItem>
 
               <SettingItem
