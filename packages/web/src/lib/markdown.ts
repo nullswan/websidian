@@ -81,6 +81,25 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   });
 
   // Plugin: hide block reference markers (^block-id)
+  // Plugin: strip %%comments%% (inline and block)
+  md.core.ruler.push("strip_comments", (state) => {
+    // Remove block-level tokens that are entirely comments
+    state.tokens = state.tokens.filter((token) => {
+      if (token.type === "paragraph_open" || token.type === "paragraph_close") return true;
+      if (token.type === "inline" && token.content) {
+        token.content = token.content.replace(/%%[\s\S]*?%%/g, "");
+        if (token.children) {
+          for (const child of token.children) {
+            if (child.type === "text") {
+              child.content = child.content.replace(/%%[\s\S]*?%%/g, "");
+            }
+          }
+        }
+      }
+      return true;
+    });
+  });
+
   md.core.ruler.push("block_refs", (state) => {
     for (const token of state.tokens) {
       if (token.type !== "inline" || !token.children) continue;
