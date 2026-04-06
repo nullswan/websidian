@@ -1172,6 +1172,16 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   border-radius: 8px;
 }
 
+/* Editor inline code background */
+.cm-editor .tok-monospace {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", monospace;
+  font-size: 0.9em;
+  color: #e06c75;
+}
+
 /* Obsidian-like selection */
 .cm-editor .cm-selectionBackground {
   background: rgba(127, 109, 242, 0.25) !important;
