@@ -586,6 +586,22 @@ details.callout > div {
 .tab-bar-scroll-btn.left { left: 0; }
 .tab-bar-scroll-btn.right { right: 0; background: linear-gradient(-90deg, var(--bg-primary) 60%, transparent); }
 .tab-bar-wrapper.has-overflow .tab-bar-scroll-btn { display: flex; }
+.tab-count-badge {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 9px;
+  min-width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 7px;
+  background: var(--accent-color);
+  color: white;
+  padding: 0 3px;
+}
+.tab-bar-wrapper.has-overflow .tab-bar-scroll-btn.right .tab-count-badge { display: block; }
 
 .tab-bar {
   display: flex;

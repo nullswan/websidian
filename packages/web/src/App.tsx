@@ -1907,7 +1907,10 @@ ${rendered}
           <button className="tab-bar-scroll-btn right" onClick={(e) => {
             const bar = (e.currentTarget as HTMLElement).parentElement?.querySelector(".tab-bar");
             if (bar) bar.scrollBy({ left: 120, behavior: "smooth" });
-          }}>›</button>
+          }} title={`${pane.tabIds.length} tabs`}>
+            ›
+            <span className="tab-count-badge">{pane.tabIds.length}</span>
+          </button>
           </div>
         )}
 
