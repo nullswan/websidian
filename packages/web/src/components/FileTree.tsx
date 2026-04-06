@@ -610,8 +610,87 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
     setCreating(null);
   };
 
+  // Recent files: top 5 most recently modified .md files
+  const [recentCollapsed, setRecentCollapsed] = useState(() => {
+    try { return localStorage.getItem("filetree-recent-collapsed") === "true"; } catch { return false; }
+  });
+  const recentFiles = useMemo(() => {
+    const files: Array<VaultEntry & { kind: "file" }> = [];
+    const walk = (es: VaultEntry[]) => {
+      for (const e of es) {
+        if (e.kind === "file" && e.path.endsWith(".md")) files.push(e);
+        if (e.kind === "folder") walk(e.children);
+      }
+    };
+    walk(entries);
+    return files.sort((a, b) => b.mtime - a.mtime).slice(0, 5);
+  }, [entries]);
+
+  const formatRelativeTime = useCallback((mtime: number) => {
+    const diff = Date.now() - mtime;
+    if (diff < 60000) return "just now";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }, []);
+
   return (
     <>
+      {!filter.trim() && recentFiles.length > 0 && (
+        <div style={{ borderBottom: "1px solid var(--border-color)", marginBottom: 2 }}>
+          <div
+            onClick={() => {
+              setRecentCollapsed((p) => {
+                const next = !p;
+                try { localStorage.setItem("filetree-recent-collapsed", String(next)); } catch {}
+                return next;
+              });
+            }}
+            style={{
+              padding: "4px 8px",
+              fontSize: 10,
+              color: "var(--text-faint)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              fontWeight: 600,
+              cursor: "pointer",
+              userSelect: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <span style={{ transform: recentCollapsed ? "rotate(-90deg)" : undefined, transition: "transform 0.15s", display: "inline-flex" }}>▾</span>
+            Recent
+          </div>
+          {!recentCollapsed && recentFiles.map((f) => (
+            <div
+              key={f.path}
+              onClick={() => onFileSelect(f.path)}
+              style={{
+                padding: "3px 8px 3px 20px",
+                fontSize: 12,
+                color: f.path === selectedPath ? "var(--text-primary)" : "var(--text-secondary)",
+                background: f.path === selectedPath ? "var(--bg-hover)" : "transparent",
+                cursor: "pointer",
+                borderRadius: 3,
+                margin: "0 4px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+              }}
+              onMouseEnter={(e) => { if (f.path !== selectedPath) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+              onMouseLeave={(e) => { if (f.path !== selectedPath) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            >
+              <FileIcon name={f.path.split("/").pop() ?? ""} />
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{f.path.replace(/\.md$/, "").split("/").pop()}</span>
+              <span style={{ fontSize: 9, color: "var(--text-faint)", flexShrink: 0 }}>{formatRelativeTime(f.mtime)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ padding: "4px 8px 4px", display: "flex", gap: 4, alignItems: "center" }}>
         <input
           type="text"
