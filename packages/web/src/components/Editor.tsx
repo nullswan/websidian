@@ -4638,12 +4638,28 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         return false;
       },
       drop: (event, view) => {
+        // Handle file tree drag (text/plain = vault path)
+        const droppedPath = event.dataTransfer?.getData("text/plain");
+        if (droppedPath && /\.\w+$/.test(droppedPath) && !event.dataTransfer?.files?.length) {
+          event.preventDefault();
+          const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+          if (pos !== null) {
+            const name = droppedPath.replace(/\.md$/, "").split("/").pop() || droppedPath;
+            const isImage = /\.(png|jpe?g|gif|svg|webp|bmp|avif|ico)$/i.test(droppedPath);
+            const embed = isImage ? `![[${name}]]` : `[[${name}]]`;
+            view.dispatch({
+              changes: { from: pos, insert: embed },
+              selection: { anchor: pos + embed.length },
+            });
+          }
+          return true;
+        }
+        // Handle actual image file drops
         const files = event.dataTransfer?.files;
         if (!files || files.length === 0) return false;
         const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
         if (imageFiles.length === 0) return false;
         event.preventDefault();
-        // Move cursor to drop position
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos !== null) {
           view.dispatch({ selection: { anchor: pos } });
