@@ -696,6 +696,108 @@ const mathField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Code block language label widget for Live Preview
+class CodeBlockLabelWidget extends WidgetType {
+  lang: string;
+  constructor(lang: string) {
+    super();
+    this.lang = lang;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = "cm-codeblock-lang";
+    span.textContent = this.lang.toUpperCase();
+    span.style.cssText = "position: absolute; right: 8px; top: 4px; font-size: 10px; color: #666; font-family: -apple-system, sans-serif; letter-spacing: 0.5px; pointer-events: none; user-select: none;";
+    return span;
+  }
+  eq(other: CodeBlockLabelWidget) { return this.lang === other.lang; }
+  ignoreEvent() { return true; }
+}
+
+function buildCodeBlockDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  const doc = state.doc;
+
+  // Find fenced code blocks: ```lang ... ```
+  let i = 1;
+  while (i <= doc.lines) {
+    const line = doc.line(i);
+    const openMatch = line.text.match(/^(`{3,})([\w+-]*)\s*$/);
+    if (!openMatch) { i++; continue; }
+    const fence = openMatch[1];
+    const lang = openMatch[2];
+    const startLine = i;
+
+    // Find closing fence
+    let endLine = -1;
+    for (let j = i + 1; j <= doc.lines; j++) {
+      const cl = doc.line(j);
+      if (cl.text.trimEnd() === fence) {
+        endLine = j;
+        break;
+      }
+    }
+    if (endLine === -1) { i++; continue; }
+
+    // Check if cursor is inside this code block
+    let cursorInBlock = false;
+    for (let l = startLine; l <= endLine; l++) {
+      if (l === cursorLine) { cursorInBlock = true; break; }
+    }
+
+    if (!cursorInBlock) {
+      // Opening fence line — relative position container + language label
+      builder.add(line.from, line.from, Decoration.line({
+        attributes: {
+          style: "background: rgba(255,255,255,0.03); position: relative; border-radius: 6px 6px 0 0; border-top: 1px solid rgba(255,255,255,0.06);",
+          class: "cm-codeblock-line cm-codeblock-open",
+        },
+      }));
+      // Language label widget at end of opening fence
+      if (lang) {
+        builder.add(line.to, line.to, Decoration.widget({
+          widget: new CodeBlockLabelWidget(lang),
+          side: 1,
+        }));
+      }
+      // Content lines
+      for (let j = startLine + 1; j < endLine; j++) {
+        const contentLine = doc.line(j);
+        builder.add(contentLine.from, contentLine.from, Decoration.line({
+          attributes: {
+            style: "background: rgba(255,255,255,0.03);",
+            class: "cm-codeblock-line",
+          },
+        }));
+      }
+      // Closing fence line
+      const closeLine = doc.line(endLine);
+      builder.add(closeLine.from, closeLine.from, Decoration.line({
+        attributes: {
+          style: "background: rgba(255,255,255,0.03); border-radius: 0 0 6px 6px; border-bottom: 1px solid rgba(255,255,255,0.06);",
+          class: "cm-codeblock-line cm-codeblock-close",
+        },
+      }));
+    }
+
+    i = endLine + 1;
+  }
+
+  return builder.finish();
+}
+
+const codeBlockField = StateField.define<DecorationSet>({
+  create(state) { return buildCodeBlockDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildCodeBlockDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -783,6 +885,14 @@ const livePreviewTheme = EditorView.theme({
     borderLeft: "3px solid #7f6df2",
     paddingLeft: "12px",
     marginLeft: "32px",
+  },
+  // Code block lines
+  ".cm-codeblock-line": {
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    fontSize: "0.9em",
+  },
+  ".cm-codeblock-open": {
+    position: "relative",
   },
   // Scrollbar styling
   ".cm-scroller::-webkit-scrollbar": {
@@ -1237,6 +1347,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         livePreviewWidgetsField,
         inlineMarkerField,
         mathField,
+        codeBlockField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
