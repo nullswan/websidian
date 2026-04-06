@@ -67,6 +67,10 @@ body {
 .heading-numbers-enabled .reader-view h3::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) ". "; color: var(--text-faint); }
 .heading-numbers-enabled .reader-view h4::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) ". "; color: var(--text-faint); }
 
+.reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6 {
+  scroll-margin-top: 16px;
+}
+
 .reader-view h1 {
   font-size: 2em;
   font-weight: 700;
@@ -682,6 +686,16 @@ details.callout > div {
 
 .note-content-fade {
   animation: note-fade-in 0.15s ease-out;
+}
+
+/* Heading flash highlight when navigating from outline */
+@keyframes heading-flash {
+  0% { background: rgba(127, 109, 242, 0.25); }
+  100% { background: transparent; }
+}
+.heading-flash {
+  animation: heading-flash 1.5s ease-out;
+  border-radius: 3px;
 }
 
 /* Wide mode — no readable line length constraint */

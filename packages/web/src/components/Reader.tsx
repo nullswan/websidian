@@ -558,10 +558,16 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     if (!scrollToHeading || !containerRef.current) return;
     const slug = scrollToHeading.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "") || "heading";
     // Try by ID first, then text match
+    const flashEl = (el: Element) => {
+      el.classList.remove("heading-flash");
+      void (el as HTMLElement).offsetWidth;
+      el.classList.add("heading-flash");
+    };
     requestAnimationFrame(() => {
       const byId = containerRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(slug)}"]`);
       if (byId) {
         byId.scrollIntoView({ behavior: "smooth", block: "start" });
+        flashEl(byId);
         onScrollToHeadingDone?.();
         return;
       }
@@ -572,6 +578,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
           const text = h.textContent?.replace(/^▶\s*/, "").trim();
           if (text?.toLowerCase() === scrollToHeading.toLowerCase()) {
             h.scrollIntoView({ behavior: "smooth", block: "start" });
+            flashEl(h);
             break;
           }
         }

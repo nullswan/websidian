@@ -99,10 +99,16 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
                 marginLeft: -2,
               }}
               onClick={() => {
+                const flashEl = (el: Element) => {
+                  el.classList.remove("heading-flash");
+                  void (el as HTMLElement).offsetWidth; // reflow
+                  el.classList.add("heading-flash");
+                };
                 // Try heading ID first (most reliable)
                 const byId = document.getElementById(h.id);
                 if (byId) {
                   byId.scrollIntoView({ behavior: "smooth", block: "start" });
+                  flashEl(byId);
                   setActiveIdx(i);
                   return;
                 }
@@ -114,6 +120,7 @@ export function Outline({ content, onScrollToHeading }: OutlineProps) {
                   const text = heading.textContent?.replace(/^▶/, "").trim();
                   if (text === h.text) {
                     heading.scrollIntoView({ behavior: "smooth", block: "start" });
+                    flashEl(heading);
                     setActiveIdx(i);
                     return;
                   }
