@@ -931,4 +931,28 @@ export async function vaultRoutes(app: FastifyInstance) {
     const shared = await loadShared();
     return { shares: Object.entries(shared).map(([id, entry]) => ({ id, ...entry })) };
   });
+
+  // GET /api/vault/fetch-title — fetch page title for a URL
+  app.get<{ Querystring: { url: string } }>(
+    "/fetch-title",
+    async (request, reply) => {
+      const { url } = request.query;
+      if (!url) return reply.code(400).send({ error: "Missing url parameter" });
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: { "User-Agent": "Websidian/1.0" },
+        });
+        clearTimeout(timeout);
+        const html = await res.text();
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        const title = titleMatch ? titleMatch[1].trim().replace(/\s+/g, " ") : null;
+        return { title };
+      } catch {
+        return { title: null };
+      }
+    },
+  );
 }

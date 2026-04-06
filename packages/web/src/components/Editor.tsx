@@ -2881,11 +2881,12 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return true;
           }
         }
-        // Paste URL as markdown link when text is selected
+        // Paste URL as markdown link
         const sel = view.state.selection.main;
-        if (sel.from !== sel.to) {
-          const pastedText = event.clipboardData?.getData("text/plain")?.trim();
-          if (pastedText && /^https?:\/\/\S+$/.test(pastedText)) {
+        const pastedText = event.clipboardData?.getData("text/plain")?.trim();
+        if (pastedText && /^https?:\/\/\S+$/.test(pastedText)) {
+          if (sel.from !== sel.to) {
+            // Selected text → wrap as [selected](url)
             event.preventDefault();
             const selectedText = view.state.sliceDoc(sel.from, sel.to);
             const linkMarkdown = `[${selectedText}](${pastedText})`;
@@ -2893,6 +2894,32 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
               changes: { from: sel.from, to: sel.to, insert: linkMarkdown },
               selection: { anchor: sel.from + linkMarkdown.length },
             });
+            return true;
+          } else {
+            // No selection → insert [url](url) immediately, then try to fetch title
+            event.preventDefault();
+            const placeholder = `[${pastedText}](${pastedText})`;
+            const insertFrom = sel.from;
+            view.dispatch({
+              changes: { from: insertFrom, insert: placeholder },
+              selection: { anchor: insertFrom + placeholder.length },
+            });
+            // Async fetch title
+            fetch(`/api/vault/fetch-title?url=${encodeURIComponent(pastedText)}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((data) => {
+                if (data.title) {
+                  // Replace [url] with [title] in the link
+                  const currentDoc = view.state.doc.sliceString(insertFrom, insertFrom + placeholder.length);
+                  if (currentDoc === placeholder) {
+                    const titleLink = `[${data.title}](${pastedText})`;
+                    view.dispatch({
+                      changes: { from: insertFrom, to: insertFrom + placeholder.length, insert: titleLink },
+                    });
+                  }
+                }
+              })
+              .catch(() => {});
             return true;
           }
         }
