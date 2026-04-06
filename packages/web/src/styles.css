@@ -731,6 +731,12 @@ details.callout > div {
   color: rgba(127, 109, 242, 0.4) !important;
 }
 
+/* Wikilink text — underline on hover */
+.cm-editor .tok-link:not(.tok-meta):hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Bold/italic markers — hide on non-active lines */
 .cm-editor .cm-line:not(.cm-activeLine) .tok-strong.tok-meta {
   font-size: 0;
