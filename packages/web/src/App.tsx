@@ -130,7 +130,7 @@ function nextTabId() {
   return `tab-${++tabIdCounter}`;
 }
 
-function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath, syncScrollRef, onSyncScroll }: {
+function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath, syncScrollRef, onSyncScroll, headings }: {
   tabId: string | null;
   scrollTop: number;
   updateTab: (id: string, patch: Partial<Tab>) => void;
@@ -143,6 +143,7 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
   notePath?: string;
   syncScrollRef?: (el: HTMLDivElement | null) => void;
   onSyncScroll?: (fraction: number) => void;
+  headings?: Array<{ text: string; level: number; line: number }>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
@@ -249,6 +250,46 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
             }}
           />
         )}
+        {headings && headings.length > 1 && noteContent && (() => {
+          const totalLines = noteContent.split("\n").length;
+          const scrollFrac = scrollMetrics.scrollHeight > scrollMetrics.clientHeight
+            ? scrollMetrics.scrollTop / (scrollMetrics.scrollHeight - scrollMetrics.clientHeight) : 0;
+          return (
+            <div style={{
+              position: "absolute", right: showMinimap ? 46 : 4, top: 8, bottom: 8,
+              width: 12, display: "flex", flexDirection: "column", justifyContent: "space-between",
+              alignItems: "center", zIndex: 5, pointerEvents: "auto",
+            }}>
+              {headings.map((h, i) => {
+                const frac = h.line / totalLines;
+                const isActive = i === headings.length - 1
+                  ? scrollFrac >= frac - 0.02
+                  : scrollFrac >= frac - 0.02 && scrollFrac < (headings[i + 1].line / totalLines) - 0.02;
+                return (
+                  <div
+                    key={i}
+                    title={h.text}
+                    onClick={() => {
+                      if (!ref.current) return;
+                      const max = ref.current.scrollHeight - ref.current.clientHeight;
+                      ref.current.scrollTo({ top: frac * max, behavior: "smooth" });
+                    }}
+                    style={{
+                      width: isActive ? 8 : h.level <= 2 ? 6 : 4,
+                      height: isActive ? 8 : h.level <= 2 ? 6 : 4,
+                      borderRadius: "50%",
+                      background: isActive ? "var(--accent-color)" : "var(--text-faint)",
+                      opacity: isActive ? 1 : 0.3,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      flexShrink: 0,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -2256,7 +2297,7 @@ ${rendered}
         )}
 
         {/* Pane content */}
-        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined} notePath={paneTab?.path} syncScrollRef={(el) => { syncScrollRefs.current[paneIdx] = el; }} onSyncScroll={syncScroll && isSplit ? (fraction) => { const otherIdx = paneIdx === 0 ? 1 : 0; const other = syncScrollRefs.current[otherIdx]; if (other && !syncScrollLock.current) { syncScrollLock.current = true; const max = other.scrollHeight - other.clientHeight; other.scrollTop = fraction * max; requestAnimationFrame(() => { syncScrollLock.current = false; }); } } : undefined}>
+        <ScrollContainer tabId={paneTab?.id ?? null} scrollTop={paneTab?.scrollTop ?? 0} updateTab={updateTab} className={!appSettings.readableLineLength ? "wide-mode" : undefined} noteContent={paneTab?.content} showMinimap={paneIsMarkdown && (paneTab?.content?.length ?? 0) > 1000} onProgressChange={paneIdx === activePaneIdx ? setScrollProgress : undefined} searchQuery={paneIdx === activePaneIdx ? readerHighlight : undefined} notePath={paneTab?.path} syncScrollRef={(el) => { syncScrollRefs.current[paneIdx] = el; }} onSyncScroll={syncScroll && isSplit ? (fraction) => { const otherIdx = paneIdx === 0 ? 1 : 0; const other = syncScrollRefs.current[otherIdx]; if (other && !syncScrollLock.current) { syncScrollLock.current = true; const max = other.scrollHeight - other.clientHeight; other.scrollTop = fraction * max; requestAnimationFrame(() => { syncScrollLock.current = false; }); } } : undefined} headings={paneIsMarkdown && paneTab?.mode === "read" && paneTab?.content ? (() => { const hs: Array<{ text: string; level: number; line: number }> = []; const lines = paneTab.content.split("\n"); let inFm = false; for (let i = 0; i < lines.length; i++) { if (i === 0 && lines[i].trim() === "---") { inFm = true; continue; } if (inFm && lines[i].trim() === "---") { inFm = false; continue; } if (inFm) continue; const hm = /^(#{1,6})\s+(.+)/.exec(lines[i]); if (hm) hs.push({ text: hm[2], level: hm[1].length, line: i }); } return hs; })() : undefined}>
           {/* Inline title — matches Obsidian's "Show inline title" setting */}
           {paneTab && paneIsMarkdown && appSettings.showInlineTitle && (
             <div
