@@ -217,7 +217,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         anchor.className = "heading-anchor";
         anchor.textContent = "#";
         anchor.title = `Copy link to ${headingText}`;
-        anchor.style.cssText = "position: absolute; right: -24px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-faint); opacity: 0; transition: opacity 0.15s; cursor: pointer; user-select: none; font-weight: normal;";
+        anchor.style.cssText = "position: absolute; right: -24px; top: 50%; transform: translateY(-50%) translateX(6px); font-size: 14px; color: var(--text-faint); opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; cursor: pointer; user-select: none; font-weight: normal;";
         heading.appendChild(anchor);
 
         anchor.addEventListener("click", (e) => {
@@ -281,10 +281,11 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         });
 
         // Show arrow and anchor on heading hover
-        heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; anchor.style.opacity = "1"; });
+        heading.addEventListener("mouseenter", () => { arrow.style.opacity = "1"; anchor.style.opacity = "1"; anchor.style.transform = "translateY(-50%) translateX(0)"; });
         heading.addEventListener("mouseleave", () => {
           if (arrow.dataset.folded === "false") arrow.style.opacity = "0";
           anchor.style.opacity = "0";
+          anchor.style.transform = "translateY(-50%) translateX(6px)";
         });
 
         // Click to fold/unfold
