@@ -3477,6 +3477,18 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       return true;
     };
 
+    const transformSelection = (view: EditorView, fn: (s: string) => string): boolean => {
+      const sel = view.state.selection.main;
+      if (sel.from === sel.to) return false;
+      const text = view.state.sliceDoc(sel.from, sel.to);
+      const transformed = fn(text);
+      if (transformed === text) return false;
+      view.dispatch({ changes: { from: sel.from, to: sel.to, insert: transformed }, selection: { anchor: sel.from, head: sel.from + transformed.length } });
+      return true;
+    };
+
+    const toTitleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
     const saveKeymap = keymap.of([
       {
         key: "Mod-s",
@@ -3515,6 +3527,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       { key: "Mod-b", run: (view) => wrapWith(view, "**") },
       { key: "Mod-i", run: (view) => wrapWith(view, "*") },
       { key: "Mod-Shift-x", run: (view) => wrapWith(view, "~~") },
+      { key: "Mod-Shift-u", run: (view) => transformSelection(view, (s) => s.toUpperCase()) },
       { key: "Mod-`", run: (view) => wrapWith(view, "`") },
       {
         key: "Mod-k",

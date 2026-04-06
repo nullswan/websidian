@@ -4530,6 +4530,27 @@ ${rendered}
                 showToast("Lines reversed");
               },
             },
+            ...["UPPERCASE", "lowercase", "Title Case"].map((label) => ({
+              id: `transform-${label.toLowerCase().replace(/\s+/g, "-")}`,
+              name: `Transform selection: ${label}`,
+              shortcut: label === "UPPERCASE" ? "Ctrl+Shift+U" : undefined,
+              action: () => {
+                const editor = document.querySelector(".cm-editor") as HTMLElement | null;
+                if (!editor) { showToast("Open a note in editor mode"); return; }
+                const cmView = (editor as unknown as { cmView?: { view: { state: { selection: { main: { from: number; to: number } }; sliceDoc: (a: number, b: number) => string }; dispatch: (spec: Record<string, unknown>) => void } } }).cmView;
+                if (!cmView) return;
+                const view = cmView.view;
+                const sel = view.state.selection.main;
+                if (sel.from === sel.to) { showToast("Select text first"); return; }
+                const text = view.state.sliceDoc(sel.from, sel.to);
+                const transformed = label === "UPPERCASE" ? text.toUpperCase()
+                  : label === "lowercase" ? text.toLowerCase()
+                  : text.replace(/\b\w/g, (c: string) => c.toUpperCase());
+                if (transformed !== text) {
+                  view.dispatch({ changes: { from: sel.from, to: sel.to, insert: transformed }, selection: { anchor: sel.from, head: sel.from + transformed.length } });
+                }
+              },
+            })),
             {
               id: "toggle-readable-length",
               name: appSettings.readableLineLength ? "Disable readable line length" : "Enable readable line length",
