@@ -409,8 +409,15 @@ details.callout > div {
 
 .reader-view hr {
   border: none;
-  border-top: 1px solid var(--border-color);
+  height: 1px;
+  background: var(--border-color);
   margin: 24px 0;
+  transform: scaleX(0);
+  animation: hr-draw 0.5s ease 0.1s forwards;
+}
+@keyframes hr-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 /* KaTeX math styling */
