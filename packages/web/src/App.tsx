@@ -778,6 +778,17 @@ export function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<string | null>(null);
   const [tree, setTree] = useState<VaultEntry[]>([]);
+  const vaultPaths = useMemo(() => {
+    const paths: string[] = [];
+    const walk = (es: VaultEntry[]) => {
+      for (const e of es) {
+        if (e.kind === "file") paths.push(e.path);
+        else if (e.kind === "folder") walk(e.children);
+      }
+    };
+    walk(tree);
+    return paths;
+  }, [tree]);
   const [backlinkCounts, setBacklinkCounts] = useState<Record<string, number>>({});
   const [todoCounts, setTodoCounts] = useState<Record<string, number>>({});
   const [gitStatus, setGitStatus] = useState<Record<string, string>>({});
@@ -2655,6 +2666,7 @@ ${rendered}
                 foldAllRef={foldAllRef}
                 backlinks={paneTab.backlinks}
                 initialLine={editorInitialLine}
+                vaultPaths={vaultPaths}
               />
             )
           ) : (
@@ -3556,6 +3568,7 @@ ${rendered}
                 cursorTrail={appSettings.cursorTrail}
                 smartQuotes={appSettings.smartQuotes}
                             sourceMode={tab.mode === "source"}
+                            vaultPaths={vaultPaths}
                           />
                         ) : (
                           <div style={{ padding: 20, color: "var(--text-muted)", fontSize: 13 }}>

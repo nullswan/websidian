@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { EditorView, keymap, highlightActiveLine, highlightActiveLineGutter, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker, drawSelection } from "@codemirror/view";
-import { EditorState, EditorSelection, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
+import { EditorState, EditorSelection, RangeSetBuilder, StateField, Compartment, Facet } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
@@ -42,6 +42,7 @@ interface EditorProps {
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
   initialLine?: number | null;
+  vaultPaths?: string[];
 }
 
 // Obsidian-like highlight style for markdown Live Preview
@@ -1386,19 +1387,30 @@ const tagRenderField = StateField.define<DecorationSet>({
 });
 
 // Wikilink rendering widget for Live Preview — shows display text as styled link
+// Facet for vault file paths — used to validate wikilinks
+const vaultPathsFacet = Facet.define<string[], string[]>({
+  combine: (values) => values.flat(),
+});
+
 class WikilinkWidget extends WidgetType {
   display: string;
   target: string;
-  constructor(target: string, display: string) {
+  resolved: boolean;
+  constructor(target: string, display: string, resolved: boolean) {
     super();
     this.target = target;
     this.display = display;
+    this.resolved = resolved;
   }
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.display;
-    span.style.cssText = "color: var(--accent-color); cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
-    span.title = this.target;
+    if (this.resolved) {
+      span.style.cssText = "color: var(--accent-color); cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
+    } else {
+      span.style.cssText = "color: var(--text-faint); cursor: pointer; text-decoration-line: underline; text-decoration-style: dotted; text-decoration-color: rgba(224, 82, 82, 0.5); text-underline-offset: 2px; opacity: 0.7;";
+    }
+    span.title = this.resolved ? this.target : `${this.target} (unresolved)`;
     span.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1406,13 +1418,17 @@ class WikilinkWidget extends WidgetType {
     });
     return span;
   }
-  eq(other: WikilinkWidget) { return this.target === other.target && this.display === other.display; }
+  eq(other: WikilinkWidget) { return this.target === other.target && this.display === other.display && this.resolved === other.resolved; }
   ignoreEvent(e: Event) { return e.type !== "mousedown" && e.type !== "mouseup" && e.type !== "click"; }
 }
 
 function buildWikilinkDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  const paths = state.facet(vaultPathsFacet);
+  // Build a set of basenames (without .md) for quick lookup
+  const pathSet = new Set(paths.map((p) => p.replace(/\.md$/, "").toLowerCase()));
+  const basenameSet = new Set(paths.map((p) => (p.replace(/\.md$/, "").split("/").pop() ?? "").toLowerCase()));
 
   for (let i = 1; i <= state.doc.lines; i++) {
     if (i === cursorLine) continue;
@@ -1439,7 +1455,10 @@ function buildWikilinkDecorations(state: EditorState): DecorationSet {
         // Show basename only (strip path and heading)
         display = target.replace(/#.*$/, "").split("/").pop() || target;
       }
-      builder.add(from, to, Decoration.replace({ widget: new WikilinkWidget(target, display) }));
+      // Check resolution: strip heading anchor for lookup
+      const linkBase = target.replace(/#.*$/, "").trim().toLowerCase();
+      const resolved = paths.length === 0 || pathSet.has(linkBase) || basenameSet.has(linkBase);
+      builder.add(from, to, Decoration.replace({ widget: new WikilinkWidget(target, display, resolved) }));
     }
   }
   return builder.finish();
@@ -3877,7 +3896,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, smartQuotes = true, sourceMode = false, backlinks = [], initialLine }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, smartQuotes = true, sourceMode = false, backlinks = [], initialLine, vaultPaths = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3899,6 +3918,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
   const rainbowComp = useRef(new Compartment());
   const cursorTrailComp = useRef(new Compartment());
   const smartQuotesComp = useRef(new Compartment());
+  const vaultPathsComp = useRef(new Compartment());
 
   // Compute backlink line numbers from backlinks prop
   useEffect(() => {
@@ -4789,6 +4809,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         wikilinkAutoPair,
         angleBracketAutoPair,
         smartQuotesComp.current.of(smartQuotes ? smartQuotesHandler : []),
+        vaultPathsComp.current.of(vaultPathsFacet.of(vaultPaths)),
         htmlAutoClose,
         indentationMarkers({
           colors: {
@@ -5150,9 +5171,10 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         rainbowComp.current.reconfigure(rainbowBrackets ? rainbowBracketPlugin : []),
         cursorTrailComp.current.reconfigure(cursorTrail ? cursorTrailPlugin : []),
         smartQuotesComp.current.reconfigure(smartQuotes ? smartQuotesHandler : []),
+        vaultPathsComp.current.reconfigure(vaultPathsFacet.of(vaultPaths)),
       ],
     });
-  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets, cursorTrail, smartQuotes]);
+  }, [fontSize, spellCheck, showLineNumbers, tabSize, typewriterMode, focusMode, vimMode, lineWrap, showWhitespace, cursorBlinkRate, rulerColumns, rainbowBrackets, cursorTrail, smartQuotes, vaultPaths]);
 
   // Update editor content when it arrives asynchronously (e.g. workspace restore)
   useEffect(() => {
