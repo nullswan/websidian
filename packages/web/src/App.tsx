@@ -3776,6 +3776,7 @@ ${rendered}
         {activeTab && isMarkdown && activeTab.content != null && (
           <>
             <ResizeHandle side="right" onResize={handleRightResize} />
+            <ErrorBoundary>
             {(activeTab.noteMeta || activeTab.fileCreated) && (
               <SidebarSection title="Properties">
                 <Properties
@@ -4004,6 +4005,7 @@ ${rendered}
             <SidebarSection title="CSS Snippets">
               <ErrorBoundary><Snippets /></ErrorBoundary>
             </SidebarSection>
+            </ErrorBoundary>
           </>
         )}
       </aside>
