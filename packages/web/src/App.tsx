@@ -20,6 +20,7 @@ import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
+import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
 import { VaultStats } from "./components/VaultStats.js";
@@ -1104,7 +1105,22 @@ export function App() {
             if (data.error) {
               updateTab(id, { missing: true });
             } else {
-              updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+              // Check for crash recovery draft
+              getDraft(path).then((draft) => {
+                if (draft && draft.timestamp > (data.modified ?? 0) && draft.content !== data.content) {
+                  if (confirm(`Recovered unsaved changes for "${path.split("/").pop()}" from ${new Date(draft.timestamp).toLocaleTimeString()}. Restore?`)) {
+                    updateTab(id, { content: draft.content, missing: false, dirty: true, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+                  } else {
+                    updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+                    clearDraft(path);
+                  }
+                } else {
+                  updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+                  if (draft) clearDraft(path);
+                }
+              }).catch(() => {
+                updateTab(id, { content: data.content, missing: false, fileCreated: data.created, fileModified: data.modified, fileSize: data.size });
+              });
               setError(null);
             }
           })
@@ -1254,8 +1270,9 @@ export function App() {
             updateTab(activeTab.id, { content, dirty: false });
             setSaveStatus("saved");
             saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
-            // Save version snapshot
+            // Save version snapshot + clear recovery draft
             saveSnapshot(activeTab.path, content);
+            clearDraft(activeTab.path);
           }
         })
         .catch((e) => {
@@ -1631,6 +1648,18 @@ ${rendered}
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
+  }, [tabsMap]);
+
+  // Periodic IndexedDB draft save for crash recovery
+  useEffect(() => {
+    const interval = setInterval(() => {
+      for (const tab of Object.values(tabsMap)) {
+        if (tab.dirty && tab.content && tab.path.endsWith(".md")) {
+          saveDraft(tab.path, tab.content);
+        }
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, [tabsMap]);
 
   // Sync document title with active note
