@@ -2631,6 +2631,8 @@ ${rendered}
                 </button>
               </div>
             </div>
+          ) : paneTab && paneTab.content == null ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-faint)", fontSize: 13 }}>Loading...</div>
           ) : paneTab ? (
             paneIsCanvas ? (
               <CanvasView
