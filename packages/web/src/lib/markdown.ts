@@ -3,6 +3,10 @@ import MarkdownIt from "markdown-it";
 import footnotePlugin from "markdown-it-footnote";
 // @ts-expect-error — no types available
 import deflistPlugin from "markdown-it-deflist";
+// @ts-expect-error — no types available
+import supPlugin from "markdown-it-sup";
+// @ts-expect-error — no types available
+import subPlugin from "markdown-it-sub";
 import type StateInline from "markdown-it/lib/rules_inline/state_inline.mjs";
 import type StateBlock from "markdown-it/lib/rules_block/state_block.mjs";
 import katex from "katex";
@@ -64,6 +68,8 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
   // Plugin: footnotes [^1] and [^1]: definition
   md.use(footnotePlugin);
   md.use(deflistPlugin);
+  md.use(supPlugin);
+  md.use(subPlugin);
 
   // Plugin: heading IDs for deep linking
   md.core.ruler.push("heading_ids", (state) => {
