@@ -57,8 +57,14 @@ function FileIcon({ name }: { name: string }) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   let color = "var(--text-muted)";
   if (ext === "md") color = "var(--accent-color)";
-  else if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) color = "#4ec9b0";
+  else if (["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "bmp"].includes(ext)) color = "#4ec9b0";
   else if (ext === "canvas") color = "#e6994a";
+  else if (ext === "pdf") color = "#e05252";
+  else if (["json", "jsonl"].includes(ext)) color = "#e6c84a";
+  else if (["css", "scss"].includes(ext)) color = "#569cd6";
+  else if (["js", "ts", "jsx", "tsx"].includes(ext)) color = "#dcdcaa";
+  else if (["mp3", "wav", "ogg", "flac", "m4a"].includes(ext)) color = "#c586c0";
+  else if (["mp4", "webm", "mov"].includes(ext)) color = "#ce9178";
 
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
