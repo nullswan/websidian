@@ -1543,3 +1543,21 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
 li:hover .file-size-label {
   opacity: 0.7 !important;
 }
+
+/* Responsive: narrow viewports */
+@media (max-width: 768px) {
+  .reader-view {
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .reader-view h1 { font-size: 1.6em; }
+  .reader-view h2 { font-size: 1.3em; }
+  .reader-view h3 { font-size: 1.15em; }
+  .reader-view pre { padding: 8px 12px; font-size: 12px; }
+  .reader-view table { font-size: 13px; }
+  .reader-view th, .reader-view td { padding: 4px 8px; }
+  .inline-title { font-size: 1.6em !important; padding: 8px 16px !important; }
+  .reader-view .footnote-sidenote { display: none; }
+  .floating-toc { display: none !important; }
+}
