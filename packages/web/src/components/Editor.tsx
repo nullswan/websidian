@@ -1770,6 +1770,53 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // List continuation on Enter
+      {
+        key: "Enter",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          if (sel.from !== sel.to) return false; // has selection, default behavior
+          const line = view.state.doc.lineAt(sel.head);
+          const text = line.text;
+          // Detect list prefix
+          const taskMatch = text.match(/^(\s*)- \[[ x]\]\s+(.*)/);
+          const bulletMatch = text.match(/^(\s*)- (.*)/);
+          const olMatch = text.match(/^(\s*)(\d+)\.\s+(.*)/);
+          const bqMatch = text.match(/^(\s*>+\s?)(.*)/);
+
+          let indent: string;
+          let prefix: string;
+          let content: string;
+
+          if (taskMatch) {
+            indent = taskMatch[1]; prefix = "- [ ] "; content = taskMatch[2];
+          } else if (bulletMatch && !text.match(/^(\s*)- \[/)) {
+            indent = bulletMatch[1]; prefix = "- "; content = bulletMatch[2];
+          } else if (olMatch) {
+            indent = olMatch[1]; prefix = `${parseInt(olMatch[2]) + 1}. `; content = olMatch[3];
+          } else if (bqMatch) {
+            indent = ""; prefix = bqMatch[1]; content = bqMatch[2];
+          } else {
+            return false; // not a list line, default behavior
+          }
+
+          // Empty list item: remove prefix (break out)
+          if (!content.trim()) {
+            view.dispatch({
+              changes: { from: line.from, to: line.to, insert: "" },
+            });
+            return true;
+          }
+
+          // Continue list on next line
+          const insert = "\n" + indent + prefix;
+          view.dispatch({
+            changes: { from: sel.head, insert },
+            selection: { anchor: sel.head + insert.length },
+          });
+          return true;
+        },
+      },
       // Select next occurrence (multi-cursor)
       { key: "Mod-d", run: selectNextOccurrence },
       // Move line up/down
