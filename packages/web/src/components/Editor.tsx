@@ -2813,6 +2813,20 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      // Select current line (successive presses extend to next line)
+      {
+        key: "Mod-l",
+        run: (view) => {
+          const sel = view.state.selection.main;
+          const startLine = view.state.doc.lineAt(sel.from);
+          const endLine = view.state.doc.lineAt(sel.to);
+          const nextTo = endLine.to < view.state.doc.length ? endLine.to + 1 : endLine.to;
+          view.dispatch({
+            selection: { anchor: startLine.from, head: nextTo },
+          });
+          return true;
+        },
+      },
       // Toggle task list: plain → - → - [ ] → - [x] → plain
       {
         key: "Mod-Enter",
