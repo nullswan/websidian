@@ -566,7 +566,10 @@ export function App() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred">("files");
+  const [leftPanel, setLeftPanel] = useState<"files" | "search" | "plugins" | "starred" | "recent">("files");
+  const [recentFiles, setRecentFiles] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("recent-files") ?? "[]"); } catch { return []; }
+  });
   const [starredNotes, setStarredNotes] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("obsidian-web-starred");
@@ -857,6 +860,12 @@ export function App() {
   const openTab = useCallback(
     (path: string, targetPaneIdx?: number) => {
       setReaderHighlight("");
+      // Track recent files
+      setRecentFiles((prev) => {
+        const next = [path, ...prev.filter((p) => p !== path)].slice(0, 20);
+        localStorage.setItem("recent-files", JSON.stringify(next));
+        return next;
+      });
       const pIdx = targetPaneIdx ?? activePaneIdx;
 
       setPanes((prev) => {
@@ -2074,6 +2083,16 @@ ${rendered}
               ),
             },
             {
+              id: "recent" as const,
+              title: "Recent files",
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              ),
+            },
+            {
               id: "plugins" as const,
               title: "Plugins",
               icon: (
@@ -2289,7 +2308,7 @@ ${rendered}
               letterSpacing: "0.05em",
               color: "var(--text-muted)",
             }}>
-              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : "Plugins"}
+              {leftPanel === "files" ? "Files" : leftPanel === "search" ? "Search" : leftPanel === "starred" ? "Starred" : leftPanel === "recent" ? "Recent" : "Plugins"}
             </span>
             {leftPanel === "files" && (
               <div style={{ display: "flex", gap: 2 }}>
@@ -2386,7 +2405,7 @@ ${rendered}
               </div>
             )}
           </div>
-          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" || leftPanel === "starred" ? "4px 4px" : 0 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: leftPanel === "files" || leftPanel === "starred" || leftPanel === "recent" ? "4px 4px" : 0 }}>
             {leftPanel === "files" ? (
               tree.length > 0 ? (
                 <FileTree
@@ -2491,6 +2510,49 @@ ${rendered}
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                             <span>{name}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : leftPanel === "recent" ? (
+              <div style={{ padding: "8px" }}>
+                {recentFiles.length === 0 ? (
+                  <div style={{ padding: 12, fontSize: 13, color: "var(--text-faint)" }}>
+                    No recently opened files
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {recentFiles.map((path) => {
+                      const name = path.replace(/\.md$/, "").split("/").pop() ?? path;
+                      const isActive = activeTab?.path === path;
+                      return (
+                        <li key={path}>
+                          <div
+                            onClick={() => openTab(path)}
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: 13,
+                              cursor: "pointer",
+                              borderRadius: 3,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              color: isActive ? "var(--accent-color)" : "var(--text-primary)",
+                              background: isActive ? "rgba(127,109,242,0.08)" : "transparent",
+                            }}
+                            onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
+                            onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                            title={path}
+                          >
+                            <span>{name}</span>
+                            {path.includes("/") && (
+                              <span style={{ fontSize: 11, color: "var(--text-faint)", marginLeft: "auto" }}>
+                                {path.split("/").slice(0, -1).join("/")}
+                              </span>
+                            )}
                           </div>
                         </li>
                       );
