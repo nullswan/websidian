@@ -11,6 +11,7 @@ import { search, searchKeymap } from "@codemirror/search";
 import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
+import katex from "katex";
 
 interface EditorProps {
   content: string;
@@ -617,6 +618,84 @@ const inlineMarkerField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// Math rendering widget for Live Preview
+class MathWidget extends WidgetType {
+  latex: string;
+  displayMode: boolean;
+  constructor(latex: string, displayMode: boolean) {
+    super();
+    this.latex = latex;
+    this.displayMode = displayMode;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    try {
+      katex.render(this.latex, span, {
+        displayMode: this.displayMode,
+        throwOnError: false,
+        output: "html",
+      });
+    } catch {
+      span.textContent = this.latex;
+      span.style.color = "#ff6b6b";
+    }
+    if (this.displayMode) {
+      span.style.display = "block";
+      span.style.textAlign = "center";
+      span.style.padding = "8px 0";
+    }
+    return span;
+  }
+  eq(other: MathWidget) { return this.latex === other.latex && this.displayMode === other.displayMode; }
+  ignoreEvent() { return true; }
+}
+
+function buildMathDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+  const doc = state.doc.toString();
+
+  // Display math: $$...$$
+  const displayRegex = /\$\$([^$]+?)\$\$/g;
+  let match;
+  while ((match = displayRegex.exec(doc)) !== null) {
+    const from = match.index;
+    const to = from + match[0].length;
+    const startLine = state.doc.lineAt(from).number;
+    const endLine = state.doc.lineAt(to).number;
+    // Don't render if cursor is on any line of the block
+    let cursorInBlock = false;
+    for (let l = startLine; l <= endLine; l++) {
+      if (l === cursorLine) { cursorInBlock = true; break; }
+    }
+    if (cursorInBlock) continue;
+    builder.add(from, to, Decoration.replace({ widget: new MathWidget(match[1].trim(), true) }));
+  }
+
+  // Inline math: $...$  (not preceded/followed by $)
+  const inlineRegex = /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g;
+  while ((match = inlineRegex.exec(doc)) !== null) {
+    const from = match.index;
+    const to = from + match[0].length;
+    const line = state.doc.lineAt(from);
+    if (line.number === cursorLine) continue;
+    builder.add(from, to, Decoration.replace({ widget: new MathWidget(match[1].trim(), false) }));
+  }
+
+  return builder.finish();
+}
+
+const mathField = StateField.define<DecorationSet>({
+  create(state) { return buildMathDecorations(state); },
+  update(decos, tr) {
+    if (tr.docChanged || tr.selection) {
+      return buildMathDecorations(tr.state);
+    }
+    return decos;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 // Custom theme overrides for Live Preview feel — using CSS classes for heading colors
 // because HighlightStyle can't override oneDark's heading color reliably
 const livePreviewTheme = EditorView.theme({
@@ -1157,6 +1236,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         checkboxField,
         livePreviewWidgetsField,
         inlineMarkerField,
+        mathField,
         livePreviewTheme,
         fontSizeComp.current.of(EditorView.theme({ "&": { fontSize: `${fontSize}px` } })),
         tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
