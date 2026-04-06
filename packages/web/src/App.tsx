@@ -2309,6 +2309,66 @@ ${rendered}
             ›
             <span className="tab-count-badge">{pane.tabIds.length}</span>
           </button>
+          {/* Tab overflow dropdown */}
+          {pane.tabIds.length > 3 && (
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                className="tab-overflow-btn"
+                onClick={(e) => {
+                  const menu = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement;
+                  if (menu) menu.style.display = menu.style.display === "block" ? "none" : "block";
+                }}
+                title="All tabs"
+                style={{
+                  background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer",
+                  fontSize: 11, padding: "4px 6px", lineHeight: 1, display: "flex", alignItems: "center", gap: 2,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="2" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                  <rect x="8" y="2" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                  <rect x="1" y="8" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                  <rect x="8" y="8" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                </svg>
+              </button>
+              <div
+                className="tab-overflow-menu"
+                style={{ display: "none", position: "absolute", top: "100%", right: 0, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", borderRadius: 6, padding: "4px 0", zIndex: 9999, minWidth: 200, maxHeight: 300, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }}
+              >
+                {pane.tabIds.map((tid) => {
+                  const t = tabsMap[tid];
+                  if (!t) return null;
+                  const name = t.path.split("/").pop()?.replace(/\.md$/, "") ?? t.path;
+                  const isActive = tid === pane.activeTabId;
+                  return (
+                    <div
+                      key={tid}
+                      onClick={() => {
+                        setPanes((prev) => prev.map((p, i) => i === paneIdx ? { ...p, activeTabId: tid } : p));
+                        setActivePaneIdx(paneIdx);
+                        const menu = document.querySelector(".tab-overflow-menu") as HTMLElement;
+                        if (menu) menu.style.display = "none";
+                      }}
+                      style={{
+                        padding: "5px 12px", cursor: "pointer", fontSize: 12,
+                        color: isActive ? "var(--accent-color)" : "var(--text-normal)",
+                        fontWeight: isActive ? 600 : 400,
+                        display: "flex", alignItems: "center", gap: 6,
+                        background: isActive ? "var(--bg-tertiary)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = isActive ? "var(--bg-tertiary)" : ""; }}
+                    >
+                      {t.dirty && <span style={{ color: "var(--accent-color)", fontSize: 8 }}>●</span>}
+                      {t.pinned && <span style={{ fontSize: 10, color: "var(--text-faint)" }}>📌</span>}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           </div>
         )}
 
