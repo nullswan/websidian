@@ -1617,6 +1617,37 @@ function slashCompletion(ctx: CompletionContext) {
   return { from: ctx.pos - match[1].length - 1, options, filter: false };
 }
 
+// Callout type autocomplete — triggers on > [!
+function calloutCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  const match = /^>\s*\[!(\w*)$/.exec(textBefore);
+  if (!match) return null;
+
+  const query = match[1].toLowerCase();
+  const from = line.from + textBefore.lastIndexOf("[!");
+
+  // Deduplicate: use only canonical types (not aliases)
+  const types = ["note", "abstract", "tip", "success", "question", "warning", "danger", "bug", "failure", "example", "quote", "todo", "info"];
+
+  const options: Completion[] = types
+    .filter((t) => !query || t.startsWith(query))
+    .map((t) => ({
+      label: t,
+      detail: CALLOUT_COLORS[t],
+      type: "keyword",
+      apply: (view: EditorView, _: Completion, _from: number, to: number) => {
+        const insert = `> [!${t}]\n> `;
+        view.dispatch({
+          changes: { from, to, insert },
+          selection: { anchor: from + insert.length },
+        });
+      },
+    }));
+
+  return { from: ctx.pos - match[1].length, options, filter: false };
+}
+
 // Markdown heading fold: fold content under a heading until next heading of equal/higher level
 const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   const line = state.doc.lineAt(lineStart);
@@ -2220,7 +2251,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [wikilinkCompletion, tagCompletion, slashCompletion],
+          override: [wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
