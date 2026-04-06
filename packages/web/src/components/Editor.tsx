@@ -2744,6 +2744,23 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
+// Auto-pair angle brackets for HTML: < inserts > when followed by a letter (tag start)
+const angleBracketAutoPair = EditorView.inputHandler.of((view, from, _to, text) => {
+  if (text !== "<") return false;
+  // Only auto-pair if this looks like it will be an HTML tag (next char or cursor at end of line)
+  const line = view.state.doc.lineAt(from);
+  const remaining = line.text.slice(from - line.from);
+  // If nothing after or next char isn't already >, insert <>
+  if (!remaining || remaining[0] !== ">") {
+    view.dispatch({
+      changes: { from, to: from, insert: "<>" },
+      selection: { anchor: from + 1 },
+    });
+    return true;
+  }
+  return false;
+});
+
 // Markdown delimiter auto-pairing: **, *, ~~, ==
 const markdownAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   const pairs: Record<string, string> = { "*": "*", "~": "~", "=": "=", "`": "`", "_": "_" };
@@ -4569,6 +4586,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         closeBrackets(),
         markdownAutoPair,
         wikilinkAutoPair,
+        angleBracketAutoPair,
         smartQuotesComp.current.of(smartQuotes ? smartQuotesHandler : []),
         htmlAutoClose,
         indentationMarkers({
