@@ -472,11 +472,32 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           position: "absolute",
           bottom: 8,
           right: 8,
-          color: "var(--text-faint)",
-          fontSize: 11,
+          display: "flex",
+          gap: 4,
+          alignItems: "center",
         }}
       >
-        Scroll to zoom · Drag nodes · Double-click to open
+        <span style={{ color: "var(--text-faint)", fontSize: 10, marginRight: 4 }}>
+          Scroll zoom · Drag · Dbl-click open
+        </span>
+        <button
+          onClick={() => { zoomRef.current = Math.min(3, zoomRef.current * 1.3); }}
+          style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          title="Zoom in"
+        >+</button>
+        <button
+          onClick={() => { zoomRef.current = Math.max(0.2, zoomRef.current / 1.3); }}
+          style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          title="Zoom out"
+        >−</button>
+        <button
+          onClick={() => {
+            zoomRef.current = 1;
+            panRef.current = { x: 0, y: 0 };
+          }}
+          style={{ width: 24, height: 24, border: "1px solid var(--border-color)", borderRadius: 4, background: "var(--bg-tertiary)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          title="Reset view"
+        >⟲</button>
       </div>
       {tooltip && (
         <div
