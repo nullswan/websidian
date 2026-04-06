@@ -100,6 +100,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
           {filtered.map((cmd, i) => (
             <div
               key={cmd.id}
+              ref={(el) => { if (el && i === selectedIdx) el.scrollIntoView({ block: "nearest" }); }}
               style={{
                 padding: "8px 16px",
                 cursor: "pointer",
