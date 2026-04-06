@@ -4017,6 +4017,16 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         const sel = view.state.selection.main;
         const pastedText = event.clipboardData?.getData("text/plain")?.trim();
         if (pastedText && /^https?:\/\/\S+$/.test(pastedText)) {
+          // Image URL → embed as ![](url)
+          if (/\.(png|jpe?g|gif|svg|webp|bmp|avif|ico)(\?[^)]*)?$/i.test(pastedText) && sel.from === sel.to) {
+            event.preventDefault();
+            const embed = `![](${pastedText})`;
+            view.dispatch({
+              changes: { from: sel.from, insert: embed },
+              selection: { anchor: sel.from + 2 }, // cursor in alt text position
+            });
+            return true;
+          }
           if (sel.from !== sel.to) {
             // Selected text → wrap as [selected](url)
             event.preventDefault();
