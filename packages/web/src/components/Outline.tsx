@@ -5,6 +5,7 @@ interface Heading {
   text: string;
   id: string;
   lineNumber: number;
+  wordCount: number;
 }
 
 interface OutlineProps {
@@ -115,6 +116,8 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
                 paddingLeft: (h.level - minLevel) * 12,
                 padding: `2px 0 2px ${(h.level - minLevel) * 12}px`,
                 fontSize: 12,
+                display: "flex",
+                alignItems: "center",
                 color: i === activeIdx
                   ? "var(--accent-color)"
                   : h.level === 1 ? "var(--text-primary)" : h.level === 2 ? "var(--text-secondary)" : "var(--text-muted)",
@@ -161,7 +164,10 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
                 }
               }}
             >
-              {h.text}
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.text}</span>
+              {h.wordCount > 0 && (
+                <span style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 4, flexShrink: 0 }}>{h.wordCount}w</span>
+              )}
             </div>
           </li>
         ))}
@@ -189,8 +195,18 @@ function extractHeadings(content: string): Heading[] {
       const count = slugCounts[slug] || 0;
       slugCounts[slug] = count + 1;
       const id = count > 0 ? `${slug}-${count}` : slug;
-      headings.push({ level: match[1].length, text, id, lineNumber: i + fmLineCount + 1 });
+      headings.push({ level: match[1].length, text, id, lineNumber: i + fmLineCount + 1, wordCount: 0 });
     }
+  }
+  // Compute word counts per section
+  for (let h = 0; h < headings.length; h++) {
+    const startLine = headings[h].lineNumber - fmLineCount; // 1-based in body
+    const endLine = h + 1 < headings.length ? headings[h + 1].lineNumber - fmLineCount - 1 : lines.length;
+    let words = 0;
+    for (let j = startLine; j < endLine; j++) {
+      words += lines[j].trim().split(/\s+/).filter(Boolean).length;
+    }
+    headings[h].wordCount = words;
   }
   return headings;
 }
