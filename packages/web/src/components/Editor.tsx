@@ -1962,6 +1962,15 @@ const livePreviewTheme = EditorView.theme({
   "&.cm-focused .cm-selectionBackground": {
     background: "rgba(127, 109, 242, 0.3) !important",
   },
+  ".cm-unlinked-mention": {
+    borderBottom: "1px dotted rgba(127, 109, 242, 0.5)",
+    cursor: "pointer",
+    borderRadius: "1px",
+  },
+  ".cm-unlinked-mention:hover": {
+    background: "rgba(127, 109, 242, 0.1)",
+    borderBottomColor: "var(--accent-color)",
+  },
   ".cm-matchingBracket": {
     background: "rgba(127, 109, 242, 0.2)",
     color: "var(--heading-color) !important",
@@ -2131,6 +2140,105 @@ async function imagePathCompletion(ctx: CompletionContext) {
     return null;
   }
 }
+
+// Unlinked mention suggestions: dotted underline on text matching note names
+const unlinkMentionMark = Decoration.mark({ class: "cm-unlinked-mention" });
+
+const unlinkedMentionsPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  noteNames: Map<string, string> = new Map(); // lowercase name → original basename
+  loaded = false;
+
+  constructor(view: EditorView) {
+    this.decorations = Decoration.none;
+    this.fetchNames().then(() => {
+      this.loaded = true;
+      this.decorations = this.build(view);
+      // Trigger a re-measure to apply decorations
+      view.dispatch({ effects: [] });
+    });
+  }
+
+  async fetchNames() {
+    try {
+      const res = await fetch("/api/vault/files", { credentials: "include" });
+      const data = await res.json();
+      const files: Array<{ path: string; extension: string }> = data.files ?? [];
+      for (const f of files) {
+        if (f.extension !== "md") continue;
+        const basename = (f.path.split("/").pop() ?? "").replace(/\.md$/, "");
+        if (basename.length >= 3) {
+          this.noteNames.set(basename.toLowerCase(), basename);
+        }
+      }
+    } catch {}
+  }
+
+  update(update: import("@codemirror/view").ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) {
+      this.decorations = this.build(update.view);
+    }
+  }
+
+  build(view: EditorView): DecorationSet {
+    if (!this.loaded || this.noteNames.size === 0) return Decoration.none;
+    const builder = new RangeSetBuilder<Decoration>();
+    const doc = view.state.doc;
+
+    for (const { from, to } of view.visibleRanges) {
+      for (let pos = from; pos < to;) {
+        const line = doc.lineAt(pos);
+        const text = line.text;
+        // Skip lines inside frontmatter
+        if (text.startsWith("---")) { pos = line.to + 1; continue; }
+
+        // Find note name matches not inside [[...]]
+        const lower = text.toLowerCase();
+        for (const [nameLower, _original] of this.noteNames) {
+          let idx = 0;
+          while ((idx = lower.indexOf(nameLower, idx)) !== -1) {
+            const matchEnd = idx + nameLower.length;
+            // Check word boundaries
+            const before = idx > 0 ? text[idx - 1] : " ";
+            const after = matchEnd < text.length ? text[matchEnd] : " ";
+            if (/\w/.test(before) || /\w/.test(after)) { idx++; continue; }
+            // Check not inside [[ ]]
+            const textBefore = text.slice(0, idx);
+            const lastOpen = textBefore.lastIndexOf("[[");
+            const lastClose = textBefore.lastIndexOf("]]");
+            if (lastOpen > lastClose) { idx++; continue; }
+            // Check not inside a wikilink that closes after
+            const textAfter = text.slice(matchEnd);
+            const nextClose = textAfter.indexOf("]]");
+            const nextOpen = textAfter.indexOf("[[");
+            if (nextClose !== -1 && (nextOpen === -1 || nextClose < nextOpen) && lastOpen > lastClose) { idx++; continue; }
+
+            builder.add(line.from + idx, line.from + matchEnd, unlinkMentionMark);
+            idx = matchEnd;
+          }
+        }
+        pos = line.to + 1;
+      }
+    }
+    return builder.finish();
+  }
+}, {
+  decorations: (v) => v.decorations,
+  eventHandlers: {
+    click(e: MouseEvent, view: EditorView) {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains("cm-unlinked-mention")) return false;
+      if (!e.altKey) return false;
+      // Alt+Click to convert to wikilink
+      const pos = view.posAtDOM(target);
+      const text = target.textContent ?? "";
+      view.dispatch({
+        changes: { from: pos, to: pos + text.length, insert: `[[${text}]]` },
+      });
+      return true;
+    },
+  },
+});
 
 async function wikilinkCompletion(ctx: CompletionContext) {
   // Look backwards for [[ to find the trigger
@@ -3594,7 +3702,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         markdownHeadingFold,
         lineTypeGutter,
         createBacklinkGutter(backlinkLinesRef),
-        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, indentGuidePlugin]),
+        ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
