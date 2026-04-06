@@ -128,9 +128,26 @@ body {
   color: var(--h3-color, var(--heading-color));
 }
 
-.reader-view h4 { color: var(--h4-color, var(--heading-color)); }
-.reader-view h5 { color: var(--h5-color, var(--heading-color)); }
-.reader-view h6 { color: var(--h6-color, var(--heading-color)); }
+.reader-view h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.75em 0 0.2em;
+  color: var(--h4-color, var(--heading-color));
+}
+.reader-view h5 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.67em 0 0.15em;
+  color: var(--h5-color, var(--heading-color));
+  font-style: italic;
+}
+.reader-view h6 {
+  font-size: 0.9em;
+  font-weight: 600;
+  margin: 0.67em 0 0.15em;
+  color: var(--h6-color, var(--heading-color));
+  font-style: italic;
+}
 
 .reader-view p {
   margin: 1em 0;
