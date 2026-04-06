@@ -1625,6 +1625,64 @@ class MermaidWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
+// Code block execution preview widget
+const RUNNABLE_LANGS = new Set(["javascript", "js", "math"]);
+
+class CodeRunWidget extends WidgetType {
+  code: string;
+  lang: string;
+  constructor(code: string, lang: string) {
+    super();
+    this.code = code;
+    this.lang = lang;
+  }
+  toDOM() {
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "padding: 0 0 4px; display: flex; align-items: flex-start; gap: 6px;";
+
+    const btn = document.createElement("button");
+    btn.textContent = "▶ Run";
+    btn.style.cssText = "background: rgba(127,109,242,0.15); border: 1px solid rgba(127,109,242,0.3); color: var(--accent-color); border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; flex-shrink: 0;";
+    btn.onmouseenter = () => { btn.style.background = "rgba(127,109,242,0.25)"; };
+    btn.onmouseleave = () => { btn.style.background = "rgba(127,109,242,0.15)"; };
+    wrapper.appendChild(btn);
+
+    const output = document.createElement("pre");
+    output.style.cssText = "margin: 0; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono, monospace); white-space: pre-wrap; word-break: break-word; flex: 1; display: none; background: rgba(255,255,255,0.03); border-radius: 4px; padding: 4px 8px; max-height: 120px; overflow: auto;";
+    wrapper.appendChild(output);
+
+    const code = this.code;
+    const lang = this.lang;
+
+    btn.onclick = () => {
+      const logs: string[] = [];
+      try {
+        if (lang === "math") {
+          // Simple math expression evaluation
+          const result = new Function(`"use strict"; return (${code})`)();
+          logs.push(String(result));
+        } else {
+          // JS execution with captured console.log
+          const mockConsole = { log: (...args: unknown[]) => { logs.push(args.map(String).join(" ")); } };
+          const fn = new Function("console", `"use strict";\n${code}`);
+          const result = fn(mockConsole);
+          if (result !== undefined && logs.length === 0) logs.push(String(result));
+        }
+      } catch (err: unknown) {
+        logs.push(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      output.textContent = logs.join("\n") || "(no output)";
+      output.style.display = "block";
+    };
+
+    return wrapper;
+  }
+  eq(other: CodeRunWidget) {
+    return this.code === other.code && this.lang === other.lang;
+  }
+  ignoreEvent() { return false; }
+}
+
 // Code block language label widget for Live Preview
 class CodeBlockLabelWidget extends WidgetType {
   lang: string;
@@ -1796,6 +1854,19 @@ function buildCodeBlockDecorations(state: EditorState): DecorationSet {
           class: "cm-codeblock-line cm-codeblock-close",
         },
       }));
+
+      // Add run button for executable code blocks
+      if (RUNNABLE_LANGS.has(lang.toLowerCase())) {
+        const codeLines: string[] = [];
+        for (let j = startLine + 1; j < endLine; j++) {
+          codeLines.push(doc.line(j).text);
+        }
+        builder.add(closeLine.to, closeLine.to, Decoration.widget({
+          widget: new CodeRunWidget(codeLines.join("\n"), lang.toLowerCase()),
+          block: true,
+          side: 1,
+        }));
+      }
     }
 
     i = endLine + 1;
