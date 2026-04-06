@@ -5000,6 +5000,9 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       parent: containerRef.current,
     });
 
+    // Auto-focus editor on mount so user can start typing immediately
+    requestAnimationFrame(() => viewRef.current?.focus());
+
     // Expose scroll-to-heading function for outline sidebar
     if (scrollToHeadingRef) {
       scrollToHeadingRef.current = (heading: string, level: number) => {
