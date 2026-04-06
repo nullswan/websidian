@@ -828,6 +828,41 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Image lightbox — click to zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let overlay: HTMLDivElement | null = null;
+
+    const handleImgClick = (e: MouseEvent) => {
+      const img = (e.target as HTMLElement).closest("img");
+      if (!img || img.closest("a")) return; // skip linked images
+      e.stopPropagation();
+
+      overlay = document.createElement("div");
+      overlay.style.cssText = "position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(4px); animation: fade-in 0.15s ease;";
+      const zoomImg = document.createElement("img");
+      zoomImg.src = img.src;
+      zoomImg.alt = img.alt || "";
+      zoomImg.style.cssText = "max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);";
+      overlay.appendChild(zoomImg);
+
+      const close = () => { overlay?.remove(); overlay = null; };
+      overlay.addEventListener("click", close);
+      const keyHandler = (ke: KeyboardEvent) => { if (ke.key === "Escape") { close(); document.removeEventListener("keydown", keyHandler); } };
+      document.addEventListener("keydown", keyHandler);
+
+      document.body.appendChild(overlay);
+    };
+
+    container.addEventListener("click", handleImgClick);
+    return () => {
+      container.removeEventListener("click", handleImgClick);
+      overlay?.remove();
+    };
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
