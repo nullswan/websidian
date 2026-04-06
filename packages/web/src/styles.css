@@ -121,6 +121,17 @@ body {
   opacity: 0.7;
 }
 
+.reader-view .inline-field-key {
+  color: var(--accent-color);
+  font-weight: 500;
+}
+.reader-view .inline-field-separator {
+  color: var(--text-faint);
+}
+.reader-view .inline-field-value {
+  color: var(--text-primary);
+}
+
 .reader-view .tag {
   color: #e6994a;
   background: rgba(230, 153, 74, 0.1);

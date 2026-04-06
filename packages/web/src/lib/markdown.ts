@@ -100,6 +100,22 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     });
   });
 
+  // Plugin: inline fields (key:: value) — Dataview-style
+  md.core.ruler.push("inline_fields", (state) => {
+    for (const token of state.tokens) {
+      if (token.type !== "inline" || !token.children) continue;
+      for (const child of token.children) {
+        if (child.type === "text" && child.content.includes("::")) {
+          child.content = child.content.replace(
+            /\b([\w-]+)::\s*(.+?)(?=$|\n)/g,
+            (_m, key, val) => `<span class="inline-field"><span class="inline-field-key">${escapeHtml(key)}</span><span class="inline-field-separator">::</span> <span class="inline-field-value">${escapeHtml(val.trim())}</span></span>`,
+          );
+          child.type = "html_inline";
+        }
+      }
+    }
+  });
+
   md.core.ruler.push("block_refs", (state) => {
     for (const token of state.tokens) {
       if (token.type !== "inline" || !token.children) continue;
