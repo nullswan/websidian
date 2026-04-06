@@ -254,37 +254,50 @@ function ScrollContainer({ tabId, scrollTop, updateTab, children, className, not
           const totalLines = noteContent.split("\n").length;
           const scrollFrac = scrollMetrics.scrollHeight > scrollMetrics.clientHeight
             ? scrollMetrics.scrollTop / (scrollMetrics.scrollHeight - scrollMetrics.clientHeight) : 0;
+          const minLevel = Math.min(...headings.map((h) => h.level));
           return (
-            <div style={{
-              position: "absolute", right: showMinimap ? 46 : 4, top: 8, bottom: 8,
-              width: 12, display: "flex", flexDirection: "column", justifyContent: "space-between",
-              alignItems: "center", zIndex: 5, pointerEvents: "auto",
+            <div className="floating-toc" style={{
+              position: "absolute", right: showMinimap ? 50 : 8, top: 8, bottom: 8,
+              maxWidth: 180, display: "flex", flexDirection: "column", gap: 1,
+              zIndex: 5, pointerEvents: "auto", overflowY: "auto", overflowX: "hidden",
+              padding: "4px 0",
             }}>
               {headings.map((h, i) => {
                 const frac = h.line / totalLines;
                 const isActive = i === headings.length - 1
                   ? scrollFrac >= frac - 0.02
                   : scrollFrac >= frac - 0.02 && scrollFrac < (headings[i + 1].line / totalLines) - 0.02;
+                const indent = (h.level - minLevel) * 10;
                 return (
                   <div
                     key={i}
-                    title={h.text}
                     onClick={() => {
                       if (!ref.current) return;
                       const max = ref.current.scrollHeight - ref.current.clientHeight;
                       ref.current.scrollTo({ top: frac * max, behavior: "smooth" });
                     }}
                     style={{
-                      width: isActive ? 8 : h.level <= 2 ? 6 : 4,
-                      height: isActive ? 8 : h.level <= 2 ? 6 : 4,
-                      borderRadius: "50%",
-                      background: isActive ? "var(--accent-color)" : "var(--text-faint)",
-                      opacity: isActive ? 1 : 0.3,
+                      paddingLeft: indent + 6,
+                      paddingRight: 6,
+                      paddingTop: 2,
+                      paddingBottom: 2,
+                      fontSize: 10,
+                      lineHeight: 1.3,
+                      color: isActive ? "var(--accent-color)" : "var(--text-faint)",
+                      fontWeight: isActive ? 600 : 400,
                       cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      borderLeft: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
                       transition: "all 0.15s",
-                      flexShrink: 0,
+                      opacity: isActive ? 1 : 0.6,
+                      borderRadius: 2,
                     }}
-                  />
+                    title={h.text}
+                  >
+                    {h.text}
+                  </div>
                 );
               })}
             </div>
