@@ -34,6 +34,8 @@ import { TemplatePicker } from "./components/TemplatePicker.js";
 import { WordFrequency } from "./components/WordFrequency.js";
 import { OutgoingLinks } from "./components/OutgoingLinks.js";
 import { SharePage } from "./components/SharePage.js";
+import { Ribbon } from "./components/Ribbon.js";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
@@ -2122,223 +2124,21 @@ ${rendered}
       {/* Ribbon + Left Sidebar */}
       <div style={{ display: "flex", height: "100%", flexShrink: 0 }}>
         {/* Obsidian-style icon ribbon */}
-        <div
-          style={{
-            width: 44,
-            background: "var(--bg-primary)",
-            borderRight: "1px solid var(--bg-tertiary)",
-            display: (zenMode || isMobile) ? "none" : "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingTop: 8,
-            gap: 2,
-            flexShrink: 0,
-          }}
-        >
-          {[
-            {
-              id: "files" as const,
-              title: "File explorer",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3h7l2 2h9v15H3z" />
-                  <path d="M3 10h18" />
-                </svg>
-              ),
-            },
-            {
-              id: "search" as const,
-              title: "Search",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              ),
-            },
-            {
-              id: "graph" as const,
-              title: "Graph view",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="6" cy="6" r="2.5" />
-                  <circle cx="18" cy="8" r="2.5" />
-                  <circle cx="12" cy="18" r="2.5" />
-                  <path d="M8.2 7.5 15.5 9.5" />
-                  <path d="M7.5 8.2 10.5 16" />
-                  <path d="M15.8 10.2 13.5 16" />
-                </svg>
-              ),
-            },
-            {
-              id: "starred" as const,
-              title: "Starred notes",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              ),
-            },
-            {
-              id: "recent" as const,
-              title: "Recent files",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              ),
-            },
-            {
-              id: "plugins" as const,
-              title: "Plugins",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="4" y="4" width="16" height="16" rx="2" />
-                  <path d="M9 4v16" />
-                  <path d="M4 9h5" />
-                </svg>
-              ),
-            },
-            {
-              id: "trash" as const,
-              title: "Trash",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              ),
-            },
-          ].map((item) => (
-            <button
-              key={item.id}
-              title={item.title}
-              onClick={() => {
-                if (item.id === "graph") {
-                  setShowGraph((g) => !g);
-                } else if (leftPanel === item.id && !leftCollapsed) {
-                  setLeftCollapsed(true);
-                } else {
-                  setLeftPanel(item.id);
-                  setLeftCollapsed(false);
-                  if (item.id === "trash") refreshTrash();
-                }
-              }}
-              style={{
-                width: 36,
-                height: 36,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                borderRadius: 4,
-                background: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--bg-tertiary)" : "transparent",
-                color: (item.id === "graph" ? showGraph : leftPanel === item.id) ? "var(--text-primary)" : "var(--text-faint)",
-                borderLeft: (item.id === "graph" ? showGraph : leftPanel === item.id && !leftCollapsed) ? "2px solid var(--accent-color)" : "2px solid transparent",
-                cursor: "pointer",
-                transition: "color 0.15s, background 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
-              onMouseLeave={(e) => {
-                const isActive = item.id === "graph" ? showGraph : leftPanel === item.id;
-                (e.currentTarget as HTMLElement).style.color = isActive ? "var(--text-primary)" : "var(--text-faint)";
-              }}
-            >
-              {item.icon}
-            </button>
-          ))}
-
-          {/* Daily note / Calendar */}
-          <button
-            ref={calendarAnchorRef}
-            title="Daily notes calendar (click) / Open today (Ctrl+D)"
-            onClick={() => setShowCalendar((c) => !c)}
-            style={{
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "none",
-              borderRadius: 4,
-              background: "transparent",
-              color: "var(--text-faint)",
-              cursor: "pointer",
-              transition: "color 0.15s, background 0.15s",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4" />
-              <path d="M8 2v4" />
-              <path d="M3 10h18" />
-              <path d="M8 14h.01" />
-              <path d="M12 14h.01" />
-              <path d="M16 14h.01" />
-              <path d="M8 18h.01" />
-              <path d="M12 18h.01" />
-            </svg>
-          </button>
-
-          <div style={{ flex: 1 }} />
-
-          {/* Bottom ribbon actions */}
-          <button
-            title="Open random note"
-            onClick={openRandomNote}
-            style={{
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "none",
-              borderRadius: 4,
-              background: "transparent",
-              color: "var(--text-faint)",
-              cursor: "pointer",
-              marginBottom: 4,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-          </button>
-          <button
-            title="Settings"
-            onClick={() => setShowSettings(true)}
-            style={{
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "none",
-              borderRadius: 4,
-              background: "transparent",
-              color: "var(--text-faint)",
-              cursor: "pointer",
-              marginBottom: 8,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-faint)"; }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-            </svg>
-          </button>
-        </div>
+        {!(zenMode || isMobile) && (
+          <Ribbon
+            leftPanel={leftPanel}
+            leftCollapsed={leftCollapsed}
+            showGraph={showGraph}
+            onPanelChange={setLeftPanel}
+            onToggleCollapse={setLeftCollapsed}
+            onToggleGraph={() => setShowGraph((g) => !g)}
+            onToggleCalendar={() => setShowCalendar((c) => !c)}
+            onToggleSettings={() => setShowSettings(true)}
+            onRandomNote={openRandomNote}
+            onRefreshTrash={refreshTrash}
+            calendarAnchorRef={calendarAnchorRef}
+          />
+        )}
 
         {/* Mobile sidebar backdrop */}
         {isMobile && !leftCollapsed && (
@@ -4495,127 +4295,7 @@ ${rendered}
       )}
 
       {/* Keyboard Shortcuts overlay */}
-      {showShortcuts && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setShowShortcuts(false)}
-        >
-          <div
-            style={{
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: 8,
-              padding: "24px 32px",
-              maxWidth: 480,
-              width: "90%",
-              maxHeight: "80vh",
-              overflow: "auto",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 16 }}>
-              Keyboard Shortcuts
-            </div>
-            {(() => {
-              const hko = loadHotkeyOverrides();
-              const hk = (id: string) => getHotkey(id, hko);
-              return [
-              ["Navigation", [
-                [hk("quick-switcher"), "Quick switcher"],
-                [hk("command-palette"), "Command palette"],
-                [hk("toggle-mode"), "Toggle read/edit mode"],
-                [hk("next-tab"), "Next tab"],
-                [hk("prev-tab"), "Previous tab"],
-                ["Ctrl+1-9", "Switch to Nth tab (9 = last)"],
-                [hk("graph-view"), "Toggle graph view"],
-              ]],
-              ["Files", [
-                [hk("new-note"), "New note"],
-                [hk("daily-note"), "Open daily note"],
-                [hk("close-tab"), "Close active tab"],
-                [hk("undo-close-tab"), "Undo close tab"],
-                ["Ctrl+Shift+N", "Extract selection to note"],
-              ]],
-              ["Editing", [
-                ["Ctrl+D", "Select next occurrence"],
-                ["Ctrl+F", "Find in editor"],
-                ["Ctrl+H", "Find & replace"],
-                ["Ctrl+B", "Bold"],
-                ["Ctrl+I", "Italic"],
-                ["Ctrl+K", "Insert link"],
-                ["Ctrl+`", "Inline code"],
-                ["Ctrl+Shift+X", "Strikethrough"],
-                ["Ctrl+Enter", "Toggle list/task cycle"],
-                ["Enter", "Continue list on new line"],
-                ["Alt+↑/↓", "Move line up/down"],
-                ["Alt+Shift+↑/↓", "Copy line up/down"],
-                ["Ctrl+Shift+D", "Duplicate line/selection"],
-                ["Ctrl+Shift+[", "Fold heading"],
-                ["Ctrl+Shift+]", "Unfold heading"],
-                ["[[", "Auto-close wikilink brackets"],
-              ]],
-              ["Interface", [
-                [hk("toggle-left-sidebar"), "Toggle left sidebar"],
-                [hk("toggle-right-sidebar"), "Toggle right sidebar"],
-                [hk("search"), "Toggle search"],
-                [hk("zen-mode"), "Toggle zen mode"],
-                [hk("settings"), "Open settings"],
-                [hk("shortcuts-help"), "Keyboard shortcuts"],
-                [hk("split-right"), "Split editor right"],
-                [hk("close-split"), "Close split pane"],
-                [hk("focus-pane-1"), "Focus pane 1"],
-                [hk("focus-pane-2"), "Focus pane 2"],
-              ]],
-            ] as [string, string[][]][];
-            })().map(([group, shortcuts]) => (
-              <div key={group}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 0 4px", marginTop: 4 }}>
-                  {group}
-                </div>
-                {shortcuts.map(([key, desc]) => (
-                  <div
-                    key={key}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "5px 0",
-                      borderBottom: "1px solid var(--bg-tertiary)",
-                    }}
-                  >
-                    <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{desc}</span>
-                    <kbd
-                      style={{
-                        background: "var(--bg-primary)",
-                        border: "1px solid var(--text-faint)",
-                        borderRadius: 4,
-                        padding: "2px 8px",
-                        fontSize: 12,
-                        color: "var(--text-primary)",
-                        fontFamily: "system-ui, monospace",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {kbd(key)}
-                    </kbd>
-                  </div>
-                ))}
-              </div>
-            ))}
-            <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-faint)", textAlign: "center" }}>
-              Press Escape or Ctrl+/ to close
-            </div>
-          </div>
-        </div>
-      )}
+      {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
       {/* Settings modal */}
       {showSettings && (
         <Settings
