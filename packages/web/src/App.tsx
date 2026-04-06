@@ -19,6 +19,7 @@ import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
+import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
@@ -600,6 +601,7 @@ export function App() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const calendarAnchorRef = useRef<HTMLButtonElement>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
@@ -1070,6 +1072,8 @@ export function App() {
             updateTab(activeTab.id, { content, dirty: false });
             setSaveStatus("saved");
             saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+            // Save version snapshot
+            saveSnapshot(activeTab.path, content);
           }
         })
         .catch((e) => {
@@ -3127,6 +3131,11 @@ ${rendered}
               action: exportAsHtml,
             },
             {
+              id: "version-history",
+              name: "Version history",
+              action: () => { if (activeTab) setShowVersionHistory(true); },
+            },
+            {
               id: "copy-link",
               name: "Copy note link",
               action: () => {
@@ -3540,6 +3549,18 @@ ${rendered}
           settings={appSettings}
           onUpdate={setAppSettings}
           onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
+        />
+      )}
+
+      {showVersionHistory && activeTab && (
+        <VersionHistory
+          path={activeTab.path}
+          currentContent={activeTab.content}
+          onRestore={(content) => {
+            updateTab(activeTab.id, { content, dirty: true });
+            handleSave(content);
+          }}
+          onClose={() => setShowVersionHistory(false)}
         />
       )}
 
