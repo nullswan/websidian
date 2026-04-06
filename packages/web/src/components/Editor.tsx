@@ -1510,6 +1510,45 @@ async function wikilinkCompletion(ctx: CompletionContext) {
   const query = match[1];
   const from = ctx.pos - query.length;
 
+  // Heading completion: [[NoteName#heading
+  const hashIdx = query.indexOf("#");
+  if (hashIdx !== -1) {
+    const noteName = query.slice(0, hashIdx);
+    const headingQuery = query.slice(hashIdx + 1).toLowerCase();
+    const headingFrom = from + hashIdx + 1;
+
+    try {
+      // Resolve note, then fetch content and extract headings
+      const resolveRes = await fetch(`/api/vault/resolve?target=${encodeURIComponent(noteName)}`, { credentials: "include" });
+      const resolveData = await resolveRes.json();
+      if (!resolveData.resolved) return null;
+
+      const fileRes = await fetch(`/api/vault/file?path=${encodeURIComponent(resolveData.resolved)}`, { credentials: "include" });
+      const fileData = await fileRes.json();
+      if (fileData.error) return null;
+
+      const headings: Completion[] = [];
+      for (const fileLine of (fileData.content as string).split("\n")) {
+        const hMatch = /^(#{1,6})\s+(.+)$/.exec(fileLine);
+        if (hMatch) {
+          const text = hMatch[2].trim();
+          if (!headingQuery || text.toLowerCase().includes(headingQuery)) {
+            headings.push({
+              label: text,
+              detail: "#".repeat(hMatch[1].length),
+              apply: (view: EditorView, _completion: Completion, hFrom: number, to: number) => {
+                view.dispatch({ changes: { from: hFrom, to, insert: text + "]]" } });
+              },
+            });
+          }
+        }
+      }
+      return { from: headingFrom, options: headings, filter: false };
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const res = await fetch(`/api/vault/switcher?q=${encodeURIComponent(query)}`);
     const data = await res.json();
