@@ -2009,6 +2009,75 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       },
     });
 
+    // Editor context menu
+    const contextMenuHandler = EditorView.domEventHandlers({
+      contextmenu: (event, view) => {
+        event.preventDefault();
+        // Remove existing menu
+        document.querySelector(".cm-context-menu")?.remove();
+
+        const menu = document.createElement("div");
+        menu.className = "cm-context-menu";
+        menu.style.cssText = `position:fixed;left:${event.clientX}px;top:${event.clientY}px;z-index:9999;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:4px 0;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:12px;`;
+
+        const hasSel = view.state.selection.main.from !== view.state.selection.main.to;
+
+        const items: Array<{ label: string; action: () => void; disabled?: boolean; separator?: boolean }> = [
+          { label: "Cut", action: () => { document.execCommand("cut"); }, disabled: !hasSel },
+          { label: "Copy", action: () => { document.execCommand("copy"); }, disabled: !hasSel },
+          { label: "Paste", action: () => { navigator.clipboard.readText().then((t) => { view.dispatch({ changes: { from: view.state.selection.main.from, to: view.state.selection.main.to, insert: t } }); }); } },
+          { label: "", action: () => {}, separator: true },
+          { label: "Select All", action: () => { view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }); } },
+          { label: "", action: () => {}, separator: true },
+          { label: "Toggle Bold", action: () => { wrapSelection(view, "**"); } },
+          { label: "Toggle Italic", action: () => { wrapSelection(view, "*"); } },
+          { label: "Toggle Strikethrough", action: () => { wrapSelection(view, "~~"); } },
+          { label: "Toggle Code", action: () => { wrapSelection(view, "`"); } },
+          { label: "Toggle Highlight", action: () => { wrapSelection(view, "=="); } },
+        ];
+
+        for (const item of items) {
+          if (item.separator) {
+            const sep = document.createElement("div");
+            sep.style.cssText = "height:1px;background:var(--border-color);margin:4px 0;";
+            menu.appendChild(sep);
+            continue;
+          }
+          const el = document.createElement("div");
+          el.textContent = item.label;
+          el.style.cssText = `padding:4px 12px;cursor:${item.disabled ? "default" : "pointer"};color:${item.disabled ? "var(--text-faint)" : "var(--text-primary)"};`;
+          if (!item.disabled) {
+            el.addEventListener("mouseenter", () => { el.style.background = "var(--bg-hover)"; });
+            el.addEventListener("mouseleave", () => { el.style.background = "none"; });
+            el.addEventListener("click", () => { item.action(); menu.remove(); });
+          }
+          menu.appendChild(el);
+        }
+
+        document.body.appendChild(menu);
+        const dismiss = (e: MouseEvent) => {
+          if (!menu.contains(e.target as Node)) { menu.remove(); document.removeEventListener("mousedown", dismiss); }
+        };
+        setTimeout(() => document.addEventListener("mousedown", dismiss), 0);
+        return true;
+      },
+    });
+
+    function wrapSelection(view: EditorView, marker: string) {
+      const sel = view.state.selection.main;
+      if (sel.from === sel.to) return;
+      const text = view.state.sliceDoc(sel.from, sel.to);
+      // Check if already wrapped — unwrap
+      if (text.startsWith(marker) && text.endsWith(marker) && text.length > marker.length * 2) {
+        view.dispatch({ changes: { from: sel.from, to: sel.to, insert: text.slice(marker.length, -marker.length) } });
+      } else {
+        view.dispatch({
+          changes: { from: sel.from, to: sel.to, insert: marker + text + marker },
+          selection: { anchor: sel.from + marker.length, head: sel.to + marker.length },
+        });
+      }
+    }
+
     // Hover preview state (managed via DOM listeners after view creation)
     const hoverMd = createMarkdownRenderer();
     let hoverEl: HTMLDivElement | null = null;
@@ -2121,6 +2190,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         }),
         clickHandler,
         pasteHandler,
+        contextMenuHandler,
         // Auto-save on change with debounce, and track cursor position
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
