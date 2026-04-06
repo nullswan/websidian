@@ -602,6 +602,7 @@ export function App() {
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showMergePicker, setShowMergePicker] = useState(false);
   const calendarAnchorRef = useRef<HTMLButtonElement>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
@@ -1258,6 +1259,44 @@ ${rendered}
     URL.revokeObjectURL(url);
     showToast(`Exported ${title}.html`);
   }, [activeTab, showToast]);
+
+  const mergeNoteInto = useCallback(async (sourcePath: string) => {
+    if (!activeTab) return;
+    try {
+      // Fetch source content
+      const res = await fetch(`/api/vault/file?path=${encodeURIComponent(sourcePath)}`, { credentials: "include" });
+      const data = await res.json();
+      if (data.error) { showToast("Failed to fetch source note"); return; }
+      const sourceContent = data.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim();
+      const sourceName = sourcePath.replace(/\.md$/, "").split("/").pop() ?? sourcePath;
+      // Append to current note
+      const merged = activeTab.content + `\n\n---\n\n## Merged from ${sourceName}\n\n${sourceContent}`;
+      updateTab(activeTab.id, { content: merged, dirty: true });
+      handleSave(merged);
+      // Update links pointing to source → point to current
+      const targetName = activeTab.path.replace(/\.md$/, "").split("/").pop() ?? activeTab.path;
+      await fetch("/api/vault/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ from: sourcePath, to: sourcePath + ".merged" }),
+      });
+      // Delete source
+      await fetch("/api/vault/file", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ path: sourcePath + ".merged" }),
+      });
+      refreshTree();
+      // Close tabs for the deleted file
+      const tabToClose = Object.values(tabsMap).find((t) => t.path === sourcePath);
+      if (tabToClose) closeTab(tabToClose.id, activePaneIdx);
+      showToast(`Merged "${sourceName}" into current note`);
+    } catch (e) {
+      showToast("Merge failed: " + (e as Error).message);
+    }
+  }, [activeTab, updateTab, handleSave, refreshTree, tabsMap, closeTab, activePaneIdx, showToast]);
 
   const openDailyByDate = useCallback((dateStr: string) => {
     const path = `Daily Notes/${dateStr}.md`;
@@ -3139,6 +3178,11 @@ ${rendered}
               action: () => { if (activeTab) setShowVersionHistory(true); },
             },
             {
+              id: "merge-note",
+              name: "Merge another note into current",
+              action: () => { if (activeTab) setShowMergePicker(true); },
+            },
+            {
               id: "copy-link",
               name: "Copy note link",
               action: () => {
@@ -3552,6 +3596,16 @@ ${rendered}
           settings={appSettings}
           onUpdate={setAppSettings}
           onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
+        />
+      )}
+
+      {showMergePicker && activeTab && (
+        <QuickSwitcher
+          onSelect={(path) => {
+            setShowMergePicker(false);
+            mergeNoteInto(path);
+          }}
+          onClose={() => setShowMergePicker(false)}
         />
       )}
 
