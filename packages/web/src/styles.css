@@ -56,6 +56,17 @@ body {
   font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif);
 }
 
+/* Heading numbering (CSS counters, toggled via root class) */
+.heading-numbers-enabled .reader-view { counter-reset: h1counter; }
+.heading-numbers-enabled .reader-view h1 { counter-reset: h2counter; counter-increment: h1counter; }
+.heading-numbers-enabled .reader-view h2 { counter-reset: h3counter; counter-increment: h2counter; }
+.heading-numbers-enabled .reader-view h3 { counter-reset: h4counter; counter-increment: h3counter; }
+.heading-numbers-enabled .reader-view h4 { counter-increment: h4counter; }
+.heading-numbers-enabled .reader-view h1::before { content: counter(h1counter) ". "; color: var(--text-faint); }
+.heading-numbers-enabled .reader-view h2::before { content: counter(h1counter) "." counter(h2counter) ". "; color: var(--text-faint); }
+.heading-numbers-enabled .reader-view h3::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) ". "; color: var(--text-faint); }
+.heading-numbers-enabled .reader-view h4::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) ". "; color: var(--text-faint); }
+
 .reader-view h1 {
   font-size: 2em;
   font-weight: 700;

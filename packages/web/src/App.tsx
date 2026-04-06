@@ -613,6 +613,9 @@ export function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", appSettings.theme);
   }, [appSettings.theme]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("heading-numbers-enabled", appSettings.headingNumbers);
+  }, [appSettings.headingNumbers]);
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {

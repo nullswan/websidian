@@ -17,6 +17,7 @@ export interface AppSettings {
   lineWrap: boolean;
   fontFamily: "system" | "sans-serif" | "serif" | "monospace";
   stackedTabs: boolean;
+  headingNumbers: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -35,6 +36,7 @@ const DEFAULTS: AppSettings = {
   lineWrap: true,
   fontFamily: "system",
   stackedTabs: false,
+  headingNumbers: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -276,6 +278,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                     </button>
                   )}
                 </div>
+              </SettingItem>
+
+              <SettingItem
+                title="Heading numbers"
+                description="Auto-number headings in reader view (1. 1.1. 2. etc.)"
+              >
+                <Toggle checked={settings.headingNumbers} onChange={(v) => update("headingNumbers", v)} />
               </SettingItem>
 
               <SettingItem
