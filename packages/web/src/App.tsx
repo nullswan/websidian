@@ -233,9 +233,10 @@ function FolderPicker({ folders, currentPath, onSelect, onClose }: {
   );
 }
 
-function SidebarSection({ title, defaultOpen = true, children }: {
+function SidebarSection({ title, defaultOpen = true, badge, children }: {
   title: string;
   defaultOpen?: boolean;
+  badge?: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(() => {
@@ -286,6 +287,9 @@ function SidebarSection({ title, defaultOpen = true, children }: {
           <path d="M2 0 L6 4 L2 8 Z" />
         </svg>
         {title}
+        {badge != null && badge > 0 && (
+          <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent-color)", background: "rgba(127,109,242,0.12)", padding: "1px 5px", borderRadius: 8, fontWeight: 600 }}>{badge}</span>
+        )}
       </div>
       {open && children}
     </div>
@@ -2902,13 +2906,13 @@ ${rendered}
                 })()}
               </div>
             </SidebarSection>
-            <SidebarSection title={`Backlinks (${activeTab.backlinks.length})`}>
+            <SidebarSection title="Backlinks" badge={activeTab.backlinks.length}>
               <Backlinks
                 backlinks={activeTab.backlinks}
                 onNavigate={openTab}
               />
             </SidebarSection>
-            <SidebarSection title={`Unlinked Mentions (${activeTab.unlinkedMentions.length})`}>
+            <SidebarSection title="Unlinked Mentions" badge={activeTab.unlinkedMentions.length}>
               {activeTab.unlinkedMentions.length === 0 ? (
                 <div style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-faint)" }}>No unlinked mentions</div>
               ) : (
@@ -2985,13 +2989,13 @@ ${rendered}
                 </div>
               )}
             </SidebarSection>
-            <SidebarSection title={`Outgoing Links (${(() => {
+            <SidebarSection title="Outgoing Links" badge={(() => {
               const re = /\[\[([^\]|#]+)/g;
               const links = new Set<string>();
               let m;
               while ((m = re.exec(activeTab.content)) !== null) links.add(m[1].trim());
               return links.size;
-            })()})`}>
+            })()}>
               <OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} tree={tree} />
             </SidebarSection>
             <SidebarSection title="Local Graph">
