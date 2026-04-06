@@ -52,6 +52,9 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
   const [zoom, setZoom] = useState(1);
   const isPanning = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+  const dragNodeId = useRef<string | null>(null);
+  const didDrag = useRef(false);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!content) {
@@ -101,20 +104,36 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) {
       isPanning.current = true;
+      setSelectedNode(null);
       lastMouse.current = { x: e.clientX, y: e.clientY };
     }
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isPanning.current) {
+    if (dragNodeId.current && data) {
+      didDrag.current = true;
+      const dx = (e.clientX - lastMouse.current.x) / zoom;
+      const dy = (e.clientY - lastMouse.current.y) / zoom;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          nodes: prev.nodes.map((n) =>
+            n.id === dragNodeId.current ? { ...n, x: n.x + dx, y: n.y + dy } : n
+          ),
+        };
+      });
+    } else if (isPanning.current) {
       const dx = e.clientX - lastMouse.current.x;
       const dy = e.clientY - lastMouse.current.y;
       setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
       lastMouse.current = { x: e.clientX, y: e.clientY };
     }
-  }, []);
+  }, [zoom, data]);
 
   const handleMouseUp = useCallback(() => {
+    dragNodeId.current = null;
     isPanning.current = false;
   }, []);
 
@@ -211,9 +230,11 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
               background: isGroup
                 ? (node.color ? node.color + "20" : "rgba(127,109,242,0.06)")
                 : (node.color ?? "var(--bg-secondary)"),
-              border: isGroup
-                ? `2px dashed ${node.color || "rgba(127,109,242,0.3)"}`
-                : "1px solid var(--border-color)",
+              border: selectedNode === node.id
+                ? "2px solid var(--accent-color)"
+                : isGroup
+                  ? `2px dashed ${node.color || "rgba(127,109,242,0.3)"}`
+                  : "1px solid var(--border-color)",
               borderRadius: isGroup ? 8 : 6,
               padding: 8 * zoom,
               color: "var(--text-primary)",
@@ -221,11 +242,22 @@ export function CanvasView({ content, onNavigate }: CanvasViewProps) {
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
-              cursor: node.type === "file" || node.type === "link" ? "pointer" : "default",
-              transition: "box-shadow 0.15s",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              cursor: dragNodeId.current === node.id ? "grabbing" : "grab",
+              transition: dragNodeId.current === node.id ? "none" : "box-shadow 0.15s",
+              boxShadow: selectedNode === node.id ? "0 0 0 1px var(--accent-color), 0 4px 16px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
+              zIndex: selectedNode === node.id ? 10 : isGroup ? 0 : 1,
+            }}
+            onMouseDown={(e) => {
+              if (e.button === 0) {
+                e.stopPropagation();
+                dragNodeId.current = node.id;
+                didDrag.current = false;
+                setSelectedNode(node.id);
+                lastMouse.current = { x: e.clientX, y: e.clientY };
+              }
             }}
             onClick={() => {
+              if (didDrag.current) return;
               if (node.type === "file" && node.file) {
                 onNavigate(node.file);
               } else if (node.type === "link" && node.url) {
