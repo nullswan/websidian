@@ -1959,6 +1959,15 @@ ${rendered}
                     }
                   }}
                   className={`tab ${tab.id === pane.activeTabId ? "active" : ""}${tab.pinned ? " pinned" : ""}`}
+                  title={(() => {
+                    const name = tab.path.split("/").pop()?.replace(/\.md$/, "") ?? tab.path;
+                    const words = tab.content ? tab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim().split(/\s+/).filter(Boolean).length : 0;
+                    const bl = tab.backlinks.length;
+                    const parts = [tab.path];
+                    if (words > 0) parts.push(`${words.toLocaleString()} words`);
+                    if (bl > 0) parts.push(`${bl} backlink${bl !== 1 ? "s" : ""}`);
+                    return parts.join(" · ");
+                  })()}
                   style={tab.color ? { borderTop: `2px solid ${tab.color}`, paddingTop: 4 } : undefined}
                   draggable
                   onDragStart={(e) => {
