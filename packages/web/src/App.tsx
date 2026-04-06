@@ -2540,6 +2540,16 @@ ${rendered}
               action: exportAsHtml,
             },
             {
+              id: "copy-link",
+              name: "Copy note link",
+              action: () => {
+                if (!activeTab) return;
+                const name = activeTab.path.replace(/\.md$/, "").split("/").pop() || activeTab.path;
+                navigator.clipboard.writeText(`[[${name}]]`).catch(() => {});
+                showToast(`Copied [[${name}]]`);
+              },
+            },
+            {
               id: "move-file",
               name: "Move current file to...",
               action: () => {
@@ -2631,6 +2641,17 @@ ${rendered}
                   if (tab) {
                     navigator.clipboard.writeText(tab.path).catch(() => {});
                     showToast("Path copied to clipboard");
+                  }
+                },
+              },
+              {
+                label: "Copy Note Link",
+                action: () => {
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (tab) {
+                    const name = tab.path.replace(/\.md$/, "").split("/").pop() || tab.path;
+                    navigator.clipboard.writeText(`[[${name}]]`).catch(() => {});
+                    showToast(`Copied [[${name}]]`);
                   }
                 },
               },
