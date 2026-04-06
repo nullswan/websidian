@@ -1835,6 +1835,44 @@ async function tagCompletion(ctx: CompletionContext) {
   }
 }
 
+const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "avif"]);
+
+// Image/attachment autocomplete: triggers on ![[
+async function imagePathCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  // Only trigger on embed syntax ![[
+  const match = /!\[\[([^\]|]*)$/.exec(textBefore);
+  if (!match) return null;
+
+  const query = match[1].toLowerCase();
+  const from = ctx.pos - match[1].length;
+
+  try {
+    const res = await fetch("/api/vault/files", { credentials: "include" });
+    const data = await res.json();
+    const files: Array<{ path: string; extension: string }> = data.files ?? [];
+    const options: Completion[] = [];
+    for (const f of files) {
+      if (!IMAGE_EXTS.has(f.extension)) continue;
+      const name = f.path.split("/").pop() ?? f.path;
+      if (query && !f.path.toLowerCase().includes(query) && !name.toLowerCase().includes(query)) continue;
+      options.push({
+        label: name,
+        detail: f.path.includes("/") ? f.path.split("/").slice(0, -1).join("/") : undefined,
+        apply: (view: EditorView, _completion: Completion, applyFrom: number, to: number) => {
+          view.dispatch({ changes: { from: applyFrom, to, insert: f.path + "]]" } });
+        },
+        boost: name.toLowerCase().startsWith(query) ? 1 : 0,
+      });
+    }
+    if (options.length === 0) return null;
+    return { from, options, filter: false };
+  } catch {
+    return null;
+  }
+}
+
 async function wikilinkCompletion(ctx: CompletionContext) {
   // Look backwards for [[ to find the trigger
   const line = ctx.state.doc.lineAt(ctx.pos);
@@ -2644,7 +2682,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
+          override: [imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
