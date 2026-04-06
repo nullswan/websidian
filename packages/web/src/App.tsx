@@ -82,6 +82,14 @@ interface NoteMeta {
   embeds: Array<{ target: string }>;
 }
 
+const FRONTMATTER_TEMPLATES: { name: string; fields: string }[] = [
+  { name: "Blog Post", fields: "title: \ntags: []\ndate: {{date}}\ndraft: true\ndescription: " },
+  { name: "Meeting Note", fields: "title: \ndate: {{date}}\nattendees: []\nagenda: \naction-items: []" },
+  { name: "Book Note", fields: "title: \nauthor: \nrating: \nstatus: reading\ndate-started: {{date}}\ngenre: " },
+  { name: "Project", fields: "title: \nstatus: active\npriority: medium\ndeadline: \ntags: [project]" },
+  { name: "Person", fields: "name: \nemail: \ncompany: \nrole: \ntags: [person]" },
+];
+
 interface BacklinkEntry {
   path: string;
   context: string;
@@ -762,6 +770,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showFmTemplates, setShowFmTemplates] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -1298,6 +1307,24 @@ export function App() {
     },
     [activeTab, updateTab],
   );
+
+  const insertFrontmatterTemplate = useCallback((tpl: typeof FRONTMATTER_TEMPLATES[number]) => {
+    if (!activeTab) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const fields = tpl.fields.replace(/\{\{date\}\}/g, today);
+    const content = activeTab.content;
+    const m = FM_RE.exec(content);
+    let newContent: string;
+    if (m) {
+      const existing = m[1];
+      newContent = content.slice(0, m.index) + `---\n${existing}\n${fields}\n---\n` + content.slice(m.index + m[0].length);
+    } else {
+      newContent = `---\n${fields}\n---\n${content}`;
+    }
+    updateTab(activeTab.id, { content: newContent });
+    handleSave(newContent);
+    showToast(`Inserted "${tpl.name}" frontmatter`);
+  }, [activeTab, updateTab, handleSave, showToast]);
 
   // Toggle mode for active tab
   const toggleMode = useCallback(() => {
@@ -4002,6 +4029,11 @@ ${rendered}
               action: () => setShowTemplatePicker(true),
             },
             {
+              id: "insert-frontmatter-template",
+              name: "Insert frontmatter template",
+              action: () => setShowFmTemplates(true),
+            },
+            {
               id: "manage-workspaces",
               name: "Manage workspaces",
               action: () => setShowWorkspaces(true),
@@ -4653,6 +4685,37 @@ ${rendered}
           }}
           onClose={() => setShowTemplatePicker(false)}
         />
+      )}
+
+      {showFmTemplates && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 120 }}
+          onClick={() => setShowFmTemplates(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-secondary)", border: "1px solid var(--border-color)",
+              borderRadius: 8, padding: 12, minWidth: 260, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>Insert Frontmatter Template</div>
+            {FRONTMATTER_TEMPLATES.map((tpl) => (
+              <div
+                key={tpl.name}
+                onClick={() => { insertFrontmatterTemplate(tpl); setShowFmTemplates(false); }}
+                style={{
+                  padding: "6px 10px", borderRadius: 4, cursor: "pointer", fontSize: 13,
+                  color: "var(--text-primary)",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                {tpl.name}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Keyboard Shortcuts overlay */}
