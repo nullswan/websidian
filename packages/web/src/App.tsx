@@ -862,7 +862,7 @@ export function App() {
   const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number; selectedWords?: number; cursors?: number } | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number; selectedWords?: number; selectedLines?: number; cursors?: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toggleZenMode = useCallback(() => {
@@ -2322,31 +2322,54 @@ ${rendered}
           >
             {(() => {
               const segments = paneTab.path.replace(/\.md$/, "").split("/");
-              return segments.map((seg, i) => {
-                const isLast = i === segments.length - 1;
-                return (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span style={{ color: "var(--border-color)", margin: "0 2px" }}>›</span>}
-                    <span
-                      style={{
-                        color: isLast ? "var(--text-secondary)" : "var(--text-faint)",
-                        cursor: isLast ? "default" : "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                      onMouseEnter={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-secondary)"; }}
-                      onMouseLeave={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-faint)"; }}
-                      onClick={() => {
-                        if (!isLast) {
-                          // Switch to files panel — the folder path helps user orient
-                          setLeftPanel("files");
-                        }
-                      }}
-                    >
-                      {seg}
-                    </span>
-                  </React.Fragment>
-                );
-              });
+              // Find current heading hierarchy based on cursor position
+              const headingPath: string[] = [];
+              if (cursorPos && paneTab.mode !== "read" && paneTab.content) {
+                const lines = paneTab.content.split("\n");
+                const curLine = cursorPos.line;
+                const stack: Array<{ level: number; text: string }> = [];
+                for (let i = 0; i < Math.min(curLine, lines.length); i++) {
+                  const hm = /^(#{1,6})\s+(.+)/.exec(lines[i]);
+                  if (hm) {
+                    const lvl = hm[1].length;
+                    while (stack.length > 0 && stack[stack.length - 1].level >= lvl) stack.pop();
+                    stack.push({ level: lvl, text: hm[2].replace(/[*_`~]/g, "").trim() });
+                  }
+                }
+                stack.forEach((h) => headingPath.push(h.text));
+              }
+              return (
+                <>
+                  {segments.map((seg, i) => {
+                    const isLast = i === segments.length - 1 && headingPath.length === 0;
+                    return (
+                      <React.Fragment key={i}>
+                        {i > 0 && <span style={{ color: "var(--border-color)", margin: "0 2px" }}>›</span>}
+                        <span
+                          style={{
+                            color: isLast ? "var(--text-secondary)" : "var(--text-faint)",
+                            cursor: isLast ? "default" : "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                          onMouseEnter={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-secondary)"; }}
+                          onMouseLeave={(e) => { if (!isLast) (e.target as HTMLElement).style.color = "var(--text-faint)"; }}
+                          onClick={() => {
+                            if (!isLast) setLeftPanel("files");
+                          }}
+                        >
+                          {seg}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                  {headingPath.map((h, i) => (
+                    <React.Fragment key={`h${i}`}>
+                      <span style={{ color: "var(--border-color)", margin: "0 2px" }}>›</span>
+                      <span style={{ color: i === headingPath.length - 1 ? "var(--accent-color)" : "var(--text-faint)", whiteSpace: "nowrap", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>{h}</span>
+                    </React.Fragment>
+                  ))}
+                </>
+              );
             })()}
           </div>
         )}
