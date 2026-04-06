@@ -915,6 +915,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               return next;
             });
           }}
+          onShowToast={onShowToast}
         />
       )}
       {moveToPath && (
@@ -1453,6 +1454,7 @@ function ContextMenu({
   onBatchDelete,
   colorLabels,
   onSetColorLabel,
+  onShowToast,
 }: {
   x: number;
   y: number;
@@ -1471,6 +1473,7 @@ function ContextMenu({
   colorLabels?: Record<string, string>;
   onSetColorLabel?: (path: string, color: string | null) => void;
   onBatchDelete?: () => void;
+  onShowToast?: (msg: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1540,7 +1543,11 @@ function ContextMenu({
     }
     menuItems.push({
       label: "Copy path",
-      action: () => { navigator.clipboard.writeText(entry.path); onClose(); },
+      action: () => { navigator.clipboard.writeText(entry.path); onClose(); onShowToast?.("Path copied"); },
+    });
+    menuItems.push({
+      label: "Copy file name",
+      action: () => { navigator.clipboard.writeText(entry.path.split("/").pop() || entry.path); onClose(); onShowToast?.("Name copied"); },
     });
     if (onMoveTo) {
       menuItems.push({
