@@ -3294,10 +3294,15 @@ const indentGuidePlugin = ViewPlugin.fromClass(class {
         }
         const levels = Math.floor(spaces / tabSize);
         if (levels > 0 && text.trim().length > 0) {
-          // Create background-image based guides via line decoration
+          // Create background-image based guides with depth-based colors
+          const depthColors = [
+            "rgba(127,109,242,0.35)", "rgba(78,201,176,0.35)", "rgba(230,153,74,0.35)",
+            "rgba(224,82,82,0.35)", "rgba(86,182,230,0.35)", "rgba(195,140,230,0.35)",
+          ];
           const guides = Array.from({ length: levels }, (_, i) => {
-            const left = (i * tabSize) * 0.6 + 0.6; // approximate ch width
-            return `linear-gradient(var(--border-color), var(--border-color)) ${left}ch 0/1px 100% no-repeat`;
+            const left = (i * tabSize) * 0.6 + 0.6;
+            const color = depthColors[i % depthColors.length];
+            return `linear-gradient(${color}, ${color}) ${left}ch 0/1px 100% no-repeat`;
           }).join(", ");
           widgets.push(Decoration.line({ attributes: { style: `background: ${guides};` } }).range(line.from));
         }
