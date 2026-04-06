@@ -1462,7 +1462,26 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
                 if (fmMatch) previewContent = previewContent.slice(fmMatch[0].length);
                 if (previewContent.length > 800) previewContent = previewContent.slice(0, 800) + "\n\n...";
 
-                previewEl.innerHTML = md.render(previewContent);
+                // Extract outgoing wikilinks from the full content
+                const outgoingLinks: string[] = [];
+                const wikiRe = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
+                let wm;
+                while ((wm = wikiRe.exec(fileData.content)) !== null) {
+                  const linkName = wm[1].split("#")[0].trim();
+                  if (linkName && !outgoingLinks.includes(linkName)) outgoingLinks.push(linkName);
+                  if (outgoingLinks.length >= 10) break;
+                }
+
+                let outgoingHtml = "";
+                if (outgoingLinks.length > 0) {
+                  outgoingHtml = `<div style="border-top: 1px solid var(--border-color); margin-top: 8px; padding-top: 6px;">
+                    <div style="font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">Outgoing links</div>
+                    ${outgoingLinks.map(l => `<div style="font-size: 12px; padding: 1px 0; color: var(--accent-color);">→ ${l.split("/").pop()}</div>`).join("")}
+                    ${outgoingLinks.length >= 10 ? '<div style="font-size: 11px; color: var(--text-faint);">…and more</div>' : ""}
+                  </div>`;
+                }
+
+                previewEl.innerHTML = md.render(previewContent) + outgoingHtml;
 
                 // Reposition if it overflows viewport
                 const previewRect = previewEl.getBoundingClientRect();
