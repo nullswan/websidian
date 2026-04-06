@@ -602,6 +602,7 @@ export function App() {
   const splitDivRef = useRef<HTMLDivElement>(null);
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
   const scrollToHeadingRef = useRef<((heading: string, level: number) => void) | null>(null);
+  const [pendingHeading, setPendingHeading] = useState<string | null>(null);
 
   // Set CSS accent color variable
   useEffect(() => {
@@ -929,6 +930,9 @@ export function App() {
   const handleNavigate = useCallback(
     (target: string) => {
       const from = activeTab?.path ?? "";
+      // Extract heading fragment if present
+      const hashIdx = target.indexOf("#");
+      const headingFragment = hashIdx !== -1 ? target.slice(hashIdx + 1).replace(/\^.*$/, "") : null;
       fetch(
         `/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(from)}`,
       )
@@ -936,6 +940,9 @@ export function App() {
         .then((data) => {
           if (data.resolved) {
             openTab(data.resolved);
+            if (headingFragment) {
+              setPendingHeading(headingFragment);
+            }
           } else {
             // Create note from dead link
             const newPath = target.endsWith(".md") ? target : target + ".md";
@@ -1840,6 +1847,8 @@ ${rendered}
                 searchHighlight={paneIdx === activePaneIdx ? readerHighlight : ""}
                 scrollToLine={paneIdx === activePaneIdx && paneTab.id === activePane?.activeTabId ? scrollToLine : null}
                 onScrollToLineDone={() => setScrollToLine(null)}
+                scrollToHeading={paneIdx === activePaneIdx && paneTab.id === activePane?.activeTabId ? pendingHeading : null}
+                onScrollToHeadingDone={() => setPendingHeading(null)}
                 onTagClick={(tag) => {
                   setSearchQuery(`#${tag}`);
                   setLeftPanel("search");

@@ -13,6 +13,8 @@ interface ReaderProps {
   searchHighlight?: string;
   scrollToLine?: number | null;
   onScrollToLineDone?: () => void;
+  scrollToHeading?: string | null;
+  onScrollToHeadingDone?: () => void;
 }
 
 /** Extract a section from markdown content by heading name */
@@ -41,7 +43,7 @@ function extractSection(content: string, heading: string): string {
   return content;
 }
 
-export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone }: ReaderProps) {
+export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone, scrollToHeading, onScrollToHeadingDone }: ReaderProps) {
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -550,6 +552,33 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       });
     }
   }, [html, searchHighlight]);
+
+  // Scroll to heading after content render (e.g. from [[Note#Heading]] navigation)
+  useEffect(() => {
+    if (!scrollToHeading || !containerRef.current) return;
+    const slug = scrollToHeading.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/^-+|-+$/g, "") || "heading";
+    // Try by ID first, then text match
+    requestAnimationFrame(() => {
+      const byId = containerRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(slug)}"]`);
+      if (byId) {
+        byId.scrollIntoView({ behavior: "smooth", block: "start" });
+        onScrollToHeadingDone?.();
+        return;
+      }
+      // Fallback: text match
+      const headings = containerRef.current?.querySelectorAll("h1, h2, h3, h4, h5, h6");
+      if (headings) {
+        for (const h of headings) {
+          const text = h.textContent?.replace(/^▶\s*/, "").trim();
+          if (text?.toLowerCase() === scrollToHeading.toLowerCase()) {
+            h.scrollIntoView({ behavior: "smooth", block: "start" });
+            break;
+          }
+        }
+      }
+      onScrollToHeadingDone?.();
+    });
+  }, [html, scrollToHeading, onScrollToHeadingDone]);
 
   // Hover preview for wikilinks
   useEffect(() => {
