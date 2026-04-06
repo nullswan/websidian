@@ -314,7 +314,7 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
         tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
       }
     }
-    const tags = Object.entries(tagCounts).map(([tag, count]) => ({ tag, count }));
+    const tags = Object.entries(tagCounts).map(([tag, count]) => ({ name: tag, count }));
     return jsonResponse({ tags });
   }
 
