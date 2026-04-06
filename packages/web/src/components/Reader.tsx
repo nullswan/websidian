@@ -578,81 +578,113 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
-  // Hydrate note embeds after html is set
+  // Hydrate note embeds after html is set (with depth limit + cycle detection)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const embeds = container.querySelectorAll<HTMLElement>(".embed-note[data-target]");
-    if (embeds.length === 0) return;
-
     let cancelled = false;
+    const MAX_EMBED_DEPTH = 3;
 
-    for (const embedEl of embeds) {
-      const target = embedEl.dataset.target;
-      if (!target) continue;
+    function hydrateEmbeds(parent: HTMLElement, depth: number, ancestors: Set<string>) {
+      const embeds = parent.querySelectorAll<HTMLElement>(".embed-note[data-target]");
+      if (embeds.length === 0) return;
 
-      const from = filePath;
-      fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(from)}`, { credentials: "include" })
-        .then((r) => r.json())
-        .then((data) => {
-          if (cancelled || !data.resolved) return;
-          return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" })
-            .then((r) => r.json())
-            .then((fileData) => {
-              if (cancelled || fileData.error) return;
-              let embedContent = fileData.content;
-              const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(embedContent);
-              if (fmMatch) embedContent = embedContent.slice(fmMatch[0].length);
+      for (const embedEl of embeds) {
+        // Skip already-hydrated embeds
+        if (embedEl.dataset.hydrated === "true") continue;
+        embedEl.dataset.hydrated = "true";
 
-              const hashIdx = target.indexOf("#");
-              if (hashIdx !== -1) {
-                const fragment = target.slice(hashIdx + 1);
-                if (fragment.startsWith("^")) {
-                  // Block reference: find the line containing ^blockid
-                  const blockId = fragment.slice(1);
-                  const blockLine = embedContent.split("\n").find((l: string) => l.includes(`^${blockId}`));
-                  if (blockLine) {
-                    embedContent = blockLine.replace(/\s*\^[\w-]+\s*$/, "").trim();
-                  }
-                } else {
-                  const heading = fragment.replace(/\^.*$/, "");
-                  if (heading) {
-                    embedContent = extractSection(embedContent, heading);
-                  }
-                }
-              }
+        const target = embedEl.dataset.target;
+        if (!target) continue;
 
-              const embedHtml = md.render(embedContent);
-              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--accent-color); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; cursor: pointer; opacity: 0.7; display: flex; justify-content: space-between; align-items: center;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.7'"><span>${data.resolved.replace(/\.md$/, "")}</span><span class="embed-ref-badge" data-embed-path="${data.resolved}" style="font-size: 10px; color: var(--text-faint);"></span></div>${embedHtml}`;
-              embedEl.style.borderLeft = "2px solid var(--accent-color)";
+        // Depth limit
+        if (depth >= MAX_EMBED_DEPTH) {
+          embedEl.innerHTML = `<span style="color: var(--text-faint); font-size: 11px; font-style: italic;">Embed depth limit reached: ${target}</span>`;
+          embedEl.style.borderLeft = "2px solid var(--border-color)";
+          embedEl.style.paddingLeft = "12px";
+          embedEl.style.margin = "8px 0";
+          continue;
+        }
+
+        const from = filePath;
+        fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(from)}`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((data) => {
+            if (cancelled || !data.resolved) return;
+
+            // Cycle detection
+            if (ancestors.has(data.resolved)) {
+              embedEl.innerHTML = `<span style="color: #f88; font-size: 11px;">Circular embed detected: ${target}</span>`;
+              embedEl.style.borderLeft = "2px solid #f88";
               embedEl.style.paddingLeft = "12px";
               embedEl.style.margin = "8px 0";
-              embedEl.style.opacity = "0.9";
+              return;
+            }
 
-              // Collapse if content is tall
-              requestAnimationFrame(() => {
-                if (embedEl.scrollHeight > 320) {
-                  embedEl.classList.add("embed-collapsed");
-                  const btn = document.createElement("button");
-                  btn.className = "embed-expand-btn";
-                  btn.textContent = "Show more";
-                  btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    embedEl.classList.remove("embed-collapsed");
-                    btn.remove();
-                  });
-                  embedEl.appendChild(btn);
+            return fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((fileData) => {
+                if (cancelled || fileData.error) return;
+                let embedContent = fileData.content;
+                const fmMatch = /^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/.exec(embedContent);
+                if (fmMatch) embedContent = embedContent.slice(fmMatch[0].length);
+
+                const hashIdx = target.indexOf("#");
+                if (hashIdx !== -1) {
+                  const fragment = target.slice(hashIdx + 1);
+                  if (fragment.startsWith("^")) {
+                    const blockId = fragment.slice(1);
+                    const blockLine = embedContent.split("\n").find((l: string) => l.includes(`^${blockId}`));
+                    if (blockLine) {
+                      embedContent = blockLine.replace(/\s*\^[\w-]+\s*$/, "").trim();
+                    }
+                  } else {
+                    const heading = fragment.replace(/\^.*$/, "");
+                    if (heading) {
+                      embedContent = extractSection(embedContent, heading);
+                    }
+                  }
                 }
+
+                const embedHtml = md.render(embedContent);
+                embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--accent-color); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; cursor: pointer; opacity: 0.7; display: flex; justify-content: space-between; align-items: center;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.7'"><span>${data.resolved.replace(/\.md$/, "")}</span><span class="embed-ref-badge" data-embed-path="${data.resolved}" style="font-size: 10px; color: var(--text-faint);"></span></div>${embedHtml}`;
+                embedEl.style.borderLeft = "2px solid var(--accent-color)";
+                embedEl.style.paddingLeft = "12px";
+                embedEl.style.margin = "8px 0";
+                embedEl.style.opacity = "0.9";
+
+                // Collapse if content is tall
+                requestAnimationFrame(() => {
+                  if (embedEl.scrollHeight > 320) {
+                    embedEl.classList.add("embed-collapsed");
+                    const btn = document.createElement("button");
+                    btn.className = "embed-expand-btn";
+                    btn.textContent = "Show more";
+                    btn.addEventListener("click", (e) => {
+                      e.stopPropagation();
+                      embedEl.classList.remove("embed-collapsed");
+                      btn.remove();
+                    });
+                    embedEl.appendChild(btn);
+                  }
+                });
+
+                // Recursively hydrate nested embeds
+                const nextAncestors = new Set(ancestors);
+                nextAncestors.add(data.resolved);
+                hydrateEmbeds(embedEl, depth + 1, nextAncestors);
               });
-            });
-        })
-        .catch(() => {
-          if (!cancelled) {
-            embedEl.innerHTML = `<span style="color: #f88; font-size: 12px;">Failed to load: ${target}</span>`;
-          }
-        });
+          })
+          .catch(() => {
+            if (!cancelled) {
+              embedEl.innerHTML = `<span style="color: #f88; font-size: 12px;">Failed to load: ${target}</span>`;
+            }
+          });
+      }
     }
+
+    hydrateEmbeds(container, 0, new Set([filePath]));
 
     return () => { cancelled = true; };
   }, [html, filePath, md]);
