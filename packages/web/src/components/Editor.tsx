@@ -783,6 +783,54 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   return { from: line.to, to: endPos };
 });
 
+// Markdown delimiter auto-pairing: **, *, ~~, ==
+const markdownAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
+  const pairs: Record<string, string> = { "*": "*", "~": "~", "=": "=" };
+  if (!pairs[text]) return false;
+
+  const sel = view.state.selection.main;
+  const before = from > 0 ? view.state.sliceDoc(from - 1, from) : "";
+  const after = view.state.sliceDoc(to, to + 1);
+
+  // If text is selected, wrap it with the delimiter
+  if (sel.from !== sel.to) {
+    const selected = view.state.sliceDoc(sel.from, sel.to);
+    // For **, ~~, == — check if previous char is same to make double
+    if (before === text) {
+      // Completing a double delimiter — wrap selection
+      view.dispatch({
+        changes: [
+          { from: sel.from - 1, to: sel.from, insert: text + text },
+          { from: sel.to, to: sel.to, insert: text + text },
+        ],
+        selection: { anchor: sel.from + 1, head: sel.to + 1 },
+      });
+      return true;
+    }
+    view.dispatch({
+      changes: [
+        { from: sel.from, to: sel.from, insert: text },
+        { from: sel.to, to: sel.to, insert: text },
+      ],
+      selection: { anchor: sel.from + 1, head: sel.to + 1 },
+    });
+    return true;
+  }
+
+  // Double delimiter: if char before cursor is same char, make pair (e.g. * -> **)
+  if (before === text) {
+    // Only auto-close if next char is not the same (avoid tripling)
+    if (after === text) return false;
+    view.dispatch({
+      changes: { from, to, insert: text + text },
+      selection: { anchor: from + 1 },
+    });
+    return true;
+  }
+
+  return false;
+});
+
 export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -994,6 +1042,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
+        markdownAutoPair,
         search(),
         codeFolding(),
         markdownHeadingFold,
