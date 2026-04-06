@@ -12,6 +12,7 @@ import { vim } from "@replit/codemirror-vim";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { createMarkdownRenderer, CALLOUT_COLORS, CALLOUT_ICONS } from "../lib/markdown.js";
 import katex from "katex";
+import mermaid from "mermaid";
 
 interface EditorProps {
   content: string;
@@ -1169,6 +1170,29 @@ function buildNoteEmbedDecorations(state: EditorState, filePath: string): Decora
   return builder.finish();
 }
 
+// Mermaid diagram widget for Live Preview
+class MermaidWidget extends WidgetType {
+  code: string;
+  constructor(code: string) {
+    super();
+    this.code = code;
+  }
+  toDOM() {
+    const container = document.createElement("div");
+    container.style.cssText = "text-align: center; padding: 12px 0; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); margin: 4px 0;";
+    const id = `mermaid-ed-${Math.random().toString(36).slice(2, 8)}`;
+    mermaid.render(id, this.code).then(({ svg }) => {
+      container.innerHTML = svg;
+    }).catch(() => {
+      container.textContent = "Mermaid render error";
+      container.style.color = "#ff6b6b";
+    });
+    return container;
+  }
+  eq(other: MermaidWidget) { return this.code === other.code; }
+  ignoreEvent() { return true; }
+}
+
 // Code block language label widget for Live Preview
 class CodeBlockLabelWidget extends WidgetType {
   lang: string;
@@ -1220,6 +1244,22 @@ function buildCodeBlockDecorations(state: EditorState): DecorationSet {
     }
 
     if (!cursorInBlock) {
+      // Mermaid: replace entire block with rendered diagram
+      if (lang === "mermaid") {
+        const codeLines: string[] = [];
+        for (let j = startLine + 1; j < endLine; j++) {
+          codeLines.push(doc.line(j).text);
+        }
+        const mermaidCode = codeLines.join("\n");
+        const closeLine = doc.line(endLine);
+        builder.add(line.from, closeLine.to, Decoration.replace({
+          widget: new MermaidWidget(mermaidCode),
+          block: true,
+        }));
+        i = endLine + 1;
+        continue;
+      }
+
       // Opening fence line — relative position container + language label
       builder.add(line.from, line.from, Decoration.line({
         attributes: {
