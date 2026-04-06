@@ -97,6 +97,110 @@ const headingPlugin = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 );
 
+// Block drag handle — shows grip icon on hover for drag-to-reorder
+const blockDragPlugin = ViewPlugin.fromClass(
+  class {
+    dom: HTMLDivElement;
+    view: EditorView;
+    dragLine = -1;
+    dropLine = -1;
+    dropIndicator: HTMLDivElement;
+
+    constructor(view: EditorView) {
+      this.view = view;
+      this.dom = document.createElement("div");
+      this.dom.className = "cm-drag-handle";
+      this.dom.textContent = "⠿";
+      this.dom.style.cssText = "position: absolute; display: none; width: 16px; height: 20px; line-height: 20px; text-align: center; font-size: 12px; color: var(--text-faint); cursor: grab; z-index: 50; user-select: none; opacity: 0.5; transition: opacity 0.15s;";
+      this.dom.draggable = true;
+      this.dom.addEventListener("mouseenter", () => { this.dom.style.opacity = "1"; });
+      this.dom.addEventListener("mouseleave", () => { this.dom.style.opacity = "0.5"; });
+      this.dom.addEventListener("dragstart", (e) => {
+        e.dataTransfer!.effectAllowed = "move";
+        e.dataTransfer!.setData("text/plain", String(this.dragLine));
+        this.dom.style.opacity = "0.3";
+      });
+      this.dom.addEventListener("dragend", () => {
+        this.dom.style.opacity = "0.5";
+        this.dropIndicator.style.display = "none";
+        if (this.dragLine !== -1 && this.dropLine !== -1 && this.dragLine !== this.dropLine) {
+          this.moveLine(this.dragLine, this.dropLine);
+        }
+        this.dragLine = -1;
+        this.dropLine = -1;
+      });
+
+      this.dropIndicator = document.createElement("div");
+      this.dropIndicator.style.cssText = "position: absolute; display: none; left: 0; right: 0; height: 2px; background: var(--accent-color); z-index: 50; pointer-events: none;";
+      view.dom.appendChild(this.dropIndicator);
+      view.dom.style.position = "relative";
+
+      view.contentDOM.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = "move";
+        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+        if (pos == null) return;
+        const line = view.state.doc.lineAt(pos);
+        this.dropLine = line.number;
+        const coords = view.coordsAtPos(line.from);
+        if (coords) {
+          const editorRect = view.dom.getBoundingClientRect();
+          this.dropIndicator.style.display = "block";
+          this.dropIndicator.style.top = `${coords.top - editorRect.top}px`;
+        }
+      });
+
+      view.contentDOM.addEventListener("mousemove", (e) => {
+        if (e.buttons !== 0) return; // Skip during drag
+        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+        if (pos == null) { this.dom.style.display = "none"; return; }
+        const line = view.state.doc.lineAt(pos);
+        this.dragLine = line.number;
+        const coords = view.coordsAtPos(line.from);
+        if (coords) {
+          const editorRect = view.dom.getBoundingClientRect();
+          this.dom.style.display = "block";
+          this.dom.style.left = "-20px";
+          this.dom.style.top = `${coords.top - editorRect.top}px`;
+          if (!this.dom.parentElement) view.dom.appendChild(this.dom);
+        }
+      });
+
+      view.contentDOM.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+          if (!this.dom.matches(":hover")) this.dom.style.display = "none";
+        }, 100);
+      });
+    }
+
+    moveLine(from: number, to: number) {
+      const doc = this.view.state.doc;
+      const fromLine = doc.line(from);
+      const fromText = fromLine.text;
+      const changes: Array<{ from: number; to: number; insert: string }> = [];
+
+      // Delete the source line (including newline)
+      if (from < doc.lines) {
+        changes.push({ from: fromLine.from, to: fromLine.to + 1, insert: "" });
+      } else {
+        changes.push({ from: fromLine.from - 1, to: fromLine.to, insert: "" });
+      }
+
+      // Insert at target position (adjust for deletion)
+      let targetLine = to;
+      if (to > from) targetLine--;
+      targetLine = Math.max(1, Math.min(targetLine, doc.lines));
+      const target = doc.line(targetLine);
+      changes.push({ from: target.from, to: target.from, insert: fromText + "\n" });
+
+      this.view.dispatch({ changes });
+    }
+
+    update() {}
+    destroy() { this.dom.remove(); this.dropIndicator.remove(); }
+  },
+);
+
 // Gutter hover → highlight entire line
 const gutterHoverPlugin = ViewPlugin.fromClass(
   class {
@@ -2495,6 +2599,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         syntaxHighlighting(classHighlighter),
         headingPlugin,
         gutterHoverPlugin,
+        blockDragPlugin,
         frontmatterField,
         imagePreviewField,
         checkboxField,
