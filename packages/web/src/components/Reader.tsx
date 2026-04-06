@@ -348,6 +348,68 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => controller.abort();
   }, [html, filePath]);
 
+  // Inline expand buttons for wikilinks
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const links = container.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-target]");
+    const btns: HTMLButtonElement[] = [];
+
+    links.forEach((link) => {
+      // Don't add to already-embedded links or unresolved
+      if (link.classList.contains("wikilink-unresolved")) return;
+      if (link.nextElementSibling?.classList.contains("inline-expand-btn")) return;
+
+      const btn = document.createElement("button");
+      btn.className = "inline-expand-btn";
+      btn.textContent = "⊕";
+      btn.style.cssText = "background: none; border: none; color: var(--accent-color); cursor: pointer; font-size: 11px; padding: 0 2px; opacity: 0; transition: opacity 0.15s; vertical-align: super;";
+      btn.title = "Expand inline";
+
+      let expanded = false;
+      let embedDiv: HTMLDivElement | null = null;
+
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (expanded && embedDiv) {
+          embedDiv.remove();
+          embedDiv = null;
+          expanded = false;
+          btn.textContent = "⊕";
+          return;
+        }
+        const target = link.dataset.target!;
+        try {
+          const res = await fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(filePath)}`, { credentials: "include" });
+          const data = await res.json();
+          if (!data.resolved) return;
+          const fileRes = await fetch(`/api/vault/file?path=${encodeURIComponent(data.resolved)}`, { credentials: "include" });
+          const fileData = await fileRes.json();
+          if (fileData.error) return;
+
+          embedDiv = document.createElement("div");
+          embedDiv.style.cssText = "margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--accent-color); background: rgba(127,109,242,0.05); border-radius: 4px; font-size: 0.9em;";
+          embedDiv.innerHTML = md.render(fileData.content);
+          link.parentElement?.insertBefore(embedDiv, link.nextSibling?.nextSibling || null);
+          expanded = true;
+          btn.textContent = "⊖";
+        } catch {}
+      });
+
+      // Show button on hover
+      link.addEventListener("mouseenter", () => { btn.style.opacity = "1"; });
+      link.addEventListener("mouseleave", () => { if (!expanded) btn.style.opacity = "0"; });
+
+      link.after(btn);
+      btns.push(btn);
+    });
+
+    return () => {
+      btns.forEach((b) => b.remove());
+    };
+  }, [html, filePath, md]);
+
   // Footnote hover preview — show footnote content on hover over [^n] references
   useEffect(() => {
     const container = containerRef.current;
