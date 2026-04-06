@@ -505,6 +505,18 @@ function OutgoingLinks({ content, onNavigate, tree }: { content: string; onNavig
   );
 }
 
+const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+/** Convert "Ctrl+X" to platform-appropriate display ("⌘X" on Mac, "Ctrl+X" elsewhere) */
+function kbd(shortcut: string): string {
+  if (!isMac) return shortcut;
+  return shortcut
+    .replace(/Ctrl\+Shift\+/g, "⌃⇧")
+    .replace(/Ctrl\+Alt\+/g, "⌃⌥")
+    .replace(/Ctrl\+/g, "⌘")
+    .replace(/Alt\+/g, "⌥")
+    .replace(/Shift\+/g, "⇧");
+}
+
 export function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<string | null>(null);
@@ -1638,7 +1650,7 @@ ${rendered}
             })}
             <button
               className="tab-bar-new"
-              title="New note (Ctrl+N)"
+              title={`New note (${kbd("Ctrl+N")})`}
               onClick={createNewNote}
               style={{
                 background: "none",
@@ -1660,7 +1672,7 @@ ${rendered}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 8 }}>
                 <button
                   className="mode-toggle-btn"
-                  title={paneTab.mode === "read" ? "Switch to editing view (Ctrl+E)" : "Switch to reading view (Ctrl+E)"}
+                  title={paneTab.mode === "read" ? `Switch to editing view (${kbd("Ctrl+E")})` : `Switch to reading view (${kbd("Ctrl+E")})`}
                   onClick={() => updateTab(paneTab.id, { mode: paneTab.mode === "read" ? "edit" : "read" })}
                 >
                   {paneTab.mode === "read" ? (
@@ -1916,12 +1928,12 @@ ${rendered}
                     }}
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{item.shortcut}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{kbd(item.shortcut)}</span>
                   </button>
                 ))}
               </div>
               <div style={{ fontSize: 11, color: "var(--border-color)" }}>
-                Ctrl+/ for all shortcuts
+                {kbd("Ctrl+/")} for all shortcuts
               </div>
             </div>
           )}
@@ -2219,7 +2231,7 @@ ${rendered}
             {leftPanel === "files" && (
               <div style={{ display: "flex", gap: 2 }}>
                 <button
-                  title="New note (Ctrl+N)"
+                  title={`New note (${kbd("Ctrl+N")})`}
                   onClick={createNewNote}
                   style={{
                     width: 24,
@@ -3163,7 +3175,7 @@ ${rendered}
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {key}
+                      {kbd(key)}
                     </kbd>
                   </div>
                 ))}

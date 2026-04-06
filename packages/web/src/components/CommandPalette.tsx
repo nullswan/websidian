@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 
+const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+function kbd(s: string): string {
+  if (!isMac) return s;
+  return s.replace(/Ctrl\+Shift\+/g, "⌃⇧").replace(/Ctrl\+Alt\+/g, "⌃⌥").replace(/Ctrl\+/g, "⌘").replace(/Alt\+/g, "⌥").replace(/Shift\+/g, "⇧");
+}
+
 interface Command {
   id: string;
   name: string;
@@ -126,7 +132,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
                     borderRadius: 3,
                   }}
                 >
-                  {cmd.shortcut}
+                  {kbd(cmd.shortcut)}
                 </span>
               )}
             </div>
