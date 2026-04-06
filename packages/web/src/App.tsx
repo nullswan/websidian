@@ -4038,6 +4038,16 @@ ${rendered}
                   if (tab) updateTab(tabCtxMenu.tabId, { pinned: !tab.pinned });
                 },
               },
+              {
+                label: "Open in New Pane",
+                action: () => {
+                  if (panes.length >= 2) return;
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (!tab) return;
+                  setPanes((prev) => [...prev, { tabIds: [], activeTabId: null }]);
+                  setTimeout(() => openTab(tab.path, panes.length), 0);
+                },
+              },
               { type: "separator" as const },
               { label: "Close", action: () => closeTab(tabCtxMenu.tabId, tabCtxMenu.paneIdx) },
               {
