@@ -306,7 +306,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
               }
 
               const embedHtml = md.render(embedContent);
-              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--text-faint); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px;">${data.resolved.replace(/\.md$/, "")}</div>${embedHtml}`;
+              embedEl.innerHTML = `<div class="embed-header" style="font-size: 11px; color: var(--accent-color); padding: 4px 0 2px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; cursor: pointer; opacity: 0.7;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.7'">${data.resolved.replace(/\.md$/, "")}</div>${embedHtml}`;
               embedEl.style.borderLeft = "2px solid var(--accent-color)";
               embedEl.style.paddingLeft = "12px";
               embedEl.style.margin = "8px 0";
@@ -589,6 +589,16 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     if (tag && tag.dataset.tag && onTagClick) {
       onTagClick(tag.dataset.tag);
       return;
+    }
+
+    // Handle embed header clicks (navigate to embedded note)
+    const embedHeader = (e.target as HTMLElement).closest<HTMLElement>(".embed-header");
+    if (embedHeader) {
+      const embed = embedHeader.closest<HTMLElement>(".embed-note[data-target]");
+      if (embed?.dataset.target) {
+        onNavigate(embed.dataset.target);
+        return;
+      }
     }
 
     // Handle checkbox toggles
