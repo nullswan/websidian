@@ -184,6 +184,43 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
+  // Mark unresolved wikilinks with dimmed styling
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const links = container.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-target]");
+    if (links.length === 0) return;
+
+    // Collect unique targets
+    const targets = new Set<string>();
+    for (const link of links) {
+      targets.add(link.dataset.target!);
+    }
+
+    // Check each target (could batch, but resolve endpoint is per-target)
+    const controller = new AbortController();
+    Promise.all(
+      [...targets].map((target) =>
+        fetch(`/api/vault/resolve?target=${encodeURIComponent(target)}&from=${encodeURIComponent(filePath)}`, {
+          credentials: "include",
+          signal: controller.signal,
+        })
+          .then((r) => r.json())
+          .then((data) => ({ target, resolved: !!data.resolved }))
+          .catch(() => ({ target, resolved: false })),
+      ),
+    ).then((results) => {
+      const unresolvedSet = new Set(results.filter((r) => !r.resolved).map((r) => r.target));
+      for (const link of links) {
+        if (unresolvedSet.has(link.dataset.target!)) {
+          link.classList.add("wikilink-unresolved");
+        }
+      }
+    });
+
+    return () => controller.abort();
+  }, [html, filePath]);
+
   // Footnote hover preview — show footnote content on hover over [^n] references
   useEffect(() => {
     const container = containerRef.current;
