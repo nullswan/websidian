@@ -228,13 +228,27 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
         {content.includes("\r\n") ? "CRLF" : "LF"}
       </span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>UTF-8</span>
-      {scrollProgress != null && !cursorPos && (
-        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ color: scrollProgress >= 0.95 ? "#4ec9b0" : undefined }}>
-            {Math.round(scrollProgress * 100)}% read
+      {scrollProgress != null && !cursorPos && (() => {
+        const pct = scrollProgress;
+        const r = 6;
+        const circ = 2 * Math.PI * r;
+        const offset = circ * (1 - pct);
+        const done = pct >= 0.95;
+        const color = done ? "#4ec9b0" : "var(--accent-color)";
+        return (
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
+              <circle cx="8" cy="8" r={r} fill="none" stroke="var(--border-color)" strokeWidth="1.5" />
+              <circle cx="8" cy="8" r={r} fill="none" stroke={color} strokeWidth="1.5"
+                strokeDasharray={circ} strokeDashoffset={offset}
+                strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.3s ease" }} />
+            </svg>
+            <span style={{ color: done ? "#4ec9b0" : undefined }}>
+              {Math.round(pct * 100)}%
+            </span>
           </span>
-        </span>
-      )}
+        );
+      })()}
     </div>
   );
 }
