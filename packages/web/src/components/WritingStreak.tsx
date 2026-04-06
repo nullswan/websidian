@@ -41,6 +41,8 @@ function saveStreak(data: StreakData) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+const DAILY_LOG_KEY = "websidian-daily-words";
+
 /** Call this when a note is saved to record writing activity */
 export function recordWritingActivity(wordsWritten: number) {
   const streak = loadStreak();
@@ -55,6 +57,29 @@ export function recordWritingActivity(wordsWritten: number) {
     const yesterday = yesterdayStr();
     const newCount = streak.lastDate === yesterday ? streak.count + 1 : 1;
     saveStreak({ lastDate: today, count: newCount, todayWords: wordsWritten });
+  }
+
+  // Update daily word log for heatmap
+  try {
+    const log: Record<string, number> = JSON.parse(localStorage.getItem(DAILY_LOG_KEY) ?? "{}");
+    log[today] = (log[today] ?? 0) + wordsWritten;
+    // Keep only last 90 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    for (const key of Object.keys(log)) {
+      if (key < cutoffStr) delete log[key];
+    }
+    localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log));
+  } catch { /* ignore */ }
+}
+
+/** Get daily word counts for heatmap display */
+export function getDailyWordLog(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(DAILY_LOG_KEY) ?? "{}");
+  } catch {
+    return {};
   }
 }
 

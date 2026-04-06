@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getDailyWordLog } from "./WritingStreak.js";
 
 interface GraphData {
   nodes: Array<{ id: string; name: string; wordCount?: number }>;
@@ -129,6 +130,11 @@ export function VaultStats({ onClose, onNavigate }: VaultStatsProps) {
                 <StatCard label="Avg Words/Note" value={stats.avgWords.toLocaleString()} />
                 <StatCard label="Links" value={stats.totalEdges.toLocaleString()} />
               </div>
+
+              {/* Writing activity heatmap */}
+              <Section title="Writing Activity (90 days)">
+                <WritingHeatmap />
+              </Section>
 
               {/* Word count distribution */}
               <Section title="Note Size Distribution">
@@ -265,4 +271,92 @@ function NoteRow({ name, detail, onClick }: { name: string; detail: string; onCl
 
 function EmptyMsg({ children }: { children: React.ReactNode }) {
   return <div style={{ padding: "4px 8px", fontSize: 12, color: "var(--text-faint)", fontStyle: "italic" }}>{children}</div>;
+}
+
+function WritingHeatmap() {
+  const log = getDailyWordLog();
+  const days: Array<{ date: string; words: number; dayOfWeek: number }> = [];
+
+  // Generate last 90 days
+  const today = new Date();
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    days.push({ date: dateStr, words: log[dateStr] ?? 0, dayOfWeek: d.getDay() });
+  }
+
+  const maxWords = Math.max(1, ...days.map((d) => d.words));
+  const hasData = days.some((d) => d.words > 0);
+
+  // Group into weeks (columns)
+  const weeks: typeof days[] = [];
+  let currentWeek: typeof days = [];
+  for (const day of days) {
+    if (day.dayOfWeek === 0 && currentWeek.length > 0) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+    currentWeek.push(day);
+  }
+  if (currentWeek.length > 0) weeks.push(currentWeek);
+
+  const cellSize = 10;
+  const gap = 2;
+
+  function getColor(words: number): string {
+    if (words === 0) return "rgba(255,255,255,0.04)";
+    const intensity = Math.min(words / maxWords, 1);
+    if (intensity < 0.25) return "rgba(127,109,242,0.2)";
+    if (intensity < 0.5) return "rgba(127,109,242,0.4)";
+    if (intensity < 0.75) return "rgba(127,109,242,0.65)";
+    return "rgba(127,109,242,0.9)";
+  }
+
+  if (!hasData) {
+    return (
+      <div style={{ padding: "8px 4px", color: "var(--text-faint)", fontSize: 12 }}>
+        No writing activity recorded yet. Start editing notes to see your activity!
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ overflow: "auto" }}>
+      <div style={{ display: "flex", gap, paddingBottom: 4 }}>
+        {weeks.map((week, wi) => (
+          <div key={wi} style={{ display: "flex", flexDirection: "column", gap }}>
+            {week.map((day) => (
+              <div
+                key={day.date}
+                title={`${day.date}: ${day.words.toLocaleString()} words`}
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  borderRadius: 2,
+                  background: getColor(day.words),
+                  transition: "background 0.2s",
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 10, color: "var(--text-faint)" }}>
+        <span>Less</span>
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+          <div
+            key={t}
+            style={{
+              width: cellSize,
+              height: cellSize,
+              borderRadius: 2,
+              background: getColor(t === 0 ? 0 : t * maxWords),
+            }}
+          />
+        ))}
+        <span>More</span>
+      </div>
+    </div>
+  );
 }
