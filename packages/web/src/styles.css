@@ -327,6 +327,40 @@ details.callout > div {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Native HTML details/summary styling */
+.reader-view details:not(.callout) {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin: 8px 0;
+  padding: 0;
+  overflow: hidden;
+}
+.reader-view details:not(.callout) summary {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.reader-view details:not(.callout) summary::-webkit-details-marker { display: none; }
+.reader-view details:not(.callout) summary::before {
+  content: "▸";
+  font-size: 10px;
+  color: var(--text-faint);
+  transition: transform 0.2s ease;
+}
+.reader-view details:not(.callout)[open] summary::before {
+  transform: rotate(90deg);
+}
+.reader-view details:not(.callout) > *:not(summary) {
+  padding: 0 12px;
+  animation: callout-open 0.2s ease;
+}
+
 /* Callout icon hover glow */
 .reader-view .callout summary > span:first-child,
 .reader-view .callout > div:first-child > span:first-child {
