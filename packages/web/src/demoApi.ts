@@ -401,3 +401,8 @@ export function activateDemoMode() {
 export function isDemoMode(): boolean {
   return activated;
 }
+
+export function resetDemoVault() {
+  localStorage.removeItem("websidian-demo-edits");
+  demoFiles = [...DEMO_FILES];
+}

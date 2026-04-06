@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { isDemoMode } from "../demoApi.js";
 
 interface StatusBarProps {
   content: string;
@@ -229,6 +230,23 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       </span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>UTF-8</span>
       <span style={{ color: "var(--text-faint)", marginLeft: 8 }}>Markdown</span>
+      {isDemoMode() && (
+        <span
+          title="Running in demo mode with an embedded vault. Run npx websidian /path/to/vault to use your own."
+          style={{
+            marginLeft: 8,
+            fontSize: 9,
+            padding: "1px 5px",
+            borderRadius: 3,
+            background: "rgba(127,109,242,0.15)",
+            color: "var(--accent-color)",
+            fontWeight: 600,
+            letterSpacing: 0.5,
+          }}
+        >
+          DEMO
+        </span>
+      )}
       {scrollProgress != null && !cursorPos && (() => {
         const pct = scrollProgress;
         const r = 6;

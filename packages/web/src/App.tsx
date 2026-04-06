@@ -12,7 +12,7 @@ import { WorkspaceManager } from "./components/WorkspaceManager.js";
 import { ResizeHandle } from "./components/ResizeHandle.js";
 import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
-import { activateDemoMode, isDemoMode } from "./demoApi.js";
+import { activateDemoMode, isDemoMode, resetDemoVault } from "./demoApi.js";
 import { WelcomeTour } from "./components/WelcomeTour.js";
 import { Snippets } from "./components/Snippets.js";
 import { Tags } from "./components/Tags.js";
@@ -4854,6 +4854,20 @@ ${rendered}
                 import("./components/Settings.js").then(({ saveSettings }) => saveSettings(next));
               },
             },
+            ...(isDemoMode() ? [{
+              id: "reset-demo-vault",
+              name: "Reset demo vault to defaults",
+              action: () => {
+                resetDemoVault();
+                refreshTree();
+                showToast("Demo vault reset to defaults");
+                if (activeTab) {
+                  fetch(`/api/vault/file?path=${encodeURIComponent(activeTab.path)}`, { credentials: "include" })
+                    .then((r) => r.json())
+                    .then((d) => { if (!d.error) updateTab(activeTab.id, { content: d.content }); });
+                }
+              },
+            }] : []),
             ...(panes.length < 2
               ? [{
                   id: "split-right",
