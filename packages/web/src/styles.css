@@ -1045,16 +1045,25 @@ details.callout > div {
 @media print {
   body { background: white !important; color: black !important; }
   .icon-ribbon, .tab-bar-wrapper, .status-bar, .hover-preview, .floating-toc,
-  aside, .scroll-progress-bar, .minimap-canvas { display: none !important; }
+  aside, .scroll-progress-bar, .minimap-canvas, .breadcrumb, .cm-floating-toolbar,
+  .embed-expand-btn, .heading-fold-arrow, .heading-anchor, .inline-expand-btn,
+  .code-line-numbers, button { display: none !important; }
   .reader-view { color: black !important; padding: 0 !important; max-width: 100% !important; }
-  .reader-view a { color: #333 !important; }
+  .reader-view a { color: #333 !important; text-decoration: underline !important; }
+  .reader-view a.wikilink::after { content: " (" attr(data-target) ")" !important; font-size: 0.8em; color: #666; }
   .reader-view code { background: #f5f5f5 !important; color: #333 !important; }
-  .reader-view pre { background: #f5f5f5 !important; border: 1px solid #ddd !important; }
-  .reader-view blockquote { border-left-color: #999 !important; color: #555 !important; }
+  .reader-view pre { background: #f5f5f5 !important; border: 1px solid #ddd !important; page-break-inside: avoid; }
+  .reader-view blockquote { border-left-color: #999 !important; color: #555 !important; page-break-inside: avoid; }
+  .reader-view h1 { page-break-before: always; }
+  .reader-view h1:first-child { page-break-before: auto; }
   .reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6 {
-    color: black !important;
+    color: black !important; page-break-after: avoid;
   }
+  .reader-view img { max-width: 100% !important; page-break-inside: avoid; }
+  .reader-view table { page-break-inside: avoid; border-color: #ccc !important; }
+  .reader-view table th, .reader-view table td { border-color: #ccc !important; color: black !important; }
   .inline-title { color: black !important; }
+  .embed-note { border-left-color: #999 !important; }
 }
 
 /* Line-type gutter dots */
