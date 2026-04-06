@@ -3275,6 +3275,34 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
             return;
           }
         }
+        // Check for footnote references [^id]
+        const fnRe = /\[\^([^\]]+)\]/g;
+        let fnm;
+        while ((fnm = fnRe.exec(text)) !== null) {
+          if (offset >= fnm.index && offset <= fnm.index + fnm[0].length) {
+            const fnId = fnm[1];
+            const fnKey = "__fn__" + fnId;
+            if (fnKey === hoverTarget) return;
+            removeHover();
+            hoverTarget = fnKey;
+            // Find the footnote definition in document
+            const docText = view.state.doc.toString();
+            const defRe = new RegExp(`^\\[\\^${fnId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]:\\s*(.+)`, "m");
+            const defMatch = defRe.exec(docText);
+            if (defMatch) {
+              hoverEl = document.createElement("div");
+              hoverEl.style.cssText = "position: absolute; z-index: 100; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text-secondary); max-width: 350px; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); line-height: 1.5;";
+              hoverEl.innerHTML = `<span style="color:var(--accent-color);font-size:10px;font-weight:600">↑ ${fnId}</span><br>${defMatch[1]}`;
+              const editorDom = view.dom;
+              editorDom.style.position = "relative";
+              const editorRect = editorDom.getBoundingClientRect();
+              hoverEl.style.left = `${e.clientX - editorRect.left}px`;
+              hoverEl.style.top = `${e.clientY - editorRect.top + 18}px`;
+              editorDom.appendChild(hoverEl);
+            }
+            return;
+          }
+        }
         removeHover();
         return;
       }
