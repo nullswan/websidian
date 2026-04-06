@@ -75,6 +75,15 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
     { id: "about", label: "About" },
   ];
 
+  const inputStyle: React.CSSProperties = {
+    background: "var(--bg-tertiary)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: 4,
+    padding: "4px 8px",
+    fontSize: 13,
+  };
+
   return (
     <div
       style={{
@@ -96,8 +105,8 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
           maxWidth: "90vw",
           height: 520,
           maxHeight: "80vh",
-          background: "#1e1e1e",
-          border: "1px solid #333",
+          background: "var(--bg-primary)",
+          border: "1px solid var(--border-color)",
           borderRadius: 8,
           display: "flex",
           overflow: "hidden",
@@ -107,7 +116,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
         <div
           style={{
             width: 180,
-            borderRight: "1px solid #333",
+            borderRight: "1px solid var(--border-color)",
             padding: "16px 0",
             display: "flex",
             flexDirection: "column",
@@ -119,7 +128,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
               padding: "4px 16px 12px",
               fontSize: 13,
               fontWeight: 600,
-              color: "#888",
+              color: "var(--text-muted)",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
             }}
@@ -136,7 +145,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 marginLeft: 8,
                 padding: "6px 12px",
                 background: section === s.id ? "rgba(127,109,242,0.15)" : "transparent",
-                color: section === s.id ? "#c8bfff" : "#aaa",
+                color: section === s.id ? "var(--accent-color)" : "var(--text-secondary)",
                 border: "none",
                 borderRadius: 4,
                 textAlign: "left",
@@ -152,7 +161,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
         {/* Right content */}
         <div style={{ flex: 1, overflow: "auto", padding: "20px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 18, color: "#ddd", fontWeight: 600 }}>
+            <h2 style={{ margin: 0, fontSize: 18, color: "var(--text-primary)", fontWeight: 600 }}>
               {sections.find((s) => s.id === section)?.label}
             </h2>
             <button
@@ -160,7 +169,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#888",
+                color: "var(--text-muted)",
                 fontSize: 18,
                 cursor: "pointer",
                 padding: "4px 8px",
@@ -180,14 +189,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 <select
                   value={settings.theme}
                   onChange={(e) => update("theme", e.target.value as "dark" | "light")}
-                  style={{
-                    background: "#2a2a2a",
-                    color: "#ddd",
-                    border: "1px solid #444",
-                    borderRadius: 4,
-                    padding: "4px 8px",
-                    fontSize: 13,
-                  }}
+                  style={inputStyle}
                 >
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
@@ -220,22 +222,22 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                     style={{
                       width: 32,
                       height: 32,
-                      border: "1px solid #444",
+                      border: "1px solid var(--border-color)",
                       borderRadius: 4,
                       background: "transparent",
                       cursor: "pointer",
                       padding: 0,
                     }}
                   />
-                  <span style={{ fontSize: 12, color: "#888" }}>{settings.accentColor}</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{settings.accentColor}</span>
                   {settings.accentColor !== "#7f6df2" && (
                     <button
                       onClick={() => update("accentColor", "#7f6df2")}
                       style={{
                         fontSize: 11,
-                        color: "#888",
+                        color: "var(--text-muted)",
                         background: "transparent",
-                        border: "1px solid #444",
+                        border: "1px solid var(--border-color)",
                         borderRadius: 3,
                         padding: "2px 6px",
                         cursor: "pointer",
@@ -261,16 +263,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                   max={32}
                   value={settings.editorFontSize}
                   onChange={(e) => update("editorFontSize", Number(e.target.value))}
-                  style={{
-                    width: 60,
-                    padding: "4px 8px",
-                    background: "#2a2a2a",
-                    border: "1px solid #444",
-                    borderRadius: 4,
-                    color: "#ddd",
-                    fontSize: 13,
-                    textAlign: "center",
-                  }}
+                  style={{ ...inputStyle, width: 60, textAlign: "center" }}
                 />
               </SettingItem>
 
@@ -295,14 +288,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 <select
                   value={settings.tabSize}
                   onChange={(e) => update("tabSize", Number(e.target.value))}
-                  style={{
-                    padding: "4px 8px",
-                    background: "#2a2a2a",
-                    border: "1px solid #444",
-                    borderRadius: 4,
-                    color: "#ddd",
-                    fontSize: 13,
-                  }}
+                  style={inputStyle}
                 >
                   <option value={2}>2</option>
                   <option value={4}>4</option>
@@ -339,32 +325,24 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                   type="text"
                   value={settings.templatesFolder}
                   onChange={(e) => update("templatesFolder", e.target.value)}
-                  style={{
-                    width: 120,
-                    padding: "4px 8px",
-                    background: "#2a2a2a",
-                    border: "1px solid #444",
-                    borderRadius: 4,
-                    color: "#ddd",
-                    fontSize: 13,
-                  }}
+                  style={{ ...inputStyle, width: 120 }}
                 />
               </SettingItem>
             </div>
           )}
 
           {section === "about" && (
-            <div style={{ color: "#aaa", fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6 }}>
               <p style={{ margin: "0 0 12px" }}>
-                <strong style={{ color: "#ddd" }}>Websidian</strong> — A web-native Obsidian-compatible client
+                <strong style={{ color: "var(--text-primary)" }}>Websidian</strong> — A web-native Obsidian-compatible client
               </p>
               <p style={{ margin: "0 0 8px" }}>
-                Open-source project by <span style={{ color: "#7f6df2" }}>nullswan</span>
+                Open-source project by <span style={{ color: "var(--accent-color)" }}>nullswan</span>
               </p>
-              <p style={{ margin: "0 0 16px", fontSize: 12, color: "#666" }}>
+              <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--text-faint)" }}>
                 Built with React, CodeMirror 6, Fastify, and markdown-it
               </p>
-              <div style={{ borderTop: "1px solid #333", paddingTop: 12, fontSize: 12, color: "#555" }}>
+              <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 12, fontSize: 12, color: "var(--text-faint)" }}>
                 Keyboard shortcuts: Ctrl+/ &middot; Quick switcher: Ctrl+O &middot; Command palette: Ctrl+P
               </div>
             </div>
@@ -377,10 +355,10 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
 
 function SettingItem({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #2a2a2a" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--bg-tertiary)" }}>
       <div>
-        <div style={{ fontSize: 14, color: "#ddd", marginBottom: 2 }}>{title}</div>
-        <div style={{ fontSize: 12, color: "#777" }}>{description}</div>
+        <div style={{ fontSize: 14, color: "var(--text-primary)", marginBottom: 2 }}>{title}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{description}</div>
       </div>
       <div style={{ marginLeft: 16, flexShrink: 0 }}>{children}</div>
     </div>
@@ -396,7 +374,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
         height: 22,
         borderRadius: 11,
         border: "none",
-        background: checked ? "#7f6df2" : "#444",
+        background: checked ? "var(--accent-color)" : "var(--border-color)",
         position: "relative",
         cursor: "pointer",
         transition: "background 0.2s",
