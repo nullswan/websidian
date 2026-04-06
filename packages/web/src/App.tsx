@@ -20,6 +20,7 @@ import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
+import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
 import { VaultStats } from "./components/VaultStats.js";
 import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
@@ -30,7 +31,7 @@ import "./styles.css";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
 
-type ViewMode = "edit" | "read" | "source";
+type ViewMode = "edit" | "read" | "source" | "kanban";
 
 // --- Frontmatter helpers ---
 const FM_RE = /^---[\t ]*\r?\n([\s\S]*?)\n---[\t ]*(?:\r?\n|$)/;
@@ -2079,7 +2080,7 @@ ${rendered}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 8 }}>
                 <button
                   className="mode-toggle-btn"
-                  title={paneTab.mode === "read" ? `Switch to Live Preview (${kbd("Ctrl+E")})` : paneTab.mode === "edit" ? `Switch to Source mode (${kbd("Ctrl+E")})` : `Switch to Reading view (${kbd("Ctrl+E")})`}
+                  title={paneTab.mode === "read" ? `Switch to Live Preview (${kbd("Ctrl+E")})` : paneTab.mode === "edit" ? `Switch to Source mode (${kbd("Ctrl+E")})` : paneTab.mode === "kanban" ? `Switch to Reading view (${kbd("Ctrl+E")})` : `Switch to Reading view (${kbd("Ctrl+E")})`}
                   onClick={() => {
                     const next = paneTab.mode === "read" ? "edit" : paneTab.mode === "edit" ? "source" : "read";
                     updateTab(paneTab.id, { mode: next as ViewMode });
@@ -2284,6 +2285,12 @@ ${rendered}
                   style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 4 }}
                 />
               </div>
+            ) : paneIsMarkdown && paneTab.mode === "kanban" ? (
+              <KanbanView
+                content={paneTab.content}
+                onSave={(newContent) => handleSave(newContent)}
+                onNavigate={handleNavigate}
+              />
             ) : paneIsMarkdown && paneTab.mode === "read" ? (
               <Reader
                 key={paneTab.path}
@@ -3723,6 +3730,15 @@ ${rendered}
               id: "version-history",
               name: "Version history",
               action: () => { if (activeTab) setShowVersionHistory(true); },
+            },
+            {
+              id: "kanban-view",
+              name: "Toggle kanban board view",
+              action: () => {
+                if (!activeTab) return;
+                const next = activeTab.mode === "kanban" ? "read" : "kanban";
+                updateTab(activeTab.id, { mode: next });
+              },
             },
             {
               id: "merge-note",
