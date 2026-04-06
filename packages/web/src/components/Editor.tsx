@@ -1791,6 +1791,42 @@ const bareUrlPlugin = ViewPlugin.fromClass(class {
       }
       return false;
     },
+    mouseover(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains("cm-bare-url")) return false;
+      const url = target.textContent ?? "";
+      if (!url.startsWith("http")) return false;
+      // Show tooltip with URL and fetch title
+      let tooltip = document.querySelector(".cm-url-tooltip") as HTMLDivElement;
+      if (!tooltip) {
+        tooltip = document.createElement("div");
+        tooltip.className = "cm-url-tooltip";
+        tooltip.style.cssText = "position:fixed;z-index:10000;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text-secondary);max-width:300px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.4);";
+        document.body.appendChild(tooltip);
+      }
+      const rect = target.getBoundingClientRect();
+      tooltip.style.left = `${rect.left}px`;
+      tooltip.style.top = `${rect.bottom + 4}px`;
+      tooltip.style.display = "block";
+      tooltip.textContent = url.length > 50 ? url.slice(0, 50) + "…" : url;
+      // Fetch title async
+      fetch(`/api/vault/fetch-title?url=${encodeURIComponent(url)}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.title && tooltip.style.display === "block") {
+            tooltip.innerHTML = `<div style="font-weight:600;color:var(--text-primary);margin-bottom:2px">${data.title}</div><div style="opacity:0.7;font-size:10px">${url.length > 60 ? url.slice(0, 60) + "…" : url}</div>`;
+          }
+        })
+        .catch(() => {});
+      return false;
+    },
+    mouseout(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains("cm-bare-url")) return false;
+      const tooltip = document.querySelector(".cm-url-tooltip") as HTMLDivElement;
+      if (tooltip) tooltip.style.display = "none";
+      return false;
+    },
   },
 });
 
