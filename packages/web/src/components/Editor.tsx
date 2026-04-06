@@ -1623,6 +1623,24 @@ const markdownAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
   return false;
 });
 
+// Auto-pair [[ ]] for wikilinks
+const wikilinkAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
+  if (text !== "[") return false;
+  const before = from > 0 ? view.state.sliceDoc(from - 1, from) : "";
+  const after = view.state.sliceDoc(to, to + 1);
+  // Second [ typed: auto-insert ]] and place cursor between
+  if (before === "[") {
+    // Don't double-close if ]] already exists
+    if (after === "]") return false;
+    view.dispatch({
+      changes: { from, to, insert: "[]]" },
+      selection: { anchor: from + 1 },
+    });
+    return true;
+  }
+  return false;
+});
+
 export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, typewriterMode = false, focusMode = false, vimMode = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -1898,6 +1916,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
         markdownAutoPair,
+        wikilinkAutoPair,
         indentationMarkers({
           colors: {
             light: "rgba(127, 109, 242, 0.1)",
