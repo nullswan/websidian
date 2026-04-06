@@ -4194,6 +4194,31 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           { key: "Shift-Alt-f", run: formatMarkdownTable },
           { key: "Shift-Alt-s", run: (view: EditorView) => sortSelectedLines(view, false) },
           { key: "Shift-Alt-r", run: (view: EditorView) => sortSelectedLines(view, true) },
+          { key: "Mod-Shift-k", run: (view: EditorView) => {
+            const doc = view.state.doc;
+            const sel = view.state.selection.main;
+            let startLine = doc.lineAt(sel.from).number;
+            let endLine = doc.lineAt(sel.to).number;
+            // Expand upward to find paragraph start
+            while (startLine > 1 && doc.line(startLine - 1).text.trim() !== "") startLine--;
+            // Expand downward to find paragraph end
+            while (endLine < doc.lines && doc.line(endLine + 1).text.trim() !== "") endLine++;
+            const from = doc.line(startLine).from;
+            const to = doc.line(endLine).to;
+            if (from === sel.from && to === sel.to && startLine > 1) {
+              // Already selected paragraph — expand to include surrounding blank lines and next block
+              let newStart = startLine;
+              let newEnd = endLine;
+              while (newStart > 1 && doc.line(newStart - 1).text.trim() === "") newStart--;
+              while (newStart > 1 && doc.line(newStart - 1).text.trim() !== "") newStart--;
+              while (newEnd < doc.lines && doc.line(newEnd + 1).text.trim() === "") newEnd++;
+              while (newEnd < doc.lines && doc.line(newEnd + 1).text.trim() !== "") newEnd++;
+              view.dispatch({ selection: EditorSelection.single(doc.line(newStart).from, doc.line(newEnd).to) });
+            } else {
+              view.dispatch({ selection: EditorSelection.single(from, to) });
+            }
+            return true;
+          }},
         ]),
         tableTabKeymap,
         snippetKeymap,
