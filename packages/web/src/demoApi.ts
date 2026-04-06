@@ -116,7 +116,7 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
     const filePath = getParam(url, "path");
     const file = demoFiles.find((f) => f.path === filePath);
     if (file) {
-      return jsonResponse({ path: file.path, content: file.content, mtime: file.mtime });
+      return jsonResponse({ path: file.path, content: file.content, created: file.mtime, modified: file.mtime, size: file.content.length });
     }
     return jsonResponse({ error: "Not found" }, 404);
   }
@@ -206,7 +206,7 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
         }
       }
     }
-    return jsonResponse(backlinks);
+    return jsonResponse({ backlinks, unlinkedMentions: [] });
   }
 
   // Search
@@ -304,6 +304,35 @@ function handleApiCall(url: URL, method: string, body?: string): Response | null
   // Plugin source (not available in demo)
   if (path === "/api/vault/plugin-source") {
     return jsonResponse({ error: "Not available in demo" }, 404);
+  }
+
+  // Tags
+  if (path === "/api/vault/tags") {
+    const tagCounts: Record<string, number> = {};
+    for (const file of demoFiles) {
+      for (const tag of extractTags(file.content)) {
+        tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
+      }
+    }
+    const tags = Object.entries(tagCounts).map(([tag, count]) => ({ tag, count }));
+    return jsonResponse({ tags });
+  }
+
+  // Stats
+  if (path === "/api/vault/stats") {
+    const totalNotes = demoFiles.filter((f) => f.path.endsWith(".md")).length;
+    const totalWords = demoFiles.reduce((sum, f) => sum + f.content.split(/\s+/).filter(Boolean).length, 0);
+    return jsonResponse({ totalNotes, totalWords });
+  }
+
+  // Snippets
+  if (path === "/api/vault/snippets") {
+    return jsonResponse({ snippets: [] });
+  }
+
+  // Catch-all for any unhandled /api/ routes — return empty JSON to prevent HTML 404 parse errors
+  if (path.startsWith("/api/")) {
+    return jsonResponse({});
   }
 
   return null;
