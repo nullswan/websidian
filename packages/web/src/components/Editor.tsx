@@ -2159,8 +2159,34 @@ async function wikilinkCompletion(ctx: CompletionContext) {
       const fileData = await fileRes.json();
       if (fileData.error) return null;
 
+      const fileContent = fileData.content as string;
+      const fileLines = fileContent.split("\n");
+
+      // Block reference completion: [[Note#^
+      if (headingQuery.startsWith("^")) {
+        const blockQuery = headingQuery.slice(1).toLowerCase();
+        const blockRefs: Completion[] = [];
+        for (const fileLine of fileLines) {
+          const blockMatch = /\^([\w-]+)\s*$/.exec(fileLine);
+          if (blockMatch) {
+            const blockId = blockMatch[1];
+            if (!blockQuery || blockId.toLowerCase().includes(blockQuery)) {
+              const preview = fileLine.replace(/\s*\^[\w-]+\s*$/, "").trim().slice(0, 50);
+              blockRefs.push({
+                label: `^${blockId}`,
+                detail: preview || "block",
+                apply: (view: EditorView, _completion: Completion, hFrom: number, to: number) => {
+                  view.dispatch({ changes: { from: hFrom, to, insert: `^${blockId}]]` } });
+                },
+              });
+            }
+          }
+        }
+        return { from: headingFrom, options: blockRefs, filter: false };
+      }
+
       const headings: Completion[] = [];
-      for (const fileLine of (fileData.content as string).split("\n")) {
+      for (const fileLine of fileLines) {
         const hMatch = /^(#{1,6})\s+(.+)$/.exec(fileLine);
         if (hMatch) {
           const text = hMatch[2].trim();
@@ -2175,6 +2201,14 @@ async function wikilinkCompletion(ctx: CompletionContext) {
           }
         }
       }
+      // Also add ^ as an option to start block ref search
+      headings.push({
+        label: "^",
+        detail: "Block reference",
+        apply: (view: EditorView, _completion: Completion, hFrom: number, to: number) => {
+          view.dispatch({ changes: { from: hFrom, to, insert: "^" } });
+        },
+      });
       return { from: headingFrom, options: headings, filter: false };
     } catch {
       return null;
