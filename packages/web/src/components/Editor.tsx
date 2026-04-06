@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, highlightWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker, drawSelection } from "@codemirror/view";
-import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
+import { EditorState, EditorSelection, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
@@ -2795,6 +2795,37 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
       // Select next occurrence (multi-cursor)
       { key: "Mod-d", run: selectNextOccurrence },
       { key: "Mod-Shift-l", run: selectSelectionMatches },
+      // Add cursor above/below (multi-cursor)
+      {
+        key: "Ctrl-Alt-ArrowUp",
+        run: (view) => {
+          const ranges = [...view.state.selection.ranges];
+          const first = ranges[0];
+          const line = view.state.doc.lineAt(first.head);
+          if (line.number <= 1) return false;
+          const prevLine = view.state.doc.line(line.number - 1);
+          const col = first.head - line.from;
+          const newPos = prevLine.from + Math.min(col, prevLine.length);
+          ranges.unshift(EditorSelection.cursor(newPos));
+          view.dispatch({ selection: EditorSelection.create(ranges, 0) });
+          return true;
+        },
+      },
+      {
+        key: "Ctrl-Alt-ArrowDown",
+        run: (view) => {
+          const ranges = [...view.state.selection.ranges];
+          const last = ranges[ranges.length - 1];
+          const line = view.state.doc.lineAt(last.head);
+          if (line.number >= view.state.doc.lines) return false;
+          const nextLine = view.state.doc.line(line.number + 1);
+          const col = last.head - line.from;
+          const newPos = nextLine.from + Math.min(col, nextLine.length);
+          ranges.push(EditorSelection.cursor(newPos));
+          view.dispatch({ selection: EditorSelection.create(ranges, ranges.length - 1) });
+          return true;
+        },
+      },
       // Move line up/down
       { key: "Alt-ArrowUp", run: moveLineUp },
       { key: "Alt-ArrowDown", run: moveLineDown },
