@@ -20,7 +20,14 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
     const words = text.trim().split(/\s+/).filter(Boolean).length;
     const chars = text.length;
     const readingTime = Math.max(1, Math.ceil(words / 200));
-    return { words, chars, readingTime };
+    // Parse wordGoal from frontmatter
+    let wordGoal = 0;
+    const fmMatch = content.match(/^---[\t ]*\r?\n([\s\S]*?)\n---/);
+    if (fmMatch) {
+      const goalMatch = fmMatch[1].match(/wordGoal:\s*(\d+)/i);
+      if (goalMatch) wordGoal = parseInt(goalMatch[1], 10);
+    }
+    return { words, chars, readingTime, wordGoal };
   }, [content]);
 
   const fileName = path.split("/").pop() ?? path;
@@ -42,6 +49,27 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
     >
       <span>{fileName}</span>
       <span>{stats.words.toLocaleString()} words</span>
+      {stats.wordGoal > 0 && (() => {
+        const pct = Math.min(stats.words / stats.wordGoal, 1);
+        const r = 7;
+        const circ = 2 * Math.PI * r;
+        const offset = circ * (1 - pct);
+        const color = pct >= 1 ? "#4caf50" : "var(--accent-color)";
+        return (
+          <span
+            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            title={`${stats.words}/${stats.wordGoal} words (${Math.round(pct * 100)}%)`}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="9" cy="9" r={r} fill="none" stroke="var(--border-color)" strokeWidth="2" />
+              <circle cx="9" cy="9" r={r} fill="none" stroke={color} strokeWidth="2"
+                strokeDasharray={circ} strokeDashoffset={offset}
+                strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.3s" }} />
+            </svg>
+            <span style={{ color: pct >= 1 ? "#4caf50" : undefined }}>{Math.round(pct * 100)}%</span>
+          </span>
+        );
+      })()}
       <span>{stats.chars.toLocaleString()} characters</span>
       <span>{stats.readingTime} min read</span>
       {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
