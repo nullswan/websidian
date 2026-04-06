@@ -814,6 +814,17 @@ export function App() {
     document.documentElement.style.setProperty("--accent-color", appSettings.accentColor);
   }, [appSettings.accentColor]);
 
+  // Inject custom CSS from settings
+  useEffect(() => {
+    let style = document.getElementById("user-custom-css") as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "user-custom-css";
+      document.head.appendChild(style);
+    }
+    style.textContent = appSettings.customCSS ?? "";
+  }, [appSettings.customCSS]);
+
   // Set CSS font family variable
   useEffect(() => {
     const families: Record<string, string> = {

@@ -20,6 +20,7 @@ export interface AppSettings {
   headingNumbers: boolean;
   showWhitespace: boolean;
   cursorBlinkRate: number;
+  customCSS: string;
 }
 
 const DEFAULTS: AppSettings = {
@@ -41,6 +42,7 @@ const DEFAULTS: AppSettings = {
   headingNumbers: false,
   showWhitespace: false,
   cursorBlinkRate: 1200,
+  customCSS: "",
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -63,7 +65,7 @@ interface SettingsProps {
   onClose: () => void;
 }
 
-type SettingsSection = "appearance" | "editor" | "hotkeys" | "about";
+type SettingsSection = "appearance" | "editor" | "hotkeys" | "css" | "about";
 
 interface VaultStats {
   totalNotes: number;
@@ -107,6 +109,7 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
     { id: "appearance", label: "Appearance" },
     { id: "editor", label: "Editor" },
     { id: "hotkeys", label: "Hotkeys" },
+    { id: "css", label: "Custom CSS" },
     { id: "about", label: "About" },
   ];
 
@@ -500,6 +503,69 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 })}
               {HOTKEY_ACTIONS.filter((a) => !hotkeyFilter || a.name.toLowerCase().includes(hotkeyFilter.toLowerCase())).length === 0 && (
                 <div style={{ color: "var(--text-faint)", fontSize: 13, padding: 8 }}>No matching hotkeys</div>
+              )}
+            </div>
+          )}
+
+          {section === "css" && (
+            <div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Custom CSS</div>
+                <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 8 }}>
+                  Add custom CSS rules to style the interface. Changes apply immediately.
+                </div>
+                <textarea
+                  value={settings.customCSS}
+                  onChange={(e) => update("customCSS", e.target.value)}
+                  placeholder={`/* Example: change accent color */\n:root {\n  --accent-color: #ff6b6b;\n}`}
+                  spellCheck={false}
+                  style={{
+                    width: "100%",
+                    height: 280,
+                    background: "var(--bg-primary)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: 6,
+                    color: "var(--text-primary)",
+                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    padding: "10px 12px",
+                    resize: "vertical",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    tabSize: 2,
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border-color)"; }}
+                  onKeyDown={(e) => {
+                    // Tab inserts 2 spaces
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      const ta = e.currentTarget;
+                      const start = ta.selectionStart;
+                      const end = ta.selectionEnd;
+                      ta.value = ta.value.substring(0, start) + "  " + ta.value.substring(end);
+                      ta.selectionStart = ta.selectionEnd = start + 2;
+                      update("customCSS", ta.value);
+                    }
+                  }}
+                />
+              </div>
+              {settings.customCSS.trim() && (
+                <button
+                  onClick={() => update("customCSS", "")}
+                  style={{
+                    background: "rgba(244,67,54,0.1)",
+                    border: "1px solid rgba(244,67,54,0.3)",
+                    borderRadius: 4,
+                    color: "#f44336",
+                    padding: "4px 12px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear custom CSS
+                </button>
               )}
             </div>
           )}
