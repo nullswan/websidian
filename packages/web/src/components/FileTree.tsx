@@ -1190,6 +1190,7 @@ function FileTreeNode({
             transition: "background 0.1s",
             background: isDragOver ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
             outline: isDragOver ? "1px solid rgba(127,109,242,0.4)" : isFocused ? "1px solid rgba(127,109,242,0.3)" : "none",
+            backgroundImage: depth > 0 ? Array.from({ length: depth }, (_, i) => `linear-gradient(to right, transparent ${i * 16 + 11}px, rgba(255,255,255,0.06) ${i * 16 + 11}px, rgba(255,255,255,0.06) ${i * 16 + 12}px, transparent ${i * 16 + 12}px)`).join(", ") : undefined,
           }}
           onClick={() => toggleExpanded(entry.path)}
           onContextMenu={(e) => onContextMenu(e, entry, entry.path)}
