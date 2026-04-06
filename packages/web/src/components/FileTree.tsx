@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { VaultEntry } from "../types.js";
 
-type SortMode = "name" | "mtime" | "ctime" | "size";
+type SortMode = "name" | "mtime" | "ctime" | "size" | "type";
 
 const SORT_KEY = "filetree-sort";
 
 function loadSortMode(): SortMode {
   try {
     const v = localStorage.getItem(SORT_KEY);
-    if (v === "name" || v === "mtime" || v === "ctime" || v === "size") return v;
+    if (v === "name" || v === "mtime" || v === "ctime" || v === "size" || v === "type") return v;
   } catch {}
   return "name";
 }
@@ -32,6 +32,12 @@ function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry
     }
     if (mode === "size" && a.kind === "file" && b.kind === "file") {
       return (b.size ?? 0) - (a.size ?? 0);
+    }
+    if (mode === "type" && a.kind === "file" && b.kind === "file") {
+      const extA = (a.path.split(".").pop() ?? "").toLowerCase();
+      const extB = (b.path.split(".").pop() ?? "").toLowerCase();
+      const cmp = extA.localeCompare(extB);
+      if (cmp !== 0) return cmp;
     }
     const aName = (a.path.split("/").pop() ?? a.path).toLowerCase();
     const bName = (b.path.split("/").pop() ?? b.path).toLowerCase();
@@ -435,7 +441,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         <button
           title={`Sort: ${sortMode} (click to cycle)`}
           onClick={() => {
-            const modes: SortMode[] = ["name", "mtime", "ctime", "size"];
+            const modes: SortMode[] = ["name", "mtime", "ctime", "size", "type"];
             const next = modes[(modes.indexOf(sortMode) + 1) % modes.length];
             setSortMode(next);
             localStorage.setItem(SORT_KEY, next);
@@ -460,11 +466,13 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               <path d="M2 4h4M2 8h8M2 12h12" />
             ) : sortMode === "size" ? (
               <path d="M2 4h12M2 8h8M2 12h4" strokeWidth="2" />
+            ) : sortMode === "type" ? (
+              <><path d="M3 2h6l4 4v8H3z" /><path d="M9 2v4h4" /></>
             ) : (
               <><circle cx="8" cy="8" r="5" /><path d="M8 5.5V8l2 1.5" /></>
             )}
           </svg>
-          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : "size"}</span>}
+          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : sortMode === "size" ? "size" : "ext"}</span>}
         </button>
       </div>
       <ul
@@ -950,6 +958,7 @@ function ContextMenu({
     if (onOpenToRight) {
       menuItems.push({ label: "Open to the right", action: () => { onClose(); onOpenToRight(entry.path); } });
     }
+    menuItems.push({ label: "Open in new window", action: () => { onClose(); window.open(`#/note/${encodeURIComponent(entry.path)}`, "_blank"); } });
   }
 
   menuItems.push({ label: "New Note", action: () => onCreate(folderPath, "file") });
