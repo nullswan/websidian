@@ -55,6 +55,39 @@ body {
   padding: 0;
   background: var(--bg-primary);
   color: var(--text-primary);
+  font-family: var(--font-interface, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Thin scrollbars matching Obsidian */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.08);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.18);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+[data-theme="light"] * {
+  scrollbar-color: rgba(0,0,0,0.08) transparent;
 }
 
 /* Selection color */
@@ -1011,7 +1044,7 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   top: 0;
   bottom: 1px;
   width: 24px;
-  background: linear-gradient(90deg, var(--bg-primary) 60%, transparent);
+  background: linear-gradient(90deg, var(--bg-secondary) 60%, transparent);
   border: none;
   color: var(--text-faint);
   cursor: pointer;
@@ -1023,7 +1056,7 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
 }
 .tab-bar-scroll-btn:hover { color: var(--text-primary); }
 .tab-bar-scroll-btn.left { left: 0; }
-.tab-bar-scroll-btn.right { right: 0; background: linear-gradient(-90deg, var(--bg-primary) 60%, transparent); }
+.tab-bar-scroll-btn.right { right: 0; background: linear-gradient(-90deg, var(--bg-secondary) 60%, transparent); }
 .tab-bar-wrapper.has-overflow .tab-bar-scroll-btn { display: flex; }
 .tab-count-badge {
   display: none;
@@ -1045,7 +1078,7 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
 .tab-bar {
   display: flex;
   align-items: stretch;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   min-height: 35px;
   overflow-x: auto;
@@ -1065,23 +1098,27 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   padding: 6px 12px;
   cursor: pointer;
   animation: tab-appear 0.15s ease;
-  border-right: 1px solid var(--bg-tertiary);
+  border-right: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
   min-width: 0;
   flex-shrink: 0;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
+  position: relative;
 }
 
 .tab:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .tab.active {
   background: var(--bg-primary);
   color: var(--text-primary);
+  border-bottom: 1px solid var(--bg-primary);
+  margin-bottom: -1px;
 }
 
 /* Sliding tab indicator */
@@ -1125,7 +1162,7 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
 }
 
 .tab-close:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--bg-hover);
   color: var(--text-primary) !important;
 }
 
