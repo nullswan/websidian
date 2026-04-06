@@ -471,6 +471,54 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
   }, [html, filePath]);
 
+  // Inline TOC scroll-spy: highlight active heading link as user scrolls
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const tocNav = container.querySelector<HTMLElement>(".inline-toc");
+    if (!tocNav) return;
+    const tocLinks = tocNav.querySelectorAll<HTMLAnchorElement>("a[href^='#']");
+    if (tocLinks.length === 0) return;
+    const headings = Array.from(container.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6")).filter((h) => h.id);
+    if (headings.length === 0) return;
+
+    let activeId = "";
+    const update = (id: string) => {
+      if (id === activeId) return;
+      activeId = id;
+      tocLinks.forEach((a) => {
+        const href = decodeURIComponent(a.getAttribute("href")?.slice(1) || "");
+        if (href === id) {
+          a.style.color = "var(--accent-color)";
+          a.style.fontWeight = "600";
+          a.style.textDecoration = "underline";
+          a.style.textDecorationColor = "rgba(127,109,242,0.4)";
+          a.style.textUnderlineOffset = "3px";
+        } else {
+          a.style.color = "var(--accent-color)";
+          a.style.fontWeight = "";
+          a.style.textDecoration = "none";
+          a.style.textDecorationColor = "";
+          a.style.textUnderlineOffset = "";
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.target.id) {
+            update(entry.target.id);
+            break;
+          }
+        }
+      },
+      { rootMargin: "0px 0px -80% 0px", threshold: 0 }
+    );
+    headings.forEach((h) => observer.observe(h));
+    return () => observer.disconnect();
+  }, [html]);
+
   // Image captions: title or alt attribute → <figcaption> below image
   useEffect(() => {
     const container = containerRef.current;
