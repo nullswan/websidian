@@ -2290,9 +2290,9 @@ ${rendered}
         {activeTab && isMarkdown && (
           <>
             <ResizeHandle side="right" onResize={handleRightResize} />
-            {activeTab.noteMeta && (
+            {(activeTab.noteMeta || activeTab.fileCreated) && (
               <SidebarSection title="Properties">
-                <Properties frontmatter={activeTab.noteMeta.frontmatter} />
+                <Properties frontmatter={activeTab.noteMeta?.frontmatter ?? {}} fileCreated={activeTab.fileCreated} fileModified={activeTab.fileModified} fileSize={activeTab.fileSize} />
               </SidebarSection>
             )}
             <SidebarSection title={`Backlinks (${activeTab.backlinks.length})`}>
