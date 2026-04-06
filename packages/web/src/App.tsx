@@ -898,6 +898,7 @@ export function App() {
   }, [zenMode]);
   const zenPrevState = useRef<{ left: boolean; right: boolean } | null>(null);
   const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
+  const closingTabs = useRef<Set<string>>(new Set()); // tabs currently animating closed
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number; selectedWords?: number; selectedLines?: number; cursors?: number } | null>(null);
@@ -1281,16 +1282,12 @@ export function App() {
   );
 
   // Close a tab in a specific pane
-  const closeTab = useCallback(
+  const removeTabFromState = useCallback(
     (tabId: string, paneIdx: number) => {
-      // Confirm if tab has unsaved changes
-      const tab = tabsMap[tabId];
-      if (tab?.dirty) {
-        const action = window.confirm(`"${tab.path.replace(/\.md$/, "").split("/").pop()}" has unsaved changes.\n\nDiscard changes?`);
-        if (!action) return;
-      }
+      closingTabs.current.delete(tabId);
       setPanes((prev) => {
         const pane = prev[paneIdx];
+        if (!pane) return prev;
         const idx = pane.tabIds.indexOf(tabId);
         const newTabIds = pane.tabIds.filter((t) => t !== tabId);
 
@@ -1328,6 +1325,33 @@ export function App() {
       });
     },
     [],
+  );
+
+  const closeTab = useCallback(
+    (tabId: string, paneIdx: number) => {
+      // Confirm if tab has unsaved changes
+      const tab = tabsMap[tabId];
+      if (tab?.dirty) {
+        const action = window.confirm(`"${tab.path.replace(/\.md$/, "").split("/").pop()}" has unsaved changes.\n\nDiscard changes?`);
+        if (!action) return;
+      }
+      // Animate out, then remove
+      closingTabs.current.add(tabId);
+      // Switch active tab immediately if this is the active one
+      setPanes((prev) => {
+        const pane = prev[paneIdx];
+        if (!pane || tabId !== pane.activeTabId) return prev;
+        const idx = pane.tabIds.indexOf(tabId);
+        const otherIds = pane.tabIds.filter((t) => t !== tabId);
+        if (otherIds.length === 0) return prev;
+        const newIdx = Math.min(idx, otherIds.length - 1);
+        const next = [...prev];
+        next[paneIdx] = { ...pane, activeTabId: otherIds[newIdx] };
+        return next;
+      });
+      setTimeout(() => removeTabFromState(tabId, paneIdx), 200);
+    },
+    [tabsMap, removeTabFromState],
   );
 
   // Navigate via wikilink
@@ -2111,7 +2135,7 @@ ${rendered}
                       el.scrollIntoView({ block: "nearest", inline: "nearest" });
                     }
                   }}
-                  className={`tab ${tab.id === pane.activeTabId ? "active" : ""}${tab.pinned ? " pinned" : ""}`}
+                  className={`tab ${tab.id === pane.activeTabId ? "active" : ""}${tab.pinned ? " pinned" : ""}${closingTabs.current.has(tab.id) ? " tab-closing" : ""}`}
                   title={(() => {
                     const words = tab.content ? tab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "").trim().split(/\s+/).filter(Boolean).length : 0;
                     const bl = tab.backlinks.length;

@@ -1144,6 +1144,15 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   to { opacity: 1; max-width: 200px; padding-left: 12px; padding-right: 12px; }
 }
 
+@keyframes tab-close-out {
+  to { opacity: 0; max-width: 0; padding-left: 0; padding-right: 0; margin: 0; overflow: hidden; }
+}
+
+.tab.tab-closing {
+  animation: tab-close-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
 .tab.pinned.active .tab-name {
   color: var(--text-primary);
 }
