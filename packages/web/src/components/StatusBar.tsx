@@ -47,7 +47,10 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
     // Task checkboxes
     const totalTasks = (content.match(/^[\t ]*- \[[ x]\]/gm) ?? []).length;
     const doneTasks = (content.match(/^[\t ]*- \[x\]/gm) ?? []).length;
-    return { words, chars, readingTime, wordGoal, totalTasks, doneTasks };
+    // Link counts
+    const internalLinks = (text.match(/\[\[[^\]]+\]\]/g) ?? []).length;
+    const externalLinks = (text.match(/(?:^|[^(])(https?:\/\/[^\s)>\]]+)/gm) ?? []).length;
+    return { words, chars, readingTime, wordGoal, totalTasks, doneTasks, internalLinks, externalLinks };
   }, [content]);
 
   const fileName = path.split("/").pop() ?? path;
@@ -95,6 +98,13 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       {stats.totalTasks > 0 && (
         <span style={{ color: stats.doneTasks === stats.totalTasks ? "#4caf50" : undefined }}>
           {stats.doneTasks}/{stats.totalTasks} tasks
+        </span>
+      )}
+      {(stats.internalLinks > 0 || stats.externalLinks > 0) && (
+        <span title={`${stats.internalLinks} internal, ${stats.externalLinks} external links`}>
+          {stats.internalLinks > 0 && <>{stats.internalLinks} links</>}
+          {stats.internalLinks > 0 && stats.externalLinks > 0 && " · "}
+          {stats.externalLinks > 0 && <>{stats.externalLinks} ext</>}
         </span>
       )}
       {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
