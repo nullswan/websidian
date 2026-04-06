@@ -237,8 +237,13 @@ export function Outline({ content, onScrollToHeading, onReorderSection }: Outlin
                 >{collapsed.has(i) ? "▸" : "▾"}</span>
               )}
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.text}</span>
-              {h.wordCount > 0 && (
-                <span style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 4, flexShrink: 0 }}>{h.wordCount}w</span>
+              {h.wordCount >= 20 && (
+                <span
+                  style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 4, flexShrink: 0 }}
+                  title={`${h.wordCount} words`}
+                >
+                  {Math.max(1, Math.ceil(h.wordCount / 200))}m
+                </span>
               )}
             </div>
           </li>
