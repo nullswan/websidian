@@ -1599,7 +1599,7 @@ const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
 
 // Markdown delimiter auto-pairing: **, *, ~~, ==
 const markdownAutoPair = EditorView.inputHandler.of((view, from, to, text) => {
-  const pairs: Record<string, string> = { "*": "*", "~": "~", "=": "=" };
+  const pairs: Record<string, string> = { "*": "*", "~": "~", "=": "=", "`": "`", "_": "_" };
   if (!pairs[text]) return false;
 
   const sel = view.state.selection.main;
