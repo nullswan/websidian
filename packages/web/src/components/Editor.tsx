@@ -42,6 +42,8 @@ interface EditorProps {
   sourceMode?: boolean;
   backlinks?: Array<{ path: string; context: string; lineContext?: string }>;
   initialLine?: number | null;
+  initialCursorOffset?: number;
+  onCursorOffsetChange?: (offset: number) => void;
   vaultPaths?: string[];
 }
 
@@ -3940,7 +3942,7 @@ function rulerExtension(columns: number[]): import("@codemirror/state").Extensio
   });
 }
 
-export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, smartQuotes = true, sourceMode = false, backlinks = [], initialLine, vaultPaths = [] }: EditorProps) {
+export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCursorChange, onExtractSelection, onDirty, fontSize = 16, spellCheck = false, showLineNumbers = false, tabSize = 4, scrollToHeadingRef, foldAllRef, typewriterMode = false, focusMode = false, vimMode = false, lineWrap = true, showWhitespace = false, cursorBlinkRate = 1200, rulerColumns = [], rainbowBrackets = true, cursorTrail = false, smartQuotes = true, sourceMode = false, backlinks = [], initialLine, initialCursorOffset, onCursorOffsetChange, vaultPaths = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -4956,15 +4958,18 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
               onSave(update.state.doc.toString());
             }, 1500);
           }
-          if (onCursorChange && (update.selectionSet || update.docChanged)) {
+          if (update.selectionSet || update.docChanged) {
             const sel = update.state.selection.main;
             const pos = sel.head;
-            const line = update.state.doc.lineAt(pos);
-            const selectedChars = Math.abs(sel.to - sel.from);
-            const cursors = update.state.selection.ranges.length;
-            const selectedWords = selectedChars > 0 ? update.state.doc.sliceString(sel.from, sel.to).trim().split(/\s+/).filter(Boolean).length : 0;
-            const selectedLines = selectedChars > 0 ? update.state.doc.lineAt(sel.to).number - update.state.doc.lineAt(sel.from).number + 1 : 0;
-            onCursorChange({ line: line.number, col: pos - line.from + 1, selectedChars, selectedWords, selectedLines, cursors });
+            if (onCursorChange) {
+              const line = update.state.doc.lineAt(pos);
+              const selectedChars = Math.abs(sel.to - sel.from);
+              const cursors = update.state.selection.ranges.length;
+              const selectedWords = selectedChars > 0 ? update.state.doc.sliceString(sel.from, sel.to).trim().split(/\s+/).filter(Boolean).length : 0;
+              const selectedLines = selectedChars > 0 ? update.state.doc.lineAt(sel.to).number - update.state.doc.lineAt(sel.from).number + 1 : 0;
+              onCursorChange({ line: line.number, col: pos - line.from + 1, selectedChars, selectedWords, selectedLines, cursors });
+            }
+            onCursorOffsetChange?.(pos);
           }
         }),
       ],
@@ -5226,11 +5231,12 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
     if (!view) return;
     const currentDoc = view.state.doc.toString();
     if (content && content !== currentDoc) {
-      const fm = parseFrontmatterRange({ toString: () => content });
-      const cursorPos = fm ? Math.min(fm.to + 1, content.length) : 0;
+      const restorePos = initialCursorOffset != null && initialCursorOffset <= content.length
+        ? initialCursorOffset
+        : (() => { const fm = parseFrontmatterRange({ toString: () => content }); return fm ? Math.min(fm.to + 1, content.length) : 0; })();
       view.dispatch({
         changes: { from: 0, to: currentDoc.length, insert: content },
-        selection: { anchor: cursorPos },
+        selection: { anchor: restorePos },
       });
     }
   }, [content]);

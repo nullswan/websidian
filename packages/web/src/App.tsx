@@ -114,6 +114,7 @@ interface Tab {
   pinned?: boolean;
   missing?: boolean;
   dirty?: boolean;
+  cursorOffset?: number;
   color?: string;
   fileCreated?: string;
   fileModified?: string;
@@ -2666,6 +2667,8 @@ ${rendered}
                 foldAllRef={foldAllRef}
                 backlinks={paneTab.backlinks}
                 initialLine={editorInitialLine}
+                initialCursorOffset={paneTab.cursorOffset}
+                onCursorOffsetChange={(offset) => updateTab(paneTab.id, { cursorOffset: offset })}
                 vaultPaths={vaultPaths}
               />
             )
@@ -3568,6 +3571,8 @@ ${rendered}
                 cursorTrail={appSettings.cursorTrail}
                 smartQuotes={appSettings.smartQuotes}
                             sourceMode={tab.mode === "source"}
+                            initialCursorOffset={tab.cursorOffset}
+                            onCursorOffsetChange={(offset) => updateTab(tabId, { cursorOffset: offset })}
                             vaultPaths={vaultPaths}
                           />
                         ) : (
