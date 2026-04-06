@@ -4087,6 +4087,29 @@ ${rendered}
               action: () => setShowFmTemplates(true),
             },
             {
+              id: "set-word-goal",
+              name: "Set word count goal",
+              action: () => {
+                if (!activeTab) return;
+                const current = activeTab.content.match(/wordGoal:\s*(\d+)/i)?.[1] ?? "";
+                const val = prompt("Word count goal:", current);
+                if (val === null) return;
+                const num = parseInt(val, 10);
+                if (isNaN(num) || num < 0) { showToast("Invalid number"); return; }
+                let updated: string;
+                if (num === 0) {
+                  updated = deleteFrontmatterField(activeTab.content, "wordGoal");
+                } else {
+                  updated = activeTab.content.match(/wordGoal:/i)
+                    ? updateFrontmatterField(activeTab.content, "wordGoal", String(num))
+                    : addFrontmatterField(activeTab.content, "wordGoal", String(num));
+                }
+                updateTab(activeTab.id, { content: updated });
+                handleSave(updated);
+                showToast(num > 0 ? `Word goal set to ${num}` : "Word goal removed");
+              },
+            },
+            {
               id: "manage-workspaces",
               name: "Manage workspaces",
               action: () => setShowWorkspaces(true),
