@@ -2526,6 +2526,7 @@ ${rendered}
                   // Clear after editor has consumed the value
                   setTimeout(() => setEditorInitialLine(null), 500);
                 }}
+                backlinkCounts={backlinkCounts}
               />
             ) : (
               <Editor

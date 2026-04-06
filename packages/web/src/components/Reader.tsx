@@ -16,6 +16,7 @@ interface ReaderProps {
   scrollToHeading?: string | null;
   onScrollToHeadingDone?: () => void;
   onSwitchToEditor?: (line: number) => void;
+  backlinkCounts?: Record<string, number>;
 }
 
 /** Extract a section from markdown content by heading name */
@@ -44,7 +45,7 @@ function extractSection(content: string, heading: string): string {
   return content;
 }
 
-export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone, scrollToHeading, onScrollToHeadingDone, onSwitchToEditor }: ReaderProps) {
+export function Reader({ content, filePath, onNavigate, onSave, onTagClick, searchHighlight, scrollToLine, onScrollToLineDone, scrollToHeading, onScrollToHeadingDone, onSwitchToEditor, backlinkCounts }: ReaderProps) {
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -644,6 +645,35 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
 
     return () => controller.abort();
   }, [html, filePath]);
+
+  // Backlink count badges on wikilinks
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !backlinkCounts) return;
+    const links = container.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-target]");
+    const badges: HTMLElement[] = [];
+    links.forEach((link) => {
+      const target = link.dataset.target!;
+      // Match target to backlinkCounts keys (basename match)
+      const basename = target.split("/").pop()?.replace(/\.md$/i, "").toLowerCase() ?? "";
+      let count = 0;
+      for (const [path, c] of Object.entries(backlinkCounts)) {
+        const key = path.split("/").pop()?.replace(/\.md$/i, "").toLowerCase() ?? "";
+        if (key === basename) { count = c; break; }
+      }
+      if (count < 2) return;
+      // Don't duplicate
+      if (link.nextElementSibling?.classList.contains("wikilink-refcount")) return;
+      const badge = document.createElement("span");
+      badge.className = "wikilink-refcount";
+      badge.textContent = String(count);
+      badge.title = `${count} backlinks`;
+      badge.style.cssText = "display: inline-block; font-size: 9px; color: var(--text-faint); background: var(--bg-tertiary); padding: 0 3px; border-radius: 6px; margin-left: 2px; vertical-align: middle; line-height: 14px; min-width: 14px; text-align: center;";
+      link.after(badge);
+      badges.push(badge);
+    });
+    return () => badges.forEach((b) => b.remove());
+  }, [html, backlinkCounts]);
 
   // Inline expand buttons for wikilinks
   useEffect(() => {
