@@ -2260,6 +2260,116 @@ const pairDeletionKeymap = keymap.of([{
   },
 }]);
 
+// Table cell navigation: Tab/Shift-Tab to move between cells
+const tableNavigationKeymap = keymap.of([
+  {
+    key: "Tab",
+    run: (view) => {
+      const sel = view.state.selection.main;
+      const line = view.state.doc.lineAt(sel.head);
+      if (!/^\s*\|/.test(line.text)) return false;
+      // Find next | after cursor
+      const offset = sel.head - line.from;
+      const nextPipe = line.text.indexOf("|", offset + 1);
+      if (nextPipe === -1) {
+        // At end of row — move to first cell of next line if it's a table line
+        const nextLineNum = line.number + 1;
+        if (nextLineNum <= view.state.doc.lines) {
+          const nextLine = view.state.doc.line(nextLineNum);
+          if (/^\s*\|/.test(nextLine.text)) {
+            // Skip separator rows
+            let targetLine = nextLine;
+            if (/^\s*\|[\s\-:|]+\|\s*$/.test(targetLine.text) && targetLine.number + 1 <= view.state.doc.lines) {
+              targetLine = view.state.doc.line(targetLine.number + 1);
+              if (!/^\s*\|/.test(targetLine.text)) return false;
+            }
+            const firstPipe = targetLine.text.indexOf("|");
+            const cellStart = firstPipe + 1;
+            const cellEnd = targetLine.text.indexOf("|", cellStart);
+            if (cellEnd > cellStart) {
+              const content = targetLine.text.slice(cellStart, cellEnd);
+              const trimStart = content.length - content.trimStart().length;
+              const trimEnd = content.length - content.trimEnd().length;
+              const from = targetLine.from + cellStart + trimStart;
+              const to = targetLine.from + cellEnd - trimEnd;
+              view.dispatch({ selection: { anchor: from, head: Math.max(from, to) }, scrollIntoView: true });
+              return true;
+            }
+          } else {
+            // Add new table row
+            const cells = line.text.split("|").filter((_c, i, a) => i > 0 && i < a.length - 1);
+            const newRow = "|" + cells.map(c => " ".repeat(c.trim().length || 1) + " ").join("|") + "|";
+            // Actually, insert empty cells matching column count
+            const emptyRow = "\n|" + cells.map(() => "  ").join("|") + "|";
+            view.dispatch({
+              changes: { from: line.to, insert: emptyRow },
+              selection: { anchor: line.to + 2 }, // position in first cell
+              scrollIntoView: true,
+            });
+            return true;
+          }
+        }
+        return false;
+      }
+      // Select content of next cell
+      const cellStart = nextPipe + 1;
+      const cellEnd = line.text.indexOf("|", cellStart);
+      if (cellEnd === -1) return false;
+      const content = line.text.slice(cellStart, cellEnd);
+      const trimStart = content.length - content.trimStart().length;
+      const trimEnd = content.length - content.trimEnd().length;
+      const from = line.from + cellStart + trimStart;
+      const to = line.from + cellEnd - trimEnd;
+      view.dispatch({ selection: { anchor: from, head: Math.max(from, to) }, scrollIntoView: true });
+      return true;
+    },
+  },
+  {
+    key: "Shift-Tab",
+    run: (view) => {
+      const sel = view.state.selection.main;
+      const line = view.state.doc.lineAt(sel.head);
+      if (!/^\s*\|/.test(line.text)) return false;
+      const offset = sel.head - line.from;
+      // Find previous | before cursor
+      const prevPipe = line.text.lastIndexOf("|", offset - 1);
+      if (prevPipe <= 0) {
+        // At first cell — go to last cell of previous line
+        if (line.number > 1) {
+          let prevLine = view.state.doc.line(line.number - 1);
+          // Skip separator row
+          if (/^\s*\|[\s\-:|]+\|\s*$/.test(prevLine.text) && prevLine.number > 1) {
+            prevLine = view.state.doc.line(prevLine.number - 1);
+          }
+          if (!/^\s*\|/.test(prevLine.text)) return false;
+          const lastPipe = prevLine.text.lastIndexOf("|");
+          const secondLastPipe = prevLine.text.lastIndexOf("|", lastPipe - 1);
+          if (secondLastPipe >= 0) {
+            const content = prevLine.text.slice(secondLastPipe + 1, lastPipe);
+            const trimStart = content.length - content.trimStart().length;
+            const trimEnd = content.length - content.trimEnd().length;
+            const from = prevLine.from + secondLastPipe + 1 + trimStart;
+            const to = prevLine.from + lastPipe - trimEnd;
+            view.dispatch({ selection: { anchor: from, head: Math.max(from, to) }, scrollIntoView: true });
+            return true;
+          }
+        }
+        return false;
+      }
+      const cellStart = prevPipe;
+      const prevPrevPipe = line.text.lastIndexOf("|", prevPipe - 1);
+      if (prevPrevPipe < 0) return false;
+      const content = line.text.slice(prevPrevPipe + 1, cellStart);
+      const trimStart = content.length - content.trimStart().length;
+      const trimEnd = content.length - content.trimEnd().length;
+      const from = line.from + prevPrevPipe + 1 + trimStart;
+      const to = line.from + cellStart - trimEnd;
+      view.dispatch({ selection: { anchor: from, head: Math.max(from, to) }, scrollIntoView: true });
+      return true;
+    },
+  },
+]);
+
 // Sticky heading: shows current section heading at top of editor when scrolled past
 const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   bar: HTMLDivElement;
@@ -2821,6 +2931,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         bracketMatching(),
         history(),
         pairDeletionKeymap,
+        tableNavigationKeymap,
         keymap.of([{ key: "Shift-Alt-f", run: formatMarkdownTable }]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...closeBracketsKeymap, ...foldKeymap, indentWithTab]),
         closeBrackets(),
