@@ -39,9 +39,11 @@ import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
 import { VaultStats } from "./components/VaultStats.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
-import { Settings, loadSettings, type AppSettings } from "./components/Settings.js";
+import { Settings } from "./components/Settings.js";
+import { useToast } from "./hooks/useToast.js";
+import { useAppSettings } from "./hooks/useAppSettings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
-import { loadHotkeyOverrides, buildHotkeyMap, matchesCombo, getHotkey } from "./lib/hotkeys.js";
+import { matchesCombo, getHotkey, loadHotkeyOverrides } from "./lib/hotkeys.js";
 import type { VaultEntry } from "./types.js";
 import { FM_RE, updateFrontmatterField, deleteFrontmatterField, addFrontmatterField, FRONTMATTER_TEMPLATES } from "./lib/frontmatter.js";
 import type { ViewMode, NoteMeta, BacklinkEntry, UnlinkedMention, Tab, Pane } from "./lib/appTypes.js";
@@ -148,22 +150,7 @@ export function App() {
   const [showVaultStats, setShowVaultStats] = useState(false);
   const [showBrokenLinks, setShowBrokenLinks] = useState(false);
   const calendarAnchorRef = useRef<HTMLButtonElement>(null);
-  const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
-  const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
-  // Refresh hotkey map when settings close (user may have changed hotkeys)
-  const refreshHotkeyMap = useCallback(() => {
-    hotkeyMapRef.current = buildHotkeyMap(loadHotkeyOverrides());
-  }, []);
-  // Apply theme to document root
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", appSettings.theme);
-  }, [appSettings.theme]);
-  useEffect(() => {
-    document.documentElement.classList.toggle("heading-numbers-enabled", appSettings.headingNumbers);
-  }, [appSettings.headingNumbers]);
-  useEffect(() => {
-    document.documentElement.classList.toggle("reader-focus-active", appSettings.readerFocusMode);
-  }, [appSettings.readerFocusMode]);
+  const { appSettings, setAppSettings, hotkeyMapRef, refreshHotkeyMap } = useAppSettings();
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -183,8 +170,7 @@ export function App() {
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number; selectedChars: number; selectedWords?: number; selectedLines?: number; cursors?: number } | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { toast, showToast } = useToast();
   const toggleZenMode = useCallback(() => {
     setZenMode((prev) => {
       if (!prev) {
@@ -201,11 +187,6 @@ export function App() {
       return !prev;
     });
   }, [leftCollapsed, rightCollapsed]);
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2000);
-  }, []);
   const splitDivRef = useRef<HTMLDivElement>(null);
   const dragTabRef = useRef<{ tabId: string; paneIdx: number } | null>(null);
   const [splitDropZone, setSplitDropZone] = useState(false);
