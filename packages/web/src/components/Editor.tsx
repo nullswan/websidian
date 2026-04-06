@@ -2241,6 +2241,43 @@ async function imagePathCompletion(ctx: CompletionContext) {
   }
 }
 
+async function mdLinkPathCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  // Match [text]( with optional partial path typed
+  const match = /\]\(([^)"]*)$/.exec(textBefore);
+  if (!match) return null;
+  // Don't trigger for http:// or https:// URLs
+  const partial = match[1];
+  if (/^https?:\/\//.test(partial)) return null;
+
+  const query = partial.toLowerCase();
+  const from = ctx.pos - partial.length;
+
+  try {
+    const res = await fetch("/api/vault/files", { credentials: "include" });
+    const data = await res.json();
+    const files: Array<{ path: string; extension: string }> = data.files ?? [];
+    const options: Completion[] = [];
+    for (const f of files) {
+      const name = f.path.split("/").pop() ?? f.path;
+      if (query && !f.path.toLowerCase().includes(query) && !name.toLowerCase().includes(query)) continue;
+      options.push({
+        label: f.path,
+        detail: f.extension,
+        apply: (view: EditorView, _c: Completion, applyFrom: number, to: number) => {
+          view.dispatch({ changes: { from: applyFrom, to, insert: encodeURI(f.path) + ")" } });
+        },
+        boost: name.toLowerCase().startsWith(query) ? 1 : 0,
+      });
+    }
+    if (options.length === 0) return null;
+    return { from, options, filter: false };
+  } catch {
+    return null;
+  }
+}
+
 // Unlinked mention suggestions: dotted underline on text matching note names
 const unlinkMentionMark = Decoration.mark({ class: "cm-unlinked-mention" });
 
@@ -4247,7 +4284,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [frontmatterCompletion, imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion, emojiCompletion],
+          override: [frontmatterCompletion, imagePathCompletion, mdLinkPathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion, emojiCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
