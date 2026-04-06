@@ -634,6 +634,7 @@ details.callout > div {
   gap: 6px;
   padding: 6px 12px;
   cursor: pointer;
+  animation: tab-appear 0.15s ease;
   border-right: 1px solid var(--bg-tertiary);
   background: transparent;
   color: var(--text-muted);
@@ -694,6 +695,11 @@ details.callout > div {
 .tab.pinned .tab-name {
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+@keyframes tab-appear {
+  from { opacity: 0; max-width: 0; padding-left: 0; padding-right: 0; }
+  to { opacity: 1; max-width: 200px; padding-left: 12px; padding-right: 12px; }
 }
 
 .tab.pinned.active .tab-name {
