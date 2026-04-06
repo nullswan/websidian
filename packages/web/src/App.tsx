@@ -2789,6 +2789,22 @@ ${rendered}
                   if (tab) toggleStar(tab.path);
                 },
               },
+              { type: "separator" as const },
+              {
+                label: "Split Right",
+                action: () => {
+                  const tab = tabsMap[tabCtxMenu.tabId];
+                  if (!tab || panes.length >= 2) return;
+                  const newPaneTabId = nextTabId();
+                  const newTab: Tab = { ...tab, id: newPaneTabId };
+                  setTabsMap((prev) => ({ ...prev, [newPaneTabId]: newTab }));
+                  setPanes((prev) => [...prev, { tabIds: [newPaneTabId], activeTabId: newPaneTabId }]);
+                  // Load content for the new tab
+                  fetch(`/api/vault/file?path=${encodeURIComponent(tab.path)}`, { credentials: "include" })
+                    .then((r) => r.json())
+                    .then((d) => { if (!d.error) updateTab(newPaneTabId, { content: d.content, fileCreated: d.created, fileModified: d.modified, fileSize: d.size }); });
+                },
+              },
             ].map((item, i) =>
               "type" in item && item.type === "separator" ? (
                 <div key={i} style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
