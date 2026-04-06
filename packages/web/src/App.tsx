@@ -770,10 +770,45 @@ function SharePage({ shareId }: { shareId: string }) {
   const md = useMemo(() => createMarkdownRenderer(), []);
 
   useEffect(() => {
-    fetch(`/share/${shareId}`)
-      .then((r) => { if (!r.ok) throw new Error("Not found"); return r.json(); })
-      .then((data) => setNote(data))
-      .catch(() => setError("Shared note not found"));
+    // Try to decode inline base64 content first (client-side sharing)
+    async function tryInlineDecode() {
+      try {
+        const b64 = shareId.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+        const binary = atob(padded);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+
+        // Try gzip decompress
+        try {
+          const blob = new Blob([bytes]);
+          const ds = blob.stream().pipeThrough(new DecompressionStream("gzip"));
+          const text = await new Response(ds).text();
+          const data = JSON.parse(text);
+          if (data.t && data.c !== undefined) {
+            setNote({ name: data.t, content: data.c });
+            return;
+          }
+        } catch {
+          // Not gzip — try plain UTF-8
+          try {
+            const text = decodeURIComponent(escape(binary));
+            const data = JSON.parse(text);
+            if (data.t && data.c !== undefined) {
+              setNote({ name: data.t, content: data.c });
+              return;
+            }
+          } catch { /* not inline encoded */ }
+        }
+      } catch { /* not base64 */ }
+
+      // Fallback: fetch from server
+      fetch(`/share/${shareId}`)
+        .then((r) => { if (!r.ok) throw new Error("Not found"); return r.json(); })
+        .then((data) => setNote(data))
+        .catch(() => setError("Shared note not found or link expired"));
+    }
+
+    tryInlineDecode();
   }, [shareId]);
 
   if (error) return <div style={{ padding: 48, color: "#f88", fontSize: 18 }}>{error}</div>;
@@ -4430,6 +4465,31 @@ ${rendered}
 <div style="margin-top:16px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#666;">Published from <a href="#" style="color:#7f6df2;text-decoration:none;">Websidian</a></div>
 </div>`;
                 navigator.clipboard.writeText(embed).then(() => showToast("Embeddable HTML copied to clipboard"));
+              },
+            },
+            {
+              id: "share-note",
+              name: "Share note as URL",
+              action: async () => {
+                if (!activeTab?.content) { showToast("No active note"); return; }
+                const title = activeTab.path.replace(/\.md$/, "").split("/").pop() || "Untitled";
+                const payload = JSON.stringify({ t: title, c: activeTab.content });
+                try {
+                  // Compress with gzip via CompressionStream
+                  const stream = new Blob([payload]).stream().pipeThrough(new CompressionStream("gzip"));
+                  const compressed = await new Response(stream).arrayBuffer();
+                  const b64 = btoa(String.fromCharCode(...new Uint8Array(compressed)))
+                    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+                  const url = `${window.location.origin}${window.location.pathname}#/share/${b64}`;
+                  await navigator.clipboard.writeText(url);
+                  showToast("Share URL copied to clipboard");
+                } catch {
+                  // Fallback: uncompressed base64
+                  const b64 = btoa(unescape(encodeURIComponent(payload)))
+                    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+                  const url = `${window.location.origin}${window.location.pathname}#/share/${b64}`;
+                  navigator.clipboard.writeText(url).then(() => showToast("Share URL copied to clipboard"));
+                }
               },
             },
             {
