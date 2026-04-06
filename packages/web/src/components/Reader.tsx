@@ -77,7 +77,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     }
     return { body: content.slice(fmMatch[0].length), properties: props };
   }, [content]);
-  const [propsCollapsed, setPropsCollapsed] = useState(false);
+  const [propsCollapsed, setPropsCollapsed] = useState(true);
 
   // Parse references from YAML for citation support
   const references = useMemo(() => {
