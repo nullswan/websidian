@@ -18,6 +18,7 @@ export interface AppSettings {
   fontFamily: "system" | "sans-serif" | "serif" | "monospace";
   stackedTabs: boolean;
   headingNumbers: boolean;
+  showWhitespace: boolean;
 }
 
 const DEFAULTS: AppSettings = {
@@ -37,6 +38,7 @@ const DEFAULTS: AppSettings = {
   fontFamily: "system",
   stackedTabs: false,
   headingNumbers: false,
+  showWhitespace: false,
 };
 
 const STORAGE_KEY = "obsidian-web-settings";
@@ -376,6 +378,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Wrap long lines in the editor instead of scrolling horizontally"
               >
                 <Toggle checked={settings.lineWrap} onChange={(v) => update("lineWrap", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Show whitespace"
+                description="Render spaces and tabs as visible dots and arrows"
+              >
+                <Toggle checked={settings.showWhitespace} onChange={(v) => update("showWhitespace", v)} />
               </SettingItem>
 
               <SettingItem

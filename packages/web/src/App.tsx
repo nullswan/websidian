@@ -2168,6 +2168,7 @@ ${rendered}
                 focusMode={appSettings.focusMode}
                 vimMode={appSettings.vimMode}
                 lineWrap={appSettings.lineWrap}
+                showWhitespace={appSettings.showWhitespace}
                 scrollToHeadingRef={scrollToHeadingRef}
                 foldAllRef={foldAllRef}
               />
@@ -2946,6 +2947,7 @@ ${rendered}
                             focusMode={appSettings.focusMode}
                             vimMode={appSettings.vimMode}
                             lineWrap={appSettings.lineWrap}
+                            showWhitespace={appSettings.showWhitespace}
                           />
                         ) : (
                           <div style={{ padding: 20, color: "var(--text-muted)", fontSize: 13 }}>
