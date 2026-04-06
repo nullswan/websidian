@@ -605,6 +605,8 @@ class HRWidget extends WidgetType {
 }
 
 // Bullet widget — renders list marker as a dot
+const LIST_DEPTH_COLORS = ["var(--accent-color)", "#e6994a", "#4ac8e6", "#e64a7b", "#8ae64a", "#c84ae6"];
+
 class BulletWidget extends WidgetType {
   indent: string;
   constructor(indent: string) {
@@ -612,9 +614,10 @@ class BulletWidget extends WidgetType {
     this.indent = indent;
   }
   toDOM() {
+    const depth = Math.floor(this.indent.replace(/\t/g, "    ").length / 2);
     const span = document.createElement("span");
     span.textContent = this.indent + "• ";
-    span.style.color = "var(--accent-color)";
+    span.style.color = LIST_DEPTH_COLORS[depth % LIST_DEPTH_COLORS.length];
     return span;
   }
   eq(other: BulletWidget) { return this.indent === other.indent; }
@@ -631,9 +634,10 @@ class NumberedListWidget extends WidgetType {
     this.num = num;
   }
   toDOM() {
+    const depth = Math.floor(this.indent.replace(/\t/g, "    ").length / 2);
     const span = document.createElement("span");
     span.textContent = this.indent + this.num + ". ";
-    span.style.color = "var(--accent-color)";
+    span.style.color = LIST_DEPTH_COLORS[depth % LIST_DEPTH_COLORS.length];
     return span;
   }
   eq(other: NumberedListWidget) { return this.indent === other.indent && this.num === other.num; }
