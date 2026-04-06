@@ -1232,7 +1232,7 @@ function FileTreeNode({
           </span>
         </div>
         {expanded && (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul className="tree-children" style={{ listStyle: "none", padding: 0, margin: 0, animation: "tree-expand 0.15s ease", overflow: "hidden" }}>
             {sortEntries(entry.children, sortMode, customOrder, entry.path).map((child) => (
               <FileTreeNode
                 key={child.path}
