@@ -83,7 +83,7 @@ body {
 .heading-numbers-enabled .reader-view h4::before { content: counter(h1counter) "." counter(h2counter) "." counter(h3counter) "." counter(h4counter) ". "; color: var(--text-faint); }
 
 .reader-view h1, .reader-view h2, .reader-view h3, .reader-view h4, .reader-view h5, .reader-view h6 {
-  scroll-margin-top: 16px;
+  scroll-margin-top: 60px;
 }
 
 .reader-view h1 {
@@ -301,12 +301,6 @@ details.callout > div {
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 24px 0;
-}
-
-/* Heading anchor scroll offset (avoid hiding behind sticky header) */
-.reader-view h1, .reader-view h2, .reader-view h3,
-.reader-view h4, .reader-view h5, .reader-view h6 {
-  scroll-margin-top: 60px;
 }
 
 /* KaTeX math styling */
