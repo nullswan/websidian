@@ -2963,6 +2963,42 @@ const linkMarker = new LineTypeMarker("#569cd6");
 const taskMarker = new LineTypeMarker("#4ec9b0");
 const codeMarker = new LineTypeMarker("#dcdcaa");
 
+// Paragraph word count gutter: shows word count for each paragraph block
+class WordCountMarker extends GutterMarker {
+  count: number;
+  constructor(count: number) { super(); this.count = count; }
+  toDOM() {
+    const el = document.createElement("span");
+    el.textContent = String(this.count);
+    el.style.cssText = "font-size:9px;color:var(--text-faint);opacity:0.5;";
+    return el;
+  }
+}
+
+const paragraphWordCountGutter = gutter({
+  class: "cm-para-wc-gutter",
+  lineMarker(view, line) {
+    const doc = view.state.doc;
+    const lineNum = doc.lineAt(line.from).number;
+    const text = view.state.sliceDoc(line.from, line.to);
+    if (!text.trim()) return null;
+    // Only show at paragraph starts: first line, or after a blank line
+    if (lineNum > 1) {
+      const prevLine = doc.line(lineNum - 1);
+      if (prevLine.text.trim() !== "" && !/^#{1,6}\s/.test(text)) return null;
+    }
+    // Count words in this paragraph (contiguous non-blank lines)
+    let words = 0;
+    for (let n = lineNum; n <= doc.lines; n++) {
+      const l = doc.line(n).text;
+      if (!l.trim()) break;
+      words += l.trim().split(/\s+/).filter(Boolean).length;
+    }
+    if (words < 5) return null;
+    return new WordCountMarker(words);
+  },
+});
+
 // Heading link copy gutter: clickable # to copy [[Note#Heading]] link
 function createHeadingLinkGutter(filePath: string) {
   class HeadingLinkMarker extends GutterMarker {
@@ -3891,6 +3927,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         codeFolding(),
         markdownHeadingFold,
         lineTypeGutter,
+        paragraphWordCountGutter,
         createHeadingLinkGutter(filePath),
         createBacklinkGutter(backlinkLinesRef),
         ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, bareUrlPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
