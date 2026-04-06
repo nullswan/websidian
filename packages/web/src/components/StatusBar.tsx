@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { isDemoMode } from "../demoApi.js";
 import { FocusTimer } from "./FocusTimer.js";
 import { WritingStreak } from "./WritingStreak.js";
@@ -22,7 +22,7 @@ function formatDate(iso: string): string {
 
 let vaultStatsCache: { totalNotes: number; totalWords: number } | null = null;
 
-export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress, lineWrap, onToggleLineWrap }: StatusBarProps) {
+export const StatusBar = React.memo(function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress, lineWrap, onToggleLineWrap }: StatusBarProps) {
   const [vaultStats, setVaultStats] = useState(vaultStatsCache);
 
   useEffect(() => {
@@ -274,4 +274,4 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       })()}
     </div>
   );
-}
+});

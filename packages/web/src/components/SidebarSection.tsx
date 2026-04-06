@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface SidebarSectionProps {
   title: string;
@@ -7,7 +7,7 @@ interface SidebarSectionProps {
   children: React.ReactNode;
 }
 
-export function SidebarSection({ title, defaultOpen = true, badge, children }: SidebarSectionProps) {
+export const SidebarSection = React.memo(function SidebarSection({ title, defaultOpen = true, badge, children }: SidebarSectionProps) {
   const [open, setOpen] = useState(() => {
     try {
       const stored = localStorage.getItem(`sidebar-${title}`);
@@ -91,4 +91,4 @@ export function SidebarSection({ title, defaultOpen = true, badge, children }: S
       </div>
     </div>
   );
-}
+});

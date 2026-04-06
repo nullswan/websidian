@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Minimap } from "./Minimap.js";
 import type { Tab } from "../lib/appTypes.js";
 
@@ -19,7 +19,7 @@ interface ScrollContainerProps {
   headings?: Array<{ text: string; level: number; line: number }>;
 }
 
-export function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath, syncScrollRef, onSyncScroll, headings, mode }: ScrollContainerProps) {
+export const ScrollContainer = React.memo(function ScrollContainer({ tabId, scrollTop, updateTab, children, className, noteContent, showMinimap, onProgressChange, searchQuery, notePath, syncScrollRef, onSyncScroll, headings, mode }: ScrollContainerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const lastTabId = useRef<string | null>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -177,4 +177,4 @@ export function ScrollContainer({ tabId, scrollTop, updateTab, children, classNa
       </div>
     </div>
   );
-}
+});
