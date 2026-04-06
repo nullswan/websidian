@@ -1050,10 +1050,18 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   color: rgba(127, 109, 242, 0.4) !important;
 }
 
-/* Wikilink text — underline on hover */
-.cm-editor .tok-link:not(.tok-meta):hover {
-  text-decoration: underline;
+/* Wikilink text — animated underline on hover (Obsidian-style) */
+.cm-editor .tok-link:not(.tok-meta) {
   cursor: pointer;
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+}
+.cm-editor .tok-link:not(.tok-meta):hover {
+  background-size: 100% 1px;
 }
 
 /* Bold/italic markers — hide on non-active lines */
