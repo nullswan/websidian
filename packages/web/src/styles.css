@@ -1224,6 +1224,18 @@ mark.hltr-purple { background: rgba(201, 140, 230, 0.25) !important; }
   will-change: opacity, transform, filter;
 }
 
+/* Scroll-reveal animation for reader blocks */
+.reader-view .scroll-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.reader-view .scroll-reveal.scroll-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Command palette animations */
 @keyframes palette-backdrop-in {
   from { opacity: 0; }

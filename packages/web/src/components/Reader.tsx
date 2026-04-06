@@ -2265,6 +2265,30 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     };
   }, [html]);
 
+  // Scroll-reveal: fade in blocks as they scroll into view
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const targets = container.querySelectorAll<HTMLElement>(":scope > p, :scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, :scope > ul, :scope > ol, :scope > blockquote, :scope > pre, :scope > table, :scope > .callout, :scope > hr, :scope > details");
+    if (targets.length === 0) return;
+    for (const el of targets) {
+      el.classList.add("scroll-reveal");
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).classList.add("scroll-reveal-visible");
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: "0px 0px -40px 0px", threshold: 0.05 },
+    );
+    for (const el of targets) observer.observe(el);
+    return () => observer.disconnect();
+  }, [html]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
