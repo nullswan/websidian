@@ -771,6 +771,15 @@ function FileTreeNode({
           onDragStart={(e) => {
             e.dataTransfer.setData("text/plain", entry.path);
             e.dataTransfer.effectAllowed = "move";
+            const ghost = e.currentTarget.cloneNode(true) as HTMLElement;
+            ghost.style.opacity = "0.7";
+            ghost.style.background = "var(--bg-secondary)";
+            ghost.style.position = "fixed";
+            ghost.style.top = "-999px";
+            ghost.style.width = e.currentTarget.offsetWidth + "px";
+            document.body.appendChild(ghost);
+            e.dataTransfer.setDragImage(ghost, 12, 12);
+            requestAnimationFrame(() => ghost.remove());
           }}
           onDragOver={(e) => {
             e.preventDefault();
@@ -785,7 +794,8 @@ function FileTreeNode({
             e.preventDefault();
             e.stopPropagation();
             const src = e.dataTransfer.getData("text/plain");
-            if (src) onDrop(src, entry.path);
+            if (src && src !== entry.path && !entry.path.startsWith(src + "/")) onDrop(src, entry.path);
+            setDropTarget(null);
           }}
           style={{
             paddingLeft: depth * 16 + 4,
@@ -889,6 +899,16 @@ function FileTreeNode({
           onDragStart={(e) => {
             e.dataTransfer.setData("text/plain", entry.path);
             e.dataTransfer.effectAllowed = "move";
+            // Custom ghost: clone the target element with reduced opacity
+            const ghost = e.currentTarget.cloneNode(true) as HTMLElement;
+            ghost.style.opacity = "0.7";
+            ghost.style.background = "var(--bg-secondary)";
+            ghost.style.position = "fixed";
+            ghost.style.top = "-999px";
+            ghost.style.width = e.currentTarget.offsetWidth + "px";
+            document.body.appendChild(ghost);
+            e.dataTransfer.setDragImage(ghost, 12, 12);
+            requestAnimationFrame(() => ghost.remove());
           }}
           onDragOver={(e) => {
             e.preventDefault();
@@ -927,7 +947,8 @@ function FileTreeNode({
             margin: "0 4px",
             transition: "background 0.1s",
             fontSize: 13,
-            outline: isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
+            outline: dropTarget === entry.path ? "1px solid rgba(127,109,242,0.4)" : isFocused && !isSelected ? "1px solid rgba(127,109,242,0.3)" : "none",
+            borderTop: dropTarget === entry.path ? "2px solid var(--accent-color)" : "2px solid transparent",
           }}
           title={`${entry.path}\n${entry.size < 1024 ? entry.size + " B" : entry.size < 1048576 ? (entry.size / 1024).toFixed(1) + " KB" : (entry.size / 1048576).toFixed(1) + " MB"} · Modified ${new Date(entry.mtime).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`}
           onClick={() => onFileSelect(entry.path)}
