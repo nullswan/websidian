@@ -2291,6 +2291,24 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   }, [html]);
 
   const handleClick = (e: React.MouseEvent) => {
+    // Handle in-page anchor links (e.g. TOC #heading links) with smooth scroll + flash
+    const anchorLink = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[href^='#']");
+    if (anchorLink && !anchorLink.classList.contains("wikilink") && !anchorLink.closest("sup.footnote-ref")) {
+      const hash = anchorLink.getAttribute("href");
+      if (hash && hash.length > 1) {
+        e.preventDefault();
+        const id = decodeURIComponent(hash.slice(1));
+        const target = containerRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.classList.remove("heading-flash");
+          void target.offsetWidth;
+          target.classList.add("heading-flash");
+        }
+        return;
+      }
+    }
+
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
       "a.wikilink",
