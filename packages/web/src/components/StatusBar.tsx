@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface StatusBarProps {
   content: string;
@@ -15,7 +15,22 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+let vaultStatsCache: { totalNotes: number; totalWords: number } | null = null;
+
 export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileCreated, fileModified, scrollProgress }: StatusBarProps) {
+  const [vaultStats, setVaultStats] = useState(vaultStatsCache);
+
+  useEffect(() => {
+    if (vaultStatsCache) { setVaultStats(vaultStatsCache); return; }
+    fetch("/api/vault/stats", { credentials: "include" })
+      .then(r => r.json())
+      .then((d: { totalNotes: number; totalWords: number }) => {
+        vaultStatsCache = d;
+        setVaultStats(d);
+      })
+      .catch(() => {});
+  }, []);
+
   const stats = useMemo(() => {
     const text = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
     const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -83,6 +98,11 @@ export function StatusBar({ content, path, cursorPos, saveStatus = "idle", fileC
       )}
       {fileCreated && <span title={`Created: ${fileCreated}`}>Created {formatDate(fileCreated)}</span>}
       {fileModified && <span title={`Modified: ${fileModified}`}>Modified {formatDate(fileModified)}</span>}
+      {vaultStats && (
+        <span title={`Vault: ${vaultStats.totalNotes.toLocaleString()} notes, ${vaultStats.totalWords.toLocaleString()} words`} style={{ opacity: 0.7 }}>
+          Vault: {vaultStats.totalWords.toLocaleString()}w
+        </span>
+      )}
       {saveStatus === "saving" && (
         <span style={{ color: "#e6994a" }}>Saving...</span>
       )}
