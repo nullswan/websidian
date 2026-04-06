@@ -3742,6 +3742,41 @@ ${rendered}
               },
             },
             {
+              id: "rename-tag",
+              name: "Rename tag across vault",
+              action: async () => {
+                const oldTag = window.prompt("Current tag (e.g. #old-tag):");
+                if (!oldTag?.trim()) return;
+                const newTag = window.prompt(`Rename "${oldTag.trim()}" to:`);
+                if (!newTag?.trim()) return;
+                const from = oldTag.trim().startsWith("#") ? oldTag.trim() : `#${oldTag.trim()}`;
+                const to = newTag.trim().startsWith("#") ? newTag.trim() : `#${newTag.trim()}`;
+                try {
+                  const res = await fetch("/api/vault/search-replace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ query: from, replace: to, caseSensitive: true }),
+                  });
+                  const data = await res.json();
+                  if (data.totalReplacements > 0) {
+                    showToast(`Renamed ${from} to ${to} in ${data.changedFiles?.length ?? 0} files (${data.totalReplacements} occurrences)`);
+                    refreshTree();
+                    // Reload active tab content
+                    if (activeTab) {
+                      fetch(`/api/vault/file?path=${encodeURIComponent(activeTab.path)}`, { credentials: "include" })
+                        .then((r) => r.json())
+                        .then((d) => { if (!d.error) updateTab(activeTab.id, { content: d.content }); });
+                    }
+                  } else {
+                    showToast(`No occurrences of ${from} found`);
+                  }
+                } catch {
+                  showToast("Tag rename failed");
+                }
+              },
+            },
+            {
               id: "merge-note",
               name: "Merge another note into current",
               action: () => { if (activeTab) setShowMergePicker(true); },
