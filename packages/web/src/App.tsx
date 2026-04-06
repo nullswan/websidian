@@ -26,6 +26,7 @@ import { StatusBar } from "./components/StatusBar.js";
 import { Calendar } from "./components/Calendar.js";
 import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
 import { NoteGrowth } from "./components/NoteGrowth.js";
+import { BrokenLinkReport } from "./components/BrokenLinkReport.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
@@ -909,6 +910,7 @@ export function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showMergePicker, setShowMergePicker] = useState(false);
   const [showVaultStats, setShowVaultStats] = useState(false);
+  const [showBrokenLinks, setShowBrokenLinks] = useState(false);
   const calendarAnchorRef = useRef<HTMLButtonElement>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
   const hotkeyMapRef = useRef(buildHotkeyMap(loadHotkeyOverrides()));
@@ -4591,6 +4593,11 @@ ${rendered}
               action: () => setShowVaultStats(true),
             },
             {
+              id: "broken-links",
+              name: "Scan for broken links",
+              action: () => setShowBrokenLinks(true),
+            },
+            {
               id: "copy-link",
               name: "Copy note link",
               action: () => {
@@ -5374,6 +5381,22 @@ ${rendered}
         <VaultStats
           onClose={() => setShowVaultStats(false)}
           onNavigate={openTab}
+        />
+      )}
+
+      {showBrokenLinks && (
+        <BrokenLinkReport
+          onClose={() => setShowBrokenLinks(false)}
+          onNavigate={openTab}
+          onCreateNote={(title) => {
+            const path = `${title}.md`;
+            fetch("/api/vault/file", {
+              method: "PUT",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path, content: `# ${title}\n` }),
+            }).then(() => openTab(path)).catch(() => {});
+          }}
         />
       )}
 
