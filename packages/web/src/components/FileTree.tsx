@@ -276,6 +276,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   const [dragToFolder, setDragToFolder] = useState<string | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const treeRef = useRef<HTMLUListElement>(null);
+  const [moveToPath, setMoveToPath] = useState<string | null>(null);
   const [hoverPreview, setHoverPreview] = useState<{ path: string; content: string; x: number; y: number } | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -703,7 +704,19 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           onDuplicate={onDuplicate}
           onOpenInNewTab={onOpenInNewTab}
           onOpenToRight={onOpenToRight}
+          onMoveTo={setMoveToPath}
           parentPath={contextMenu.parentPath}
+        />
+      )}
+      {moveToPath && (
+        <MoveToDialog
+          sourcePath={moveToPath}
+          entries={entries}
+          onMove={async (targetFolder) => {
+            setMoveToPath(null);
+            await handleDrop(moveToPath, targetFolder);
+          }}
+          onClose={() => setMoveToPath(null)}
         />
       )}
       {hoverPreview && (
@@ -1116,6 +1129,7 @@ function ContextMenu({
   onDuplicate,
   onOpenInNewTab,
   onOpenToRight,
+  onMoveTo,
   parentPath,
 }: {
   x: number;
@@ -1128,6 +1142,7 @@ function ContextMenu({
   onDuplicate?: (path: string) => void;
   onOpenInNewTab?: (path: string) => void;
   onOpenToRight?: (path: string) => void;
+  onMoveTo?: (path: string) => void;
   parentPath: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -1190,6 +1205,12 @@ function ContextMenu({
       label: "Copy path",
       action: () => { navigator.clipboard.writeText(entry.path); onClose(); },
     });
+    if (onMoveTo) {
+      menuItems.push({
+        label: "Move to...",
+        action: () => { onClose(); onMoveTo(entry.path); },
+      });
+    }
     if (entry.kind !== "folder") {
       menuItems.push({
         label: "Download",
@@ -1250,6 +1271,163 @@ function ContextMenu({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MoveToDialog({
+  sourcePath,
+  entries,
+  onMove,
+  onClose,
+}: {
+  sourcePath: string;
+  entries: VaultEntry[];
+  onMove: (targetFolder: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const folders = useMemo(() => {
+    const result: string[] = ["/"]; // vault root
+    const walk = (es: VaultEntry[]) => {
+      for (const e of es) {
+        if (e.kind === "folder") {
+          // Don't show the source file's current folder or the source itself as targets
+          if (e.path !== sourcePath && !e.path.startsWith(sourcePath + "/")) {
+            result.push(e.path);
+          }
+          walk(e.children);
+        }
+      }
+    };
+    walk(entries);
+    return result;
+  }, [entries, sourcePath]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return folders;
+    const q = query.toLowerCase();
+    return folders.filter((f) => f.toLowerCase().includes(q));
+  }, [folders, query]);
+
+  useEffect(() => {
+    setSelectedIdx(0);
+  }, [query]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const handleSubmit = () => {
+    if (filtered.length === 0) return;
+    const target = filtered[selectedIdx] ?? filtered[0];
+    onMove(target === "/" ? "" : target);
+  };
+
+  const fileName = sourcePath.split("/").pop() ?? sourcePath;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 2000,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        paddingTop: 80,
+        background: "rgba(0,0,0,0.5)",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        width: 400,
+        maxHeight: 400,
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border-color)",
+        borderRadius: 8,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}>
+        <div style={{ padding: "12px 12px 8px", borderBottom: "1px solid var(--border-color)" }}>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 6 }}>
+            Move <strong style={{ color: "var(--text-primary)" }}>{fileName}</strong> to...
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search folders..."
+            style={{
+              width: "100%",
+              padding: "6px 8px",
+              border: "1px solid var(--border-color)",
+              borderRadius: 4,
+              background: "var(--bg-primary)",
+              color: "var(--text-primary)",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent-color)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border-color)"; }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSelectedIdx((i) => Math.min(i + 1, filtered.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSelectedIdx((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          />
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: "12px 16px", fontSize: 12, color: "var(--text-faint)" }}>
+              No matching folders
+            </div>
+          )}
+          {filtered.map((folder, i) => (
+            <div
+              key={folder}
+              ref={(el) => { if (el && i === selectedIdx) el.scrollIntoView({ block: "nearest" }); }}
+              onClick={() => onMove(folder === "/" ? "" : folder)}
+              style={{
+                padding: "6px 16px",
+                cursor: "pointer",
+                fontSize: 13,
+                color: i === selectedIdx ? "var(--text-primary)" : "var(--text-secondary)",
+                background: i === selectedIdx ? "rgba(127,109,242,0.15)" : "transparent",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+              onMouseEnter={() => setSelectedIdx(i)}
+            >
+              <FolderIcon open={false} />
+              <span>{folder === "/" ? "Vault root" : folder}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
