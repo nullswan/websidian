@@ -47,6 +47,15 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
   const md = useMemo(() => createMarkdownRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Parse cssclasses from frontmatter
+  const cssClasses = useMemo(() => {
+    const fmMatch = content.match(/^---[\t ]*\r?\n([\s\S]*?)\n---/);
+    if (!fmMatch) return "";
+    const classMatch = fmMatch[1].match(/cssclasses?:\s*(.+)/i);
+    if (!classMatch) return "";
+    return classMatch[1].split(/[,\s]+/).filter(Boolean).join(" ");
+  }, [content]);
+
   // Parse and strip frontmatter for rendering
   const { body, properties } = useMemo(() => {
     const fmMatch = /^---[\t ]*\r?\n([\s\S]*?)\n---[\t ]*(?:\r?\n|$)/.exec(content);
@@ -1046,7 +1055,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       })()}
       <div
         ref={containerRef}
-        className="reader-view"
+        className={`reader-view${cssClasses ? ` ${cssClasses}` : ""}`}
         onClick={handleClick}
       />
       {scrollToLine != null && (

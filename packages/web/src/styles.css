@@ -431,6 +431,24 @@ details.callout > div {
   cursor: help;
 }
 
+/* CSS classes from frontmatter */
+.reader-view.multi-column,
+.reader-view.two-column {
+  columns: 2;
+  column-gap: 32px;
+  column-rule: 1px solid var(--border-color);
+}
+.reader-view.three-column {
+  columns: 3;
+  column-gap: 24px;
+  column-rule: 1px solid var(--border-color);
+}
+.reader-view.multi-column h1, .reader-view.multi-column h2,
+.reader-view.two-column h1, .reader-view.two-column h2,
+.reader-view.three-column h1, .reader-view.three-column h2 {
+  column-span: all;
+}
+
 .reader-view mark {
   background: rgba(255, 208, 0, 0.25);
   color: inherit;
