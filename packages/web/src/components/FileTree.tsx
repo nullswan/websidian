@@ -1129,6 +1129,17 @@ function FileTreeNode({
               {backlinkCounts[entry.path]}
             </span>
           )}
+          {entry.kind === "file" && (
+            <span className="file-size-label" style={{
+              fontSize: 9,
+              color: "var(--text-faint)",
+              flexShrink: 0,
+              opacity: 0,
+              transition: "opacity 0.15s",
+            }}>
+              {formatFileSize(entry.size)}
+            </span>
+          )}
         </div>
       )}
     </li>

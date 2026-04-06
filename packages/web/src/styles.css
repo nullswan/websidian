@@ -1082,3 +1082,8 @@ details.callout > div {
   justify-content: center;
   padding: 0 !important;
 }
+
+/* File tree: show file size on hover */
+li:hover .file-size-label {
+  opacity: 0.7 !important;
+}
