@@ -190,7 +190,7 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
     // Display: explicit alias > basename (strip path + heading + .md)
     const display = (token.meta.display as string) || target.split("/").pop()?.replace(/\.md$/, "") || target;
     const href = `#/note/${encodeURIComponent(target)}`;
-    return `<a class="wikilink" href="${href}" data-target="${escapeAttr(target)}">${escapeHtml(display)}</a>`;
+    return `<a class="wikilink" href="${href}" data-target="${escapeAttr(target)}" title="${escapeAttr(target)}">${escapeHtml(display)}</a>`;
   };
 
   // Plugin: embeds ![[target]]
