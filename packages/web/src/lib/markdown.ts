@@ -152,20 +152,32 @@ export function createMarkdownRenderer(onLinkClick?: (target: string) => void) {
       const first = children[0];
       if (first.type !== "text") continue;
 
-      const checkMatch = /^\[([ xX])\]\s*/.exec(first.content);
+      const checkMatch = /^\[([ xX/\->!?*])\]\s*/.exec(first.content);
       if (!checkMatch) continue;
 
-      const checked = checkMatch[1] !== " ";
+      const marker = checkMatch[1];
+      const checked = marker === "x" || marker === "X";
+      const isAlternative = "/->!?*".includes(marker);
       first.content = first.content.slice(checkMatch[0].length);
 
       const checkbox = new state.Token("html_inline", "", 0);
-      checkbox.content = `<input type="checkbox" ${checked ? "checked" : ""} disabled /> `;
+      if (isAlternative) {
+        const labels: Record<string, string> = {
+          "/": "◐", "-": "—", ">": "▸", "!": "!", "?": "?", "*": "★",
+        };
+        const colors: Record<string, string> = {
+          "/": "#e6994a", "-": "#888", ">": "#4ea8de", "!": "#ff6b6b", "?": "#c084fc", "*": "#fbbf24",
+        };
+        checkbox.content = `<span class="alt-checkbox" data-task="${marker}" style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; border: 1.5px solid ${colors[marker]}; color: ${colors[marker]}; font-size: 11px; font-weight: 700; margin-right: 5px; vertical-align: middle; flex-shrink: 0;">${labels[marker]}</span>`;
+      } else {
+        checkbox.content = `<input type="checkbox" ${checked ? "checked" : ""} disabled /> `;
+      }
       children.unshift(checkbox);
 
       // Mark parent list_item
       for (let j = i - 1; j >= 0; j--) {
         if (tokens[j].type === "list_item_open") {
-          tokens[j].attrSet("class", "task-list-item");
+          tokens[j].attrSet("class", `task-list-item${isAlternative ? ` task-${marker === "*" ? "star" : marker === "!" ? "important" : marker === "?" ? "question" : marker === ">" ? "deferred" : marker === "-" ? "cancelled" : "partial"}` : ""}`);
           break;
         }
       }

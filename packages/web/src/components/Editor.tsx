@@ -288,19 +288,29 @@ const imagePreviewField = StateField.define<DecorationSet>({
 
 // Clickable checkbox widget for Live Preview (replaces [ ] and [x] inline)
 class CheckboxWidget extends WidgetType {
-  checked: boolean;
-  constructor(checked: boolean) {
+  marker: string;
+  constructor(marker: string) {
     super();
-    this.checked = checked;
+    this.marker = marker;
   }
   toDOM(view: EditorView) {
+    const isAlternative = "/->!?*".includes(this.marker);
+
+    if (isAlternative) {
+      const labels: Record<string, string> = { "/": "◐", "-": "—", ">": "▸", "!": "!", "?": "?", "*": "★" };
+      const colors: Record<string, string> = { "/": "#e6994a", "-": "#888", ">": "#4ea8de", "!": "#ff6b6b", "?": "#c084fc", "*": "#fbbf24" };
+      const span = document.createElement("span");
+      span.textContent = labels[this.marker] || this.marker;
+      span.style.cssText = `display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 3px; border: 1.5px solid ${colors[this.marker] || "var(--text-muted)"}; color: ${colors[this.marker] || "var(--text-muted)"}; font-size: 11px; font-weight: 700; margin-right: 5px; vertical-align: middle; cursor: default;`;
+      return span;
+    }
+
     const input = document.createElement("input");
     input.type = "checkbox";
-    input.checked = this.checked;
+    input.checked = this.marker === "x";
     input.style.cssText = "cursor: pointer; accent-color: var(--accent-color); vertical-align: middle; margin-right: 4px;";
     input.addEventListener("mousedown", (e) => {
       e.preventDefault();
-      // Find this widget's position and toggle
       const pos = view.posAtDOM(input);
       const line = view.state.doc.lineAt(pos);
       const match = line.text.match(/^(\s*- \[)([ x])(\])/);
@@ -313,9 +323,9 @@ class CheckboxWidget extends WidgetType {
     return input;
   }
   eq(other: CheckboxWidget) {
-    return this.checked === other.checked;
+    return this.marker === other.marker;
   }
-  ignoreEvent() { return false; } // allow click events to reach the widget
+  ignoreEvent() { return false; }
 }
 
 function buildCheckboxDecorations(state: EditorState): DecorationSet {
@@ -323,16 +333,17 @@ function buildCheckboxDecorations(state: EditorState): DecorationSet {
   const cursorLine = state.doc.lineAt(state.selection.main.head).number;
 
   for (let i = 1; i <= state.doc.lines; i++) {
-    if (i === cursorLine) continue; // show raw syntax on active line
+    if (i === cursorLine) continue;
     const line = state.doc.line(i);
-    const match = line.text.match(/^(\s*- \[)([ x])(\])/);
+    const match = line.text.match(/^(\s*- \[)([ xX/\->!?*])(\])/);
     if (match) {
-      const checkStart = line.from + match[1].length - 1; // start of [
-      const checkEnd = line.from + match[1].length + match[2].length + match[3].length; // end of ]
+      const checkStart = line.from + match[1].length - 1;
+      const checkEnd = line.from + match[1].length + match[2].length + match[3].length;
+      const marker = match[2].toLowerCase();
       builder.add(
         checkStart,
         checkEnd,
-        Decoration.replace({ widget: new CheckboxWidget(match[2] === "x") }),
+        Decoration.replace({ widget: new CheckboxWidget(marker) }),
       );
     }
   }

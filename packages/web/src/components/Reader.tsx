@@ -482,7 +482,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       const lines = raw.split("\n");
       let cbCount = 0;
       for (let i = 0; i < lines.length; i++) {
-        const match = /^(\s*- \[)([ xX])(\].*)$/.exec(lines[i]);
+        const match = /^(\s*- \[)([ xX/\->!?*])(\].*)$/.exec(lines[i]);
         if (match) {
           if (cbCount === idx) {
             const nowChecked = checkbox.checked;
