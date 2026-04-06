@@ -1631,6 +1631,9 @@ ${rendered}
           <div
             className="tab-bar"
             style={isMobile ? { paddingLeft: 0 } : undefined}
+            onDoubleClick={(e) => {
+              if (e.target === e.currentTarget) createNewNote();
+            }}
             onWheel={(e) => {
               e.currentTarget.scrollLeft += e.deltaY;
             }}
