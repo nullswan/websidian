@@ -407,6 +407,25 @@ details.callout > div {
 .reader-view li.task-list-item input[type="checkbox"].just-toggled {
   animation: checkbox-check 0.3s ease;
 }
+.reader-view li.task-list-item {
+  position: relative;
+}
+.reader-view li.task-list-item input[type="checkbox"].just-toggled:checked::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(78, 201, 176, 0.4) 0%, rgba(78, 201, 176, 0) 70%);
+  animation: checkbox-sparkle 0.5s ease forwards;
+  pointer-events: none;
+}
+@keyframes checkbox-sparkle {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
 
 .reader-view li.task-cancelled {
   text-decoration: line-through;
