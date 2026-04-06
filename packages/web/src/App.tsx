@@ -878,6 +878,12 @@ export function App() {
   // Close a tab in a specific pane
   const closeTab = useCallback(
     (tabId: string, paneIdx: number) => {
+      // Confirm if tab has unsaved changes
+      const tab = tabsMap[tabId];
+      if (tab?.dirty) {
+        const action = window.confirm(`"${tab.path.replace(/\.md$/, "").split("/").pop()}" has unsaved changes.\n\nDiscard changes?`);
+        if (!action) return;
+      }
       setPanes((prev) => {
         const pane = prev[paneIdx];
         const idx = pane.tabIds.indexOf(tabId);
