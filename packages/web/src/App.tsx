@@ -3873,7 +3873,29 @@ ${rendered}
                   }
                   if (activeTab.fileCreated) items.push(["Created", new Date(activeTab.fileCreated).toLocaleDateString()]);
                   if (activeTab.fileModified) items.push(["Modified", new Date(activeTab.fileModified).toLocaleDateString()]);
+
+                  // Flesch reading ease score
+                  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length || 1;
+                  const wordList = text.trim().split(/\s+/).filter(Boolean);
+                  const syllableCount = (w: string) => {
+                    const word = w.toLowerCase().replace(/[^a-z]/g, "");
+                    if (word.length <= 3) return 1;
+                    let count = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "")
+                      .replace(/^y/, "")
+                      .match(/[aeiouy]{1,2}/g)?.length ?? 1;
+                    return Math.max(1, count);
+                  };
+                  const totalSyllables = wordList.reduce((s, w) => s + syllableCount(w), 0);
+                  const flesch = words >= 10
+                    ? Math.round(206.835 - 1.015 * (words / sentences) - 84.6 * (totalSyllables / words))
+                    : null;
+                  const fleschLabel = flesch === null ? null
+                    : flesch >= 80 ? "Easy" : flesch >= 60 ? "Standard" : flesch >= 40 ? "Moderate" : "Complex";
+                  const fleschColor = flesch === null ? "var(--text-faint)"
+                    : flesch >= 80 ? "#4caf50" : flesch >= 60 ? "#8bc34a" : flesch >= 40 ? "#ff9800" : "#f44336";
+
                   return (
+                    <>
                     <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "3px 12px" }}>
                       {items.map(([label, val]) => (
                         <React.Fragment key={label}>
@@ -3882,6 +3904,16 @@ ${rendered}
                         </React.Fragment>
                       ))}
                     </div>
+                    {flesch !== null && (
+                      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }} title={`Flesch Reading Ease: ${flesch}/100`}>
+                        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>Readability</span>
+                        <div style={{ flex: 1, height: 6, background: "var(--bg-tertiary)", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ width: `${Math.max(0, Math.min(100, flesch))}%`, height: "100%", background: fleschColor, borderRadius: 3, transition: "width 0.3s" }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: fleschColor, fontWeight: 600, minWidth: 50, textAlign: "right" }}>{fleschLabel}</span>
+                      </div>
+                    )}
+                    </>
                   );
                 })()}
               </div>
