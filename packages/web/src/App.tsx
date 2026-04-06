@@ -854,6 +854,9 @@ export function App() {
   const [leftCollapsed, setLeftCollapsed] = useState(() => window.innerWidth < 768);
   const [rightCollapsed, setRightCollapsed] = useState(() => window.innerWidth < 768);
   const [zenMode, setZenMode] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("zen-mode", zenMode);
+  }, [zenMode]);
   const zenPrevState = useRef<{ left: boolean; right: boolean } | null>(null);
   const closedTabsStack = useRef<string[]>([]); // stack of file paths for undo close tab
   const [tabCtxMenu, setTabCtxMenu] = useState<{ x: number; y: number; tabId: string; paneIdx: number } | null>(null);

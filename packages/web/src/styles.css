@@ -1083,6 +1083,20 @@ details.callout > div {
   padding: 0 !important;
 }
 
+/* Zen mode: constrain content width for focused writing */
+.zen-mode .cm-editor {
+  max-width: 750px;
+  margin: 0 auto;
+}
+.zen-mode .reader-view {
+  max-width: 750px;
+  margin: 0 auto;
+}
+.zen-mode .inline-title {
+  max-width: 750px;
+  margin: 0 auto;
+}
+
 /* File tree: show file size on hover */
 li:hover .file-size-label {
   opacity: 0.7 !important;

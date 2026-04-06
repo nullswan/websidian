@@ -4207,7 +4207,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           { key: "Shift-Alt-f", run: formatMarkdownTable },
           { key: "Shift-Alt-s", run: (view: EditorView) => sortSelectedLines(view, false) },
           { key: "Shift-Alt-r", run: (view: EditorView) => sortSelectedLines(view, true) },
-          { key: "Mod-Shift-k", run: (view: EditorView) => {
+          { key: "Alt-Shift-p", run: (view: EditorView) => {
             const doc = view.state.doc;
             const sel = view.state.selection.main;
             let startLine = doc.lineAt(sel.from).number;
