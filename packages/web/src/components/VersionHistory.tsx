@@ -97,23 +97,54 @@ export function VersionHistory({ path, currentContent, onRestore, onClose }: Ver
           {snapshots.length === 0 ? (
             <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-faint)" }}>No saved versions</div>
           ) : (
-            snapshots.map((snap, i) => (
-              <div
-                key={snap.timestamp}
-                onClick={() => { setSelectedIdx(i); setShowDiff(false); }}
-                style={{
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  background: selectedIdx === i ? "var(--bg-hover)" : "transparent",
-                  borderLeft: selectedIdx === i ? "2px solid var(--accent-color)" : "2px solid transparent",
-                }}
-              >
-                <div style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>{formatTime(snap.timestamp)}</div>
-                <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
-                  {formatAgo(snap.timestamp)} · {snap.words} words
+            snapshots.map((snap, i) => {
+              const wordDelta = i < snapshots.length - 1 ? snap.words - snapshots[i + 1].words : 0;
+              return (
+                <div
+                  key={snap.timestamp}
+                  onClick={() => { setSelectedIdx(i); setShowDiff(false); }}
+                  style={{
+                    padding: "6px 12px 6px 28px",
+                    cursor: "pointer",
+                    background: selectedIdx === i ? "var(--bg-hover)" : "transparent",
+                    position: "relative",
+                  }}
+                >
+                  {/* Timeline vertical line */}
+                  <div style={{
+                    position: "absolute",
+                    left: 14,
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    background: i === snapshots.length - 1 ? "transparent" : "var(--border-color)",
+                  }} />
+                  {/* Timeline dot */}
+                  <div style={{
+                    position: "absolute",
+                    left: 10,
+                    top: 12,
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: selectedIdx === i ? "var(--accent-color)" : "var(--bg-tertiary)",
+                    border: `2px solid ${selectedIdx === i ? "var(--accent-color)" : "var(--text-faint)"}`,
+                    zIndex: 1,
+                  }} />
+                  <div style={{ fontSize: 12, color: selectedIdx === i ? "var(--accent-color)" : "var(--text-primary)", fontWeight: selectedIdx === i ? 600 : 500 }}>{formatTime(snap.timestamp)}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2, display: "flex", gap: 6 }}>
+                    <span>{formatAgo(snap.timestamp)}</span>
+                    <span>·</span>
+                    <span>{snap.words}w</span>
+                    {wordDelta !== 0 && (
+                      <span style={{ color: wordDelta > 0 ? "#4caf50" : "#f44336" }}>
+                        {wordDelta > 0 ? "+" : ""}{wordDelta}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
