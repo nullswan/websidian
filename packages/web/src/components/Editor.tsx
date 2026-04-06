@@ -2133,6 +2133,49 @@ function calloutCompletion(ctx: CompletionContext) {
   return { from: ctx.pos - match[1].length, options, filter: false };
 }
 
+// Emoji autocomplete: :name: triggers emoji dropdown
+const EMOJI_MAP: [string, string][] = [
+  ["smile", "😄"], ["grinning", "😀"], ["joy", "😂"], ["heart", "❤️"], ["thumbsup", "👍"],
+  ["thumbsdown", "👎"], ["fire", "🔥"], ["star", "⭐"], ["check", "✅"], ["x", "❌"],
+  ["warning", "⚠️"], ["bulb", "💡"], ["rocket", "🚀"], ["eyes", "👀"], ["wave", "👋"],
+  ["clap", "👏"], ["thinking", "🤔"], ["pray", "🙏"], ["sparkles", "✨"], ["tada", "🎉"],
+  ["memo", "📝"], ["book", "📖"], ["link", "🔗"], ["pin", "📌"], ["clock", "🕐"],
+  ["calendar", "📅"], ["folder", "📁"], ["email", "📧"], ["phone", "📱"], ["lock", "🔒"],
+  ["key", "🔑"], ["search", "🔍"], ["gear", "⚙️"], ["wrench", "🔧"], ["hammer", "🔨"],
+  ["bug", "🐛"], ["zap", "⚡"], ["rainbow", "🌈"], ["sun", "☀️"], ["moon", "🌙"],
+  ["cloud", "☁️"], ["umbrella", "☂️"], ["snowflake", "❄️"], ["coffee", "☕"], ["pizza", "🍕"],
+  ["apple", "🍎"], ["tree", "🌳"], ["flower", "🌸"], ["muscle", "💪"], ["brain", "🧠"],
+  ["heart_eyes", "😍"], ["sob", "😭"], ["angry", "😡"], ["100", "💯"], ["boom", "💥"],
+  ["arrow_right", "➡️"], ["arrow_left", "⬅️"], ["arrow_up", "⬆️"], ["arrow_down", "⬇️"],
+  ["plus", "➕"], ["minus", "➖"], ["question", "❓"], ["exclamation", "❗"], ["info", "ℹ️"],
+];
+
+function emojiCompletion(ctx: CompletionContext) {
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const textBefore = line.text.slice(0, ctx.pos - line.from);
+  const match = /:(\w{2,})$/.exec(textBefore);
+  if (!match) return null;
+
+  const query = match[1].toLowerCase();
+  const from = ctx.pos - match[1].length - 1; // include the :
+
+  const options: Completion[] = EMOJI_MAP
+    .filter(([name]) => name.includes(query))
+    .slice(0, 20)
+    .map(([name, emoji]) => ({
+      label: `:${name}:`,
+      detail: emoji,
+      apply: (view: EditorView, _: Completion, compFrom: number, to: number) => {
+        view.dispatch({
+          changes: { from: compFrom, to, insert: emoji },
+          selection: { anchor: compFrom + emoji.length },
+        });
+      },
+    }));
+
+  return options.length > 0 ? { from, options, filter: false } : null;
+}
+
 // Markdown heading fold: fold content under a heading until next heading of equal/higher level
 const markdownHeadingFold = foldService.of((state, lineStart, _lineEnd) => {
   const line = state.doc.lineAt(lineStart);
@@ -3130,7 +3173,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           }
         }) : []),
         autocompletion({
-          override: [frontmatterCompletion, imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion],
+          override: [frontmatterCompletion, imagePathCompletion, wikilinkCompletion, tagCompletion, slashCompletion, calloutCompletion, emojiCompletion],
           activateOnTyping: true,
         }),
         clickHandler,
