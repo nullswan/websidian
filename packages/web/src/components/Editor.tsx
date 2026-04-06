@@ -3759,6 +3759,87 @@ const floatingToolbarPlugin = ViewPlugin.fromClass(class {
   }
 });
 
+// Ghost text: word completion from current document
+class GhostTextWidget extends WidgetType {
+  text: string;
+  constructor(text: string) { super(); this.text = text; }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.text;
+    span.style.cssText = "color: var(--text-faint); opacity: 0.4; pointer-events: none;";
+    span.className = "cm-ghost-text";
+    return span;
+  }
+  eq(other: GhostTextWidget) { return this.text === other.text; }
+}
+
+const ghostTextField = StateField.define<DecorationSet>({
+  create() { return Decoration.none; },
+  update(_, tr) {
+    const state = tr.state;
+    const sel = state.selection.main;
+    if (!sel.empty || !tr.docChanged) return Decoration.none;
+
+    const pos = sel.head;
+    const line = state.doc.lineAt(pos);
+    const beforeCursor = line.text.slice(0, pos - line.from);
+
+    // Get partial word before cursor (at least 3 chars)
+    const wordMatch = beforeCursor.match(/(\w{3,})$/);
+    if (!wordMatch) return Decoration.none;
+    const prefix = wordMatch[1].toLowerCase();
+
+    // Collect all words from the document
+    const docText = state.doc.toString();
+    const wordRegex = /\b(\w{4,})\b/g;
+    const candidates = new Map<string, number>();
+    let m;
+    while ((m = wordRegex.exec(docText)) !== null) {
+      const word = m[1];
+      if (word.toLowerCase().startsWith(prefix) && word.toLowerCase() !== prefix) {
+        candidates.set(word.toLowerCase(), (candidates.get(word.toLowerCase()) ?? 0) + 1);
+      }
+    }
+
+    if (candidates.size === 0) return Decoration.none;
+
+    // Pick the most frequent candidate
+    let best = "";
+    let bestCount = 0;
+    for (const [word, count] of candidates) {
+      if (count > bestCount) { best = word; bestCount = count; }
+    }
+
+    // The ghost is the remaining suffix after the prefix
+    const suffix = best.slice(prefix.length);
+    if (!suffix) return Decoration.none;
+
+    const builder = new RangeSetBuilder<Decoration>();
+    builder.add(pos, pos, Decoration.widget({ widget: new GhostTextWidget(suffix), side: 1 }));
+    return builder.finish();
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+// Tab to accept ghost text
+const ghostTextKeymap = keymap.of([{
+  key: "Tab",
+  run(view) {
+    const decos = view.state.field(ghostTextField, false);
+    if (!decos || decos.size === 0) return false;
+    const iter = decos.iter();
+    if (!iter.value) return false;
+    const widget = (iter.value.spec as { widget?: GhostTextWidget }).widget;
+    if (!widget || !(widget instanceof GhostTextWidget)) return false;
+    const pos = iter.from;
+    view.dispatch({
+      changes: { from: pos, to: pos, insert: widget.text },
+      selection: { anchor: pos + widget.text.length },
+    });
+    return true;
+  },
+}]);
+
 function rulerExtension(columns: number[]): import("@codemirror/state").Extension {
   if (columns.length === 0) return [];
   return ViewPlugin.fromClass(class {
@@ -4728,6 +4809,8 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         createBacklinkGutter(backlinkLinesRef),
         ...(sourceMode ? [] : [stickyHeadingPlugin, colorSwatchPlugin, bareUrlPlugin, indentGuidePlugin, unlinkedMentionsPlugin]),
         scrollbarIndicatorPlugin,
+        ghostTextField,
+        ghostTextKeymap,
         foldGutter({
           markerDOM(open) {
             const span = document.createElement("span");
