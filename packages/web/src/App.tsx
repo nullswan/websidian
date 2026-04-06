@@ -36,6 +36,7 @@ import { OutgoingLinks } from "./components/OutgoingLinks.js";
 import { SharePage } from "./components/SharePage.js";
 import { Ribbon } from "./components/Ribbon.js";
 import { ShortcutsOverlay } from "./components/ShortcutsOverlay.js";
+import { TabContextMenu } from "./components/TabContextMenu.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
@@ -4020,218 +4021,27 @@ ${rendered}
       })()}
       {/* Tab context menu */}
       {tabCtxMenu && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 900 }}
-          onClick={() => setTabCtxMenu(null)}
-          onContextMenu={(e) => { e.preventDefault(); setTabCtxMenu(null); }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              left: tabCtxMenu.x,
-              top: tabCtxMenu.y,
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: 6,
-              padding: "4px 0",
-              minWidth: 160,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
-              fontSize: 13,
-              animation: "ctx-menu-in 0.12s ease-out",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {[
-              {
-                label: tabsMap[tabCtxMenu.tabId]?.pinned ? "Unpin Tab" : "Pin Tab",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (tab) updateTab(tabCtxMenu.tabId, { pinned: !tab.pinned });
-                },
-              },
-              {
-                label: "Open in New Pane",
-                action: () => {
-                  if (panes.length >= 2) return;
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (!tab) return;
-                  setPanes((prev) => [...prev, { tabIds: [], activeTabId: null }]);
-                  setTimeout(() => openTab(tab.path, panes.length), 0);
-                },
-              },
-              { type: "separator" as const },
-              { label: "Close", action: () => closeTab(tabCtxMenu.tabId, tabCtxMenu.paneIdx) },
-              {
-                label: "Close Others",
-                action: () => {
-                  const pane = panes[tabCtxMenu.paneIdx];
-                  const others = pane.tabIds.filter((t) => t !== tabCtxMenu.tabId && !tabsMap[t]?.pinned);
-                  for (const tid of others) closeTab(tid, tabCtxMenu.paneIdx);
-                },
-              },
-              {
-                label: "Close All",
-                action: () => {
-                  const pane = panes[tabCtxMenu.paneIdx];
-                  for (const tid of [...pane.tabIds]) {
-                    if (!tabsMap[tid]?.pinned) closeTab(tid, tabCtxMenu.paneIdx);
-                  }
-                },
-              },
-              {
-                label: "Close Tabs to the Right",
-                action: () => {
-                  const pane = panes[tabCtxMenu.paneIdx];
-                  const idx = pane.tabIds.indexOf(tabCtxMenu.tabId);
-                  const right = pane.tabIds.slice(idx + 1).filter((t) => !tabsMap[t]?.pinned);
-                  for (const tid of right) closeTab(tid, tabCtxMenu.paneIdx);
-                },
-              },
-              {
-                label: "Close Tabs to the Left",
-                action: () => {
-                  const pane = panes[tabCtxMenu.paneIdx];
-                  const idx = pane.tabIds.indexOf(tabCtxMenu.tabId);
-                  const left = pane.tabIds.slice(0, idx).filter((t) => !tabsMap[t]?.pinned);
-                  for (const tid of left) closeTab(tid, tabCtxMenu.paneIdx);
-                },
-              },
-              { type: "separator" as const },
-              {
-                label: "Copy Path",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (tab) {
-                    navigator.clipboard.writeText(tab.path).catch(() => {});
-                    showToast("Path copied to clipboard");
-                  }
-                },
-              },
-              {
-                label: "Copy Note Link",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (tab) {
-                    const name = tab.path.replace(/\.md$/, "").split("/").pop() || tab.path;
-                    navigator.clipboard.writeText(`[[${name}]]`).catch(() => {});
-                    showToast(`Copied [[${name}]]`);
-                  }
-                },
-              },
-              {
-                label: "Share Note",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (!tab) return;
-                  fetch("/api/vault/share", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ path: tab.path }),
-                  })
-                    .then((r) => r.json())
-                    .then((data) => {
-                      if (data.url) {
-                        const shareUrl = `${window.location.origin}/#/share/${data.id}`;
-                        navigator.clipboard.writeText(shareUrl).catch(() => {});
-                        showToast(`Share link copied!`);
-                      }
-                    });
-                },
-              },
-              {
-                label: "Reveal in File Tree",
-                action: () => setLeftPanel("files"),
-              },
-              {
-                label: "Duplicate",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (tab) duplicateNote(tab.path);
-                },
-              },
-              {
-                label: starredNotes.includes(tabsMap[tabCtxMenu.tabId]?.path) ? "Unstar" : "Star",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (tab) toggleStar(tab.path);
-                },
-              },
-              {
-                label: "Color",
-                type: "color-picker" as const,
-                action: () => {},
-              },
-              {
-                label: "Compare with...",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (!tab) return;
-                  setDiffSource(tab.path);
-                },
-              },
-              { type: "separator" as const },
-              {
-                label: "Split Right",
-                action: () => {
-                  const tab = tabsMap[tabCtxMenu.tabId];
-                  if (!tab || panes.length >= 2) return;
-                  const newPaneTabId = nextTabId();
-                  const newTab: Tab = { ...tab, id: newPaneTabId };
-                  setTabsMap((prev) => ({ ...prev, [newPaneTabId]: newTab }));
-                  setPanes((prev) => [...prev, { tabIds: [newPaneTabId], activeTabId: newPaneTabId }]);
-                  // Load content for the new tab
-                  fetch(`/api/vault/file?path=${encodeURIComponent(tab.path)}`, { credentials: "include" })
-                    .then((r) => r.json())
-                    .then((d) => { if (!d.error) updateTab(newPaneTabId, { content: d.content, fileCreated: d.created, fileModified: d.modified, fileSize: d.size }); });
-                },
-              },
-            ].map((item, i) =>
-              "type" in item && item.type === "separator" ? (
-                <div key={i} style={{ borderTop: "1px solid var(--border-color)", margin: "4px 0" }} />
-              ) : "type" in item && item.type === "color-picker" ? (
-                <div key={i} style={{ padding: "4px 12px", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 4 }}>Color</span>
-                  {["", "#e06c75", "#e5c07b", "#98c379", "#61afef", "#c678dd", "#56b6c2"].map((c) => (
-                    <span
-                      key={c || "none"}
-                      onClick={() => {
-                        updateTab(tabCtxMenu.tabId, { color: c || undefined });
-                        setTabCtxMenu(null);
-                      }}
-                      style={{
-                        width: 14, height: 14, borderRadius: "50%", cursor: "pointer",
-                        background: c || "var(--bg-tertiary)",
-                        border: (tabsMap[tabCtxMenu.tabId]?.color ?? "") === c ? "2px solid var(--text-primary)" : "1px solid var(--border-color)",
-                        transition: "transform 0.1s",
-                      }}
-                      onMouseEnter={(e) => { (e.target as HTMLElement).style.transform = "scale(1.3)"; }}
-                      onMouseLeave={(e) => { (e.target as HTMLElement).style.transform = "scale(1)"; }}
-                      title={c ? c : "None"}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div
-                  key={i}
-                  style={{
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    color: "var(--text-primary)",
-                  }}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "var(--bg-hover)"; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; }}
-                  onClick={() => {
-                    (item as { action: () => void }).action();
-                    setTabCtxMenu(null);
-                  }}
-                >
-                  {(item as { label: string }).label}
-                </div>
-              ),
-            )}
-          </div>
-        </div>
+        <TabContextMenu
+          x={tabCtxMenu.x}
+          y={tabCtxMenu.y}
+          tabId={tabCtxMenu.tabId}
+          paneIdx={tabCtxMenu.paneIdx}
+          tabsMap={tabsMap}
+          panes={panes}
+          starredNotes={starredNotes}
+          onClose={() => setTabCtxMenu(null)}
+          onUpdateTab={updateTab}
+          onCloseTab={closeTab}
+          onOpenTab={openTab}
+          onSetPanes={setPanes}
+          onSetTabsMap={setTabsMap}
+          onSetLeftPanel={setLeftPanel}
+          onToggleStar={toggleStar}
+          onDuplicateNote={duplicateNote}
+          onSetDiffSource={setDiffSource}
+          onShowToast={showToast}
+          nextTabId={nextTabId}
+        />
       )}
 
       {/* Template Picker */}
