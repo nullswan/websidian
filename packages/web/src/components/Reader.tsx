@@ -602,6 +602,24 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       const text = p.textContent?.trim() ?? "";
       const linkText = a.textContent?.trim() ?? "";
       if (text !== linkText) return; // Has other content besides the link
+
+      // YouTube embed: detect YouTube URLs and render as iframe player
+      const ytMatch = a.href.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+      if (ytMatch) {
+        const videoId = ytMatch[1];
+        const wrapper = document.createElement("div");
+        wrapper.className = "youtube-embed";
+        wrapper.style.cssText = "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin:8px 0;background:var(--bg-tertiary);";
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}`;
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        iframe.allowFullscreen = true;
+        iframe.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:8px;";
+        wrapper.appendChild(iframe);
+        p.replaceWith(wrapper);
+        return;
+      }
+
       // Create card
       const card = document.createElement("a");
       card.href = a.href;
