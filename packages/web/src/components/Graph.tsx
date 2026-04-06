@@ -401,6 +401,9 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         ctx.stroke();
       }
 
+      // Collect labels for overlap avoidance
+      const labelsToDraw: Array<{ x: number; y: number; label: string; fontSize: number; fillColor: string }> = [];
+
       // Draw nodes
       for (const node of nodes) {
         const nx = cx + node.x * zoom;
@@ -447,15 +450,40 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Label
+        // Collect label info for overlap avoidance
         const showLabel = isActive || isHovered || isNeighbor || isPathNode || !hoverNode;
         if (showLabel) {
-          ctx.fillStyle = isPathNode ? "#ffc832" : isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
-          ctx.font = `${isActive || isHovered || isPathNode ? 12 : 10}px system-ui, sans-serif`;
-          ctx.textAlign = "center";
+          const fontSize = isActive || isHovered || isPathNode ? 12 : 10;
           const label = node.name.length > 20 ? node.name.slice(0, 18) + "…" : node.name;
-          ctx.fillText(label, nx, ny + radius + 14);
+          const fillColor = isPathNode ? "#ffc832" : isActive || isHovered ? textPrimary : isNeighbor ? textSecondary : textMuted;
+          labelsToDraw.push({ x: nx, y: ny + radius + 14, label, fontSize, fillColor });
         }
+      }
+
+      // Draw labels with simple overlap avoidance
+      // Nudge labels that overlap by shifting them vertically
+      for (let i = 0; i < labelsToDraw.length; i++) {
+        for (let j = i + 1; j < labelsToDraw.length; j++) {
+          const a = labelsToDraw[i];
+          const b = labelsToDraw[j];
+          const dx = Math.abs(a.x - b.x);
+          const dy = Math.abs(a.y - b.y);
+          const minDx = (a.label.length + b.label.length) * 2.5 * zoom;
+          const minDy = Math.max(a.fontSize, b.fontSize) + 2;
+          if (dx < minDx && dy < minDy) {
+            // Push labels apart vertically
+            const overlap = (minDy - dy) / 2 + 1;
+            if (a.y < b.y) { a.y -= overlap; b.y += overlap; }
+            else { a.y += overlap; b.y -= overlap; }
+          }
+        }
+      }
+
+      for (const lbl of labelsToDraw) {
+        ctx.fillStyle = lbl.fillColor;
+        ctx.font = `${lbl.fontSize}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(lbl.label, lbl.x, lbl.y);
       }
 
       animRef.current = requestAnimationFrame(tick);
