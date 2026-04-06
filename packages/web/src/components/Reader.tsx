@@ -490,6 +490,37 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     });
   }, [html]);
 
+  // Image placeholder shimmer + smooth load
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const imgs = container.querySelectorAll<HTMLImageElement>("img:not(.ext-favicon):not(.img-processed)");
+    imgs.forEach((img) => {
+      img.classList.add("img-processed");
+      // Wrap in placeholder
+      const wrapper = document.createElement("div");
+      wrapper.className = "img-placeholder";
+      img.parentElement?.insertBefore(wrapper, img);
+      wrapper.appendChild(img);
+
+      const reveal = () => {
+        img.classList.add("img-loaded");
+        // Set aspect ratio on wrapper based on natural dimensions to prevent layout shift
+        if (img.naturalWidth && img.naturalHeight) {
+          wrapper.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+        }
+        // Remove shimmer after transition
+        setTimeout(() => wrapper.classList.remove("img-placeholder"), 350);
+      };
+      if (img.complete && img.naturalWidth) {
+        reveal();
+      } else {
+        img.addEventListener("load", reveal, { once: true });
+        img.addEventListener("error", () => { img.classList.add("img-loaded"); wrapper.classList.remove("img-placeholder"); }, { once: true });
+      }
+    });
+  }, [html]);
+
   // External link favicons
   useEffect(() => {
     const container = containerRef.current;

@@ -366,10 +366,29 @@ details.callout > div {
   max-width: 100%;
   border-radius: 6px;
   opacity: 0;
-  animation: imgFadeIn 0.3s ease forwards;
+  transition: opacity 0.3s ease;
 }
-@keyframes imgFadeIn {
-  to { opacity: 1; }
+.reader-view img.img-loaded {
+  opacity: 1;
+}
+/* Image placeholder shimmer */
+.img-placeholder {
+  position: relative;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 60px;
+}
+.img-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  animation: img-shimmer 1.5s infinite;
+}
+@keyframes img-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .reader-view .embed {
