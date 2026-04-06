@@ -1585,7 +1585,7 @@ ${rendered}
                           const words = body.trim().split(/\s+/).filter(Boolean).length;
                           const pct = Math.min(words / goal, 1);
                           const r = 5; const circ = 2 * Math.PI * r;
-                          const color = pct >= 1 ? "#4caf50" : "var(--accent-color)";
+                          const color = pct >= 1 ? "var(--color-green)" : "var(--accent-color)";
                           return (
                             <span title={`${words}/${goal} words (${Math.round(pct * 100)}%)`} style={{ display: "inline-flex", marginLeft: 3, flexShrink: 0 }}>
                               <svg width="14" height="14" viewBox="0 0 14 14" style={{ transform: "rotate(-90deg)" }}>
@@ -3127,7 +3127,7 @@ ${rendered}
                   const fleschLabel = flesch === null ? null
                     : flesch >= 80 ? "Easy" : flesch >= 60 ? "Standard" : flesch >= 40 ? "Moderate" : "Complex";
                   const fleschColor = flesch === null ? "var(--text-faint)"
-                    : flesch >= 80 ? "#4caf50" : flesch >= 60 ? "#8bc34a" : flesch >= 40 ? "#ff9800" : "#f44336";
+                    : flesch >= 80 ? "var(--color-green)" : flesch >= 60 ? "var(--color-yellow)" : flesch >= 40 ? "var(--color-orange)" : "var(--color-red)";
 
                   return (
                     <>

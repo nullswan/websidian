@@ -137,7 +137,7 @@ export function VersionHistory({ path, currentContent, onRestore, onClose }: Ver
                     <span>·</span>
                     <span>{snap.words}w</span>
                     {wordDelta !== 0 && (
-                      <span style={{ color: wordDelta > 0 ? "#4caf50" : "#f44336" }}>
+                      <span style={{ color: wordDelta > 0 ? "var(--color-green)" : "var(--color-red)" }}>
                         {wordDelta > 0 ? "+" : ""}{wordDelta}
                       </span>
                     )}
@@ -207,9 +207,9 @@ export function VersionHistory({ path, currentContent, onRestore, onClose }: Ver
                     key={i}
                     style={{
                       background: line.type === "added" ? "rgba(76,175,80,0.1)" : line.type === "removed" ? "rgba(244,67,54,0.1)" : "transparent",
-                      color: line.type === "added" ? "#4caf50" : line.type === "removed" ? "#f44336" : "var(--text-secondary)",
+                      color: line.type === "added" ? "var(--color-green)" : line.type === "removed" ? "var(--color-red)" : "var(--text-secondary)",
                       padding: "0 4px",
-                      borderLeft: line.type !== "same" ? `3px solid ${line.type === "added" ? "#4caf50" : "#f44336"}` : "3px solid transparent",
+                      borderLeft: line.type !== "same" ? `3px solid ${line.type === "added" ? "var(--color-green)" : "var(--color-red)"}` : "3px solid transparent",
                     }}
                   >
                     {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "} {line.text}

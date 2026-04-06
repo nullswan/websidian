@@ -736,7 +736,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
       const pct = Math.round((checked / total) * 100);
       const bar = document.createElement("span");
       bar.style.cssText = `display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:10px;color:var(--text-faint);vertical-align:middle;`;
-      bar.innerHTML = `<span style="display:inline-block;width:40px;height:3px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "#4caf50" : "var(--accent-color)"};border-radius:2px;"></span></span><span>${checked}/${total}</span>`;
+      bar.innerHTML = `<span style="display:inline-block;width:40px;height:3px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "var(--color-green)" : "var(--accent-color)"};border-radius:2px;"></span></span><span>${checked}/${total}</span>`;
       heading.appendChild(bar);
     });
   }, [html]);
@@ -756,7 +756,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     const summary = document.createElement("div");
     summary.className = "task-progress-summary";
     summary.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;font-size:12px;color:var(--text-secondary);";
-    summary.innerHTML = `<span style="flex-shrink:0;">${pct === 100 ? "✅" : "☐"}</span><span style="flex:1;height:4px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "#4caf50" : "var(--accent-color)"};border-radius:2px;transition:width 0.3s ease;"></span></span><span>${checked}/${total} tasks (${pct}%)</span>`;
+    summary.innerHTML = `<span style="flex-shrink:0;">${pct === 100 ? "✅" : "☐"}</span><span style="flex:1;height:4px;background:var(--border-color);border-radius:2px;overflow:hidden;"><span style="display:block;width:${pct}%;height:100%;background:${pct === 100 ? "var(--color-green)" : "var(--accent-color)"};border-radius:2px;transition:width 0.3s ease;"></span></span><span>${checked}/${total} tasks (${pct}%)</span>`;
     container.insertBefore(summary, container.firstChild);
   }, [html]);
 
@@ -2533,7 +2533,7 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--text-muted)" }}>
             <div style={{ flex: 1, height: 4, borderRadius: 2, background: "var(--bg-tertiary)", overflow: "hidden" }}>
-              <div style={{ width: `${pct}%`, height: "100%", background: pct === 100 ? "#4caf50" : "var(--accent-color)", borderRadius: 2, transition: "width 0.3s" }} />
+              <div style={{ width: `${pct}%`, height: "100%", background: pct === 100 ? "var(--color-green)" : "var(--accent-color)", borderRadius: 2, transition: "width 0.3s" }} />
             </div>
             <span>{done}/{total} tasks</span>
           </div>

@@ -38,7 +38,7 @@ export function NoteGrowth({ path }: NoteGrowthProps) {
   const latest = data[data.length - 1];
   const oldest = data[0];
   const delta = latest.words - oldest.words;
-  const deltaColor = delta > 0 ? "#4caf50" : delta < 0 ? "#f44336" : "var(--text-faint)";
+  const deltaColor = delta > 0 ? "var(--color-green)" : delta < 0 ? "var(--color-red)" : "var(--text-faint)";
 
   function formatDate(ts: number): string {
     const d = new Date(ts);

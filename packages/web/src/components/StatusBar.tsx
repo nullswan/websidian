@@ -138,7 +138,7 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
         const r = 7;
         const circ = 2 * Math.PI * r;
         const offset = circ * (1 - pct);
-        const color = pct >= 1 ? "#4caf50" : "var(--accent-color)";
+        const color = pct >= 1 ? "var(--color-green)" : "var(--accent-color)";
         return (
           <span
             style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
@@ -150,7 +150,7 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
                 strokeDasharray={circ} strokeDashoffset={offset}
                 strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.3s" }} />
             </svg>
-            <span style={{ color: pct >= 1 ? "#4caf50" : undefined }}>{Math.round(pct * 100)}%</span>
+            <span style={{ color: pct >= 1 ? "var(--color-green)" : undefined }}>{Math.round(pct * 100)}%</span>
           </span>
         );
       })()}
@@ -159,9 +159,9 @@ export const StatusBar = React.memo(function StatusBar({ content, path, cursorPo
       {stats.totalTasks > 0 && (() => {
         const pct = stats.doneTasks / stats.totalTasks;
         const done = stats.doneTasks === stats.totalTasks;
-        const barColor = done ? "#4caf50" : "var(--accent-color)";
+        const barColor = done ? "var(--color-green)" : "var(--accent-color)";
         return (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: done ? "#4caf50" : undefined }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: done ? "var(--color-green)" : undefined }}>
             <span style={{ display: "inline-block", width: 40, height: 4, background: "var(--border-color)", borderRadius: 2, overflow: "hidden" }}>
               <span style={{ display: "block", width: `${pct * 100}%`, height: "100%", background: barColor, borderRadius: 2, transition: "width 0.3s" }} />
             </span>
