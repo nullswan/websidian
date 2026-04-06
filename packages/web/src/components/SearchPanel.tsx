@@ -50,7 +50,12 @@ export function SearchPanel({ onNavigate, initialQuery, onClose, showToast }: Se
             setRegexError(data.error);
             setResults([]);
           } else {
-            setResults(data.results ?? []);
+            // Sort by relevance: most matches first, then alphabetical
+            const sorted = (data.results ?? []).sort((a: SearchResult, b: SearchResult) => {
+              const diff = b.matches.length - a.matches.length;
+              return diff !== 0 ? diff : a.path.localeCompare(b.path);
+            });
+            setResults(sorted);
           }
           setSearching(false);
         })
