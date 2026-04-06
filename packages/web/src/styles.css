@@ -205,10 +205,19 @@ body {
 
 .reader-view .tag {
   color: #e6994a;
-  background: rgba(230, 153, 74, 0.1);
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 13px;
+  background: rgba(230, 153, 74, 0.12);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  display: inline-block;
+  line-height: 1.4;
+}
+.reader-view .tag:hover {
+  background: rgba(230, 153, 74, 0.25);
+  color: #f0a85c;
 }
 
 .reader-view code {
