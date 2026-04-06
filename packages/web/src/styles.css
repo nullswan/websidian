@@ -312,6 +312,16 @@ details.callout > div {
 .reader-view li {
   margin: 4px 0;
 }
+.reader-view li::marker {
+  transition: color 0.3s ease;
+}
+@keyframes list-item-enter {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.reader-view li {
+  animation: list-item-enter 0.2s ease forwards;
+}
 /* Depth-based list marker colors */
 .reader-view > ul > li::marker, .reader-view > ol > li::marker { color: var(--accent-color, #7f6df2); }
 .reader-view li li::marker { color: #e6994a; }
@@ -350,8 +360,10 @@ details.callout > div {
 
 .reader-view li.task-list-item:has(input[type="checkbox"]:checked) {
   text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
   color: var(--text-muted);
   opacity: 0.7;
+  transition: opacity 0.3s ease, color 0.3s ease, text-decoration-color 0.3s ease;
 }
 
 .reader-view li.task-list-item .alt-checkbox {
