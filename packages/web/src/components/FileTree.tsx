@@ -919,6 +919,10 @@ function FileTreeNode({
           ref={(el) => {
             if (el && (isSelected || isFocused)) {
               el.scrollIntoView({ block: "nearest", inline: "nearest" });
+              if (isSelected && !el.classList.contains("reveal-flash")) {
+                el.classList.add("reveal-flash");
+                setTimeout(() => el.classList.remove("reveal-flash"), 1200);
+              }
             }
           }}
           data-path={entry.path}

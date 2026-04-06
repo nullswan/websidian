@@ -845,6 +845,14 @@ details.callout > div {
   border-radius: 3px;
 }
 
+@keyframes reveal-flash {
+  0% { background: rgba(127, 109, 242, 0.3) !important; }
+  100% { background: transparent !important; }
+}
+.reveal-flash {
+  animation: reveal-flash 1.2s ease-out;
+}
+
 /* Readable line length guide — subtle side borders */
 .reader-view {
   border-left: 1px solid transparent;
