@@ -1523,6 +1523,73 @@ export function Reader({ content, filePath, onNavigate, onSave, onTagClick, sear
     return () => cleanups.forEach((fn) => fn());
   }, [html]);
 
+  // Reader selection floating toolbar
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let toolbar: HTMLDivElement | null = null;
+
+    const removeToolbar = () => {
+      if (toolbar) { toolbar.remove(); toolbar = null; }
+    };
+
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) { removeToolbar(); return; }
+      const range = sel.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) { removeToolbar(); return; }
+      const text = sel.toString().trim();
+      if (text.length < 2) { removeToolbar(); return; }
+
+      removeToolbar();
+      toolbar = document.createElement("div");
+      toolbar.style.cssText = "position:fixed;z-index:1000;display:flex;gap:2px;padding:4px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-size:11px;";
+      const rect = range.getBoundingClientRect();
+      toolbar.style.left = `${rect.left + rect.width / 2 - 60}px`;
+      toolbar.style.top = `${rect.top - 36}px`;
+
+      const btnStyle = "padding:3px 8px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:3px;white-space:nowrap;";
+      const hoverIn = (e: Event) => (e.target as HTMLElement).style.background = "var(--bg-tertiary)";
+      const hoverOut = (e: Event) => (e.target as HTMLElement).style.background = "none";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.style.cssText = btnStyle;
+      copyBtn.addEventListener("mouseenter", hoverIn);
+      copyBtn.addEventListener("mouseleave", hoverOut);
+      copyBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(text);
+        copyBtn.textContent = "Copied!";
+        setTimeout(removeToolbar, 600);
+      });
+      toolbar.appendChild(copyBtn);
+
+      if (onTagClick) {
+        const searchBtn = document.createElement("button");
+        searchBtn.textContent = "Search";
+        searchBtn.style.cssText = btnStyle;
+        searchBtn.addEventListener("mouseenter", hoverIn);
+        searchBtn.addEventListener("mouseleave", hoverOut);
+        searchBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          // Dispatch a custom event that App can listen to
+          container.dispatchEvent(new CustomEvent("reader-search", { detail: text, bubbles: true }));
+          removeToolbar();
+        });
+        toolbar.appendChild(searchBtn);
+      }
+
+      document.body.appendChild(toolbar);
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      removeToolbar();
+    };
+  }, [html, onTagClick]);
+
   const handleClick = (e: React.MouseEvent) => {
     // Handle wikilink clicks
     const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
