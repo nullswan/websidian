@@ -1741,6 +1741,34 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
           return true;
         },
       },
+      // Toggle task list: plain → - → - [ ] → - [x] → plain
+      {
+        key: "Mod-Enter",
+        run: (view) => {
+          const line = view.state.doc.lineAt(view.state.selection.main.head);
+          const text = line.text;
+          const indent = text.match(/^(\s*)/)?.[1] || "";
+          const content = text.trimStart();
+          let newLine: string;
+          if (/^- \[x\]\s/.test(content)) {
+            // Checked task → plain
+            newLine = indent + content.replace(/^- \[x\]\s/, "");
+          } else if (/^- \[ \]\s/.test(content)) {
+            // Unchecked task → checked
+            newLine = indent + content.replace(/^- \[ \]/, "- [x]");
+          } else if (/^- \s/.test(content) && !/^- \[/.test(content)) {
+            // Bullet → unchecked task
+            newLine = indent + content.replace(/^- /, "- [ ] ");
+          } else {
+            // Plain → bullet
+            newLine = indent + "- " + content;
+          }
+          view.dispatch({
+            changes: { from: line.from, to: line.to, insert: newLine },
+          });
+          return true;
+        },
+      },
     ]);
 
     // Ctrl+Click on wikilinks to navigate
