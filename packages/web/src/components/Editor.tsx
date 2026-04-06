@@ -927,10 +927,15 @@ class WikilinkWidget extends WidgetType {
     span.textContent = this.display;
     span.style.cssText = "color: #7f6df2; cursor: pointer; text-decoration-line: underline; text-decoration-style: solid; text-decoration-color: rgba(127, 109, 242, 0.3); text-underline-offset: 2px;";
     span.title = this.target;
+    span.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      span.dispatchEvent(new CustomEvent("wikilink-navigate", { bubbles: true, detail: { target: this.target } }));
+    });
     return span;
   }
   eq(other: WikilinkWidget) { return this.target === other.target && this.display === other.display; }
-  ignoreEvent() { return true; }
+  ignoreEvent(e: Event) { return e.type !== "mousedown" && e.type !== "mouseup" && e.type !== "click"; }
 }
 
 function buildWikilinkDecorations(state: EditorState): DecorationSet {
@@ -2110,9 +2115,19 @@ export function Editor({ content, filePath, onSave, onNavigate, onCursorChange, 
     contentDOM.addEventListener("mousemove", handleMouseMove);
     contentDOM.addEventListener("mouseleave", handleMouseLeave);
 
+    // Listen for wikilink navigation from rendered widgets
+    const handleWikilinkNav = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.target && onNavigate) {
+        onNavigate(detail.target);
+      }
+    };
+    viewRef.current.dom.addEventListener("wikilink-navigate", handleWikilinkNav);
+
     return () => {
       contentDOM.removeEventListener("mousemove", handleMouseMove);
       contentDOM.removeEventListener("mouseleave", handleMouseLeave);
+      viewRef.current?.dom.removeEventListener("wikilink-navigate", handleWikilinkNav);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       removeHover();
       viewRef.current?.destroy();
