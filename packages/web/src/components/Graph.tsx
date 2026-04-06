@@ -27,6 +27,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
   const allNodesRef = useRef<GraphNode[]>([]);
   const allEdgesRef = useRef<GraphEdge[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [graphFilter, setGraphFilter] = useState("");
   const [showOrphans, setShowOrphans] = useState(true);
   const [filterDepth, setFilterDepth] = useState(1);
@@ -459,8 +460,24 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     };
   }, [loaded, onNavigate, screenToWorld, findNodeAt]);
 
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [fullscreen]);
+
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", background: "var(--bg-primary)", display: "flex", flexDirection: "column" }}>
+    <div style={{
+      width: fullscreen ? "100vw" : "100%",
+      height: fullscreen ? "100vh" : "100%",
+      position: fullscreen ? "fixed" : "relative",
+      inset: fullscreen ? 0 : undefined,
+      zIndex: fullscreen ? 10000 : undefined,
+      background: "var(--bg-primary)",
+      display: "flex",
+      flexDirection: "column",
+    }}>
       <div style={{ padding: "6px 8px", display: "flex", gap: 6, alignItems: "center", borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
         <input
           type="text"
@@ -479,6 +496,13 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} style={{ accentColor: "var(--accent-color)" }} />
           Orphans
         </label>
+        <button
+          onClick={() => setFullscreen((v) => !v)}
+          title={fullscreen ? "Exit full screen" : "Full screen"}
+          style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", padding: "2px", fontSize: 14, lineHeight: 1, flexShrink: 0 }}
+        >
+          {fullscreen ? "⤓" : "⤢"}
+        </button>
         <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{nodesRef.current.length} notes · {edgesRef.current.length} links</span>
       </div>
       <canvas
