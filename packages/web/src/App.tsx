@@ -1092,6 +1092,18 @@ ${rendered}
     return () => window.removeEventListener("keydown", handler);
   }, [toggleMode, activePane, activePaneIdx, closeTab, createNewNote, openDailyNote, openTab, showShortcuts, toggleZenMode, zenMode]);
 
+  // Warn before closing browser with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const hasDirty = Object.values(tabsMap).some((t) => t.dirty);
+      if (hasDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [tabsMap]);
+
   // Sync document title with active note
   useEffect(() => {
     const name = activeTab?.path.replace(/\.md$/, "").split("/").pop();
