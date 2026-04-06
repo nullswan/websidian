@@ -1964,6 +1964,22 @@ ${rendered}
                             </span>
                           );
                         })()}
+                        {tab.backlinks.length > 0 && (
+                          <span title={`${tab.backlinks.length} backlink${tab.backlinks.length !== 1 ? "s" : ""}`} style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            marginLeft: 3,
+                            fontSize: 9,
+                            color: "var(--text-faint)",
+                            background: "rgba(255,255,255,0.06)",
+                            borderRadius: 6,
+                            padding: "0 4px",
+                            lineHeight: "14px",
+                            flexShrink: 0,
+                          }}>
+                            {tab.backlinks.length}
+                          </span>
+                        )}
                       </span>
                       <button
                         className="tab-close"
