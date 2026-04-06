@@ -1,16 +1,28 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { VaultEntry } from "../types.js";
 
-type SortMode = "name" | "mtime" | "ctime" | "size" | "type";
+type SortMode = "name" | "mtime" | "ctime" | "size" | "type" | "custom";
 
 const SORT_KEY = "filetree-sort";
+const CUSTOM_ORDER_KEY = "filetree-custom-order";
 
 function loadSortMode(): SortMode {
   try {
     const v = localStorage.getItem(SORT_KEY);
-    if (v === "name" || v === "mtime" || v === "ctime" || v === "size" || v === "type") return v;
+    if (v === "name" || v === "mtime" || v === "ctime" || v === "size" || v === "type" || v === "custom") return v;
   } catch {}
   return "name";
+}
+
+function loadCustomOrder(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(CUSTOM_ORDER_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveCustomOrder(order: Record<string, string[]>) {
+  try { localStorage.setItem(CUSTOM_ORDER_KEY, JSON.stringify(order)); } catch {}
 }
 
 function formatFileSize(bytes: number): string {
@@ -19,7 +31,23 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function sortEntries(entries: VaultEntry[], mode: SortMode = "name"): VaultEntry[] {
+function sortEntries(entries: VaultEntry[], mode: SortMode = "name", customOrder?: Record<string, string[]>, parentPath?: string): VaultEntry[] {
+  if (mode === "custom" && customOrder) {
+    const key = parentPath ?? "__root__";
+    const order = customOrder[key];
+    if (order) {
+      const orderMap = new Map(order.map((p, i) => [p, i]));
+      return [...entries].sort((a, b) => {
+        const aDir = a.kind === "folder" ? 0 : 1;
+        const bDir = b.kind === "folder" ? 0 : 1;
+        if (aDir !== bDir) return aDir - bDir;
+        const aIdx = orderMap.get(a.path) ?? 9999;
+        const bIdx = orderMap.get(b.path) ?? 9999;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        return (a.path.split("/").pop() ?? "").localeCompare(b.path.split("/").pop() ?? "");
+      });
+    }
+  }
   return [...entries].sort((a, b) => {
     const aDir = a.kind === "folder" ? 0 : 1;
     const bDir = b.kind === "folder" ? 0 : 1;
@@ -190,6 +218,46 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
   });
 
   const [sortMode, setSortMode] = useState<SortMode>(loadSortMode);
+  const [customOrder, setCustomOrder] = useState<Record<string, string[]>>(loadCustomOrder);
+
+  const reorderInFolder = useCallback((sourcePath: string, targetPath: string, parentPath: string) => {
+    setCustomOrder((prev) => {
+      const key = parentPath || "__root__";
+      const currentEntries = prev[key] ?? [];
+      // Build current order from entries if not set yet
+      const findFolder = (es: VaultEntry[], target: string): VaultEntry | null => {
+        for (const e of es) {
+          if (e.path === target && e.kind === "folder") return e;
+          if (e.kind === "folder") {
+            const found = findFolder(e.children, target);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const folder = parentPath ? findFolder(entries, parentPath) : null;
+      const childPaths = folder && folder.kind === "folder" ? folder.children.map((c: VaultEntry) => c.path) : entries.map((e) => e.path);
+      const order = currentEntries.length > 0 ? currentEntries.filter((p) => childPaths.includes(p)) : childPaths;
+      // Add any missing paths
+      for (const p of childPaths) {
+        if (!order.includes(p)) order.push(p);
+      }
+      // Move source to target position
+      const fromIdx = order.indexOf(sourcePath);
+      const toIdx = order.indexOf(targetPath);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return prev;
+      order.splice(fromIdx, 1);
+      order.splice(toIdx, 0, sourcePath);
+      const next = { ...prev, [key]: order };
+      saveCustomOrder(next);
+      // Auto-switch to custom sort mode
+      if (sortMode !== "custom") {
+        setSortMode("custom");
+        localStorage.setItem(SORT_KEY, "custom");
+      }
+      return next;
+    });
+  }, [entries, sortMode]);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [newFolderDragOver, setNewFolderDragOver] = useState(false);
@@ -442,7 +510,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
         <button
           title={`Sort: ${sortMode} (click to cycle)`}
           onClick={() => {
-            const modes: SortMode[] = ["name", "mtime", "ctime", "size", "type"];
+            const modes: SortMode[] = ["name", "mtime", "ctime", "size", "type", "custom"];
             const next = modes[(modes.indexOf(sortMode) + 1) % modes.length];
             setSortMode(next);
             localStorage.setItem(SORT_KEY, next);
@@ -469,11 +537,13 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
               <path d="M2 4h12M2 8h8M2 12h4" strokeWidth="2" />
             ) : sortMode === "type" ? (
               <><path d="M3 2h6l4 4v8H3z" /><path d="M9 2v4h4" /></>
+            ) : sortMode === "custom" ? (
+              <path d="M4 3v10M8 3v10M12 3v10M2 6h12M2 10h12" />
             ) : (
               <><circle cx="8" cy="8" r="5" /><path d="M8 5.5V8l2 1.5" /></>
             )}
           </svg>
-          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : sortMode === "size" ? "size" : "ext"}</span>}
+          {sortMode !== "name" && <span style={{ fontSize: 9 }}>{sortMode === "mtime" ? "mod" : sortMode === "ctime" ? "new" : sortMode === "size" ? "size" : sortMode === "custom" ? "drag" : "ext"}</span>}
         </button>
       </div>
       <ul
@@ -492,7 +562,7 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
           if (src) handleDrop(src, "");
         }}
       >
-        {sortEntries(filteredEntries, sortMode).map((entry) => (
+        {sortEntries(filteredEntries, sortMode, customOrder, "__root__").map((entry) => (
           <FileTreeNode
             key={entry.path}
             entry={entry}
@@ -516,6 +586,8 @@ export function FileTree({ entries, onFileSelect, onOpenInNewTab, onOpenToRight,
             onClearHover={clearHoverPreview}
             filterQuery={filter.trim() || undefined}
             todoCounts={todoCounts}
+            customOrder={customOrder}
+            reorderInFolder={reorderInFolder}
           />
         ))}
         {creating && creating.parentPath === "" && (
@@ -660,6 +732,8 @@ function FileTreeNode({
   onClearHover,
   filterQuery,
   todoCounts,
+  customOrder,
+  reorderInFolder,
 }: {
   entry: VaultEntry;
   onFileSelect: (path: string) => void;
@@ -682,6 +756,8 @@ function FileTreeNode({
   onClearHover?: () => void;
   filterQuery?: string;
   todoCounts?: Record<string, number>;
+  customOrder?: Record<string, string[]>;
+  reorderInFolder?: (sourcePath: string, targetPath: string, parentPath: string) => void;
 }) {
   if (entry.kind === "folder") {
     const expanded = expandedPaths.has(entry.path);
@@ -742,7 +818,7 @@ function FileTreeNode({
         </div>
         {expanded && (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {sortEntries(entry.children, sortMode).map((child) => (
+            {sortEntries(entry.children, sortMode, customOrder, entry.path).map((child) => (
               <FileTreeNode
                 key={child.path}
                 entry={child}
@@ -766,6 +842,8 @@ function FileTreeNode({
                 onClearHover={onClearHover}
                 filterQuery={filterQuery}
                 todoCounts={todoCounts}
+                customOrder={customOrder}
+                reorderInFolder={reorderInFolder}
               />
             ))}
             {creating && creating.parentPath === entry.path && (
@@ -812,11 +890,35 @@ function FileTreeNode({
             e.dataTransfer.setData("text/plain", entry.path);
             e.dataTransfer.effectAllowed = "move";
           }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropTarget(entry.path);
+          }}
+          onDragLeave={(e) => {
+            e.stopPropagation();
+            if (dropTarget === entry.path) setDropTarget(null);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const src = e.dataTransfer.getData("text/plain");
+            if (!src || src === entry.path) { setDropTarget(null); return; }
+            // Same parent folder → reorder
+            const srcParent = src.includes("/") ? src.split("/").slice(0, -1).join("/") : "";
+            const tgtParent = entry.path.includes("/") ? entry.path.split("/").slice(0, -1).join("/") : "";
+            if (srcParent === tgtParent && reorderInFolder) {
+              reorderInFolder(src, entry.path, srcParent);
+            } else {
+              onDrop(src, tgtParent);
+            }
+            setDropTarget(null);
+          }}
           style={{
             paddingLeft: depth * 16 + 18,
             padding: "3px 8px 3px " + (depth * 16 + 18) + "px",
             cursor: "pointer",
-            background: isSelected ? "var(--bg-hover)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
+            background: isSelected ? "var(--bg-hover)" : dropTarget === entry.path ? "rgba(127,109,242,0.15)" : isFocused ? "rgba(127,109,242,0.1)" : "transparent",
             color: isSelected ? "var(--text-primary)" : isFocused ? "var(--text-primary)" : "var(--text-secondary)",
             borderRadius: 3,
             display: "flex",
