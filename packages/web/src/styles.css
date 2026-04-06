@@ -57,6 +57,15 @@ body {
   color: var(--text-primary);
 }
 
+/* Selection color */
+::selection {
+  background: rgba(127, 109, 242, 0.3);
+  color: inherit;
+}
+[data-theme="light"] ::selection {
+  background: rgba(127, 109, 242, 0.2);
+}
+
 /* Reader view */
 .reader-view {
   padding: 16px 48px;
