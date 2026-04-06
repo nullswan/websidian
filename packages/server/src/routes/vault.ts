@@ -680,22 +680,40 @@ export async function vaultRoutes(app: FastifyInstance) {
     const files = flattenFiles(tree);
     const { notes, index } = await indexVault(vaultRoot, files);
 
-    const nodes: Array<{ id: string; name: string; wordCount?: number; mtime?: number }> = [];
+    const nodes: Array<{ id: string; name: string; wordCount?: number; mtime?: number; tags?: string[] }> = [];
     const edges: Array<{ source: string; target: string }> = [];
 
     for (const file of files) {
       if (file.extension !== "md") continue;
       let wordCount = 0;
+      const tags: string[] = [];
       try {
         const content = await readFile(join(vaultRoot, file.path), "utf-8");
         const body = content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
         wordCount = body.split(/\s+/).filter(Boolean).length;
+        // Extract inline tags
+        const tagMatches = body.matchAll(/(?:^|[\s,;(])#([a-zA-Z][\w/-]*)/g);
+        const tagSet = new Set<string>();
+        for (const m of tagMatches) tagSet.add(m[1]);
+        // Extract frontmatter tags
+        const fmMatch = content.match(/^---[\t ]*\r?\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const tagsLine = fmMatch[1].match(/^tags:\s*\[?(.*?)\]?\s*$/m);
+          if (tagsLine) {
+            for (const t of tagsLine[1].split(",")) {
+              const trimmed = t.trim().replace(/^#/, "").replace(/^['"]|['"]$/g, "");
+              if (trimmed) tagSet.add(trimmed);
+            }
+          }
+        }
+        tags.push(...tagSet);
       } catch { /* ignore */ }
       nodes.push({
         id: file.path,
         name: file.path.replace(/\.md$/, "").split("/").pop() ?? file.path,
         wordCount,
         mtime: file.mtime,
+        tags: tags.length > 0 ? tags : undefined,
       });
     }
 

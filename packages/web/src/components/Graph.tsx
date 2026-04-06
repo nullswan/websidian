@@ -5,6 +5,7 @@ interface GraphNode {
   name: string;
   wordCount?: number;
   mtime?: number;
+  tags?: string[];
   x: number;
   y: number;
   vx: number;
@@ -85,13 +86,26 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
     if (!loaded) return;
     const all = allNodesRef.current;
     const allEdges = allEdgesRef.current;
-    const q = graphFilter.toLowerCase();
+    const raw = graphFilter.trim();
 
     let filteredIds: Set<string>;
 
-    if (q) {
+    if (raw) {
+      // Parse filter prefixes: tag:name, folder:path
+      let tagFilter: string | null = null;
+      let folderFilter: string | null = null;
+      let textFilter = raw;
+      textFilter = textFilter.replace(/\btag:(\S+)/gi, (_m, v) => { tagFilter = v.replace(/^#/, "").toLowerCase(); return ""; });
+      textFilter = textFilter.replace(/\bfolder:(\S+)/gi, (_m, v) => { folderFilter = v.toLowerCase(); return ""; });
+      const q = textFilter.trim().toLowerCase();
+
       // Start with direct matches
-      const matchIds = new Set(all.filter((n) => n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)).map(n => n.id));
+      const matchIds = new Set(all.filter((n) => {
+        if (tagFilter && !(n.tags ?? []).some((t) => t.toLowerCase().includes(tagFilter!))) return false;
+        if (folderFilter && !n.id.toLowerCase().startsWith(folderFilter!)) return false;
+        if (q && !n.name.toLowerCase().includes(q) && !n.id.toLowerCase().includes(q)) return false;
+        return tagFilter || folderFilter || q; // at least one filter must match
+      }).map(n => n.id));
       // Expand by filterDepth hops
       const expanded = new Set(matchIds);
       let frontier = new Set(matchIds);
@@ -599,7 +613,7 @@ export function Graph({ onNavigate, activePath }: GraphProps) {
           type="text"
           value={graphFilter}
           onChange={(e) => setGraphFilter(e.target.value)}
-          placeholder="Filter..."
+          placeholder="Filter... (tag: folder:)"
           style={{ flex: 1, padding: "3px 6px", border: "1px solid var(--border-color)", borderRadius: 3, background: "var(--bg-tertiary)", color: "var(--text-primary)", fontSize: 11, outline: "none" }}
         />
         {graphFilter && (
