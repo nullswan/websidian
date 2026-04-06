@@ -2666,6 +2666,19 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
           return true;
         },
       },
+      {
+        key: "Mod-Shift-v",
+        run: (view) => {
+          navigator.clipboard.readText().then((text) => {
+            const sel = view.state.selection.main;
+            view.dispatch({
+              changes: { from: sel.from, to: sel.to, insert: text },
+              selection: { anchor: sel.from + text.length },
+            });
+          }).catch(() => {});
+          return true;
+        },
+      },
       { key: "Mod-b", run: (view) => wrapWith(view, "**") },
       { key: "Mod-i", run: (view) => wrapWith(view, "*") },
       { key: "Mod-Shift-x", run: (view) => wrapWith(view, "~~") },
