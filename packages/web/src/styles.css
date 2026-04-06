@@ -1042,3 +1042,15 @@ details.callout > div {
   }
   .inline-title { color: black !important; }
 }
+
+/* Line-type gutter dots */
+.cm-line-type-gutter {
+  width: 10px !important;
+  min-width: 10px !important;
+}
+.cm-line-type-gutter .cm-gutterElement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType } from "@codemirror/view";
+import { EditorView, keymap, highlightActiveLine, highlightTrailingWhitespace, lineNumbers, Decoration, ViewPlugin, DecorationSet, WidgetType, gutter, GutterMarker } from "@codemirror/view";
 import { EditorState, RangeSetBuilder, StateField, Compartment } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -2504,6 +2504,34 @@ const tableNavigationKeymap = keymap.of([
   },
 ]);
 
+// Line-type gutter: colored dots indicating line content type
+class LineTypeMarker extends GutterMarker {
+  color: string;
+  constructor(color: string) { super(); this.color = color; }
+  toDOM() {
+    const dot = document.createElement("span");
+    dot.style.cssText = `display:inline-block;width:4px;height:4px;border-radius:50%;background:${this.color};`;
+    return dot;
+  }
+}
+
+const headingMarker = new LineTypeMarker("var(--accent-color)");
+const linkMarker = new LineTypeMarker("#569cd6");
+const taskMarker = new LineTypeMarker("#4ec9b0");
+const codeMarker = new LineTypeMarker("#dcdcaa");
+
+const lineTypeGutter = gutter({
+  class: "cm-line-type-gutter",
+  lineMarker(view, line) {
+    const text = view.state.sliceDoc(line.from, line.to);
+    if (/^#{1,6}\s/.test(text)) return headingMarker;
+    if (/\[\[[^\]]+\]\]/.test(text) || /\[[^\]]+\]\([^)]+\)/.test(text)) return linkMarker;
+    if (/^[\t ]*- \[[ x]\]/.test(text)) return taskMarker;
+    if (/^```/.test(text)) return codeMarker;
+    return null;
+  },
+});
+
 // Sticky heading: shows current section heading at top of editor when scrolled past
 const stickyHeadingPlugin = ViewPlugin.fromClass(class {
   bar: HTMLDivElement;
@@ -3111,6 +3139,7 @@ export function Editor({ content, filePath, onSave, onNavigate, onTagClick, onCu
         highlightSelectionMatches({ minSelectionLength: 2 }),
         codeFolding(),
         markdownHeadingFold,
+        lineTypeGutter,
         stickyHeadingPlugin,
         colorSwatchPlugin,
         foldGutter({
