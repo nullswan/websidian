@@ -1024,6 +1024,8 @@ const tableToolbarPlugin = ViewPlugin.fromClass(
         { label: "⫷", title: "Align left", action: "align-left" },
         { label: "⫸", title: "Align right", action: "align-right" },
         { label: "⫿", title: "Align center", action: "align-center" },
+        { label: "│", title: "", action: "sep3" },
+        { label: "⇔", title: "Auto-format columns", action: "auto-format" },
       ];
       for (const btn of btns) {
         if (btn.action.startsWith("sep")) {
@@ -1129,6 +1131,49 @@ const tableToolbarPlugin = ViewPlugin.fromClass(
         const line = doc.line(curLine);
         const from = curLine > 1 ? doc.line(curLine).from - 1 : line.from;
         this.view.dispatch({ changes: { from, to: line.to } });
+      } else if (action === "auto-format") {
+        // Pad all cells to equal column widths
+        const rows: string[][] = [];
+        for (let l = start; l <= end; l++) {
+          rows.push(parseRow(l));
+        }
+        const maxWidths: number[] = [];
+        for (let c = 0; c < numCols; c++) {
+          let max = 3; // minimum "---"
+          for (let r = 0; r < rows.length; r++) {
+            if (r === sepLine - start) continue; // skip separator row
+            const cell = (rows[r][c] ?? "").trim();
+            max = Math.max(max, cell.length);
+          }
+          maxWidths.push(max);
+        }
+        const changes: Array<{ from: number; to: number; insert: string }> = [];
+        for (let l = start; l <= end; l++) {
+          const r = l - start;
+          const cells = rows[r];
+          let formatted: string;
+          if (l === sepLine) {
+            // Rebuild separator respecting alignment
+            formatted = "| " + cells.map((c, ci) => {
+              const t = c.trim();
+              const w = maxWidths[ci];
+              if (t.startsWith(":") && t.endsWith(":")) return ":" + "-".repeat(w) + ":";
+              if (t.endsWith(":")) return "-".repeat(w + 1) + ":";
+              if (t.startsWith(":")) return ":" + "-".repeat(w + 1);
+              return "-".repeat(w + 2);
+            }).join(" | ") + " |";
+          } else {
+            formatted = "| " + cells.map((c, ci) => {
+              const t = (c ?? "").trim();
+              return t + " ".repeat(maxWidths[ci] - t.length);
+            }).join(" | ") + " |";
+          }
+          const line = doc.line(l);
+          if (line.text !== formatted) {
+            changes.push({ from: line.from, to: line.to, insert: formatted });
+          }
+        }
+        if (changes.length > 0) this.view.dispatch({ changes });
       } else if (action.startsWith("align-")) {
         const align = action.replace("align-", "");
         const cells = parseRow(sepLine);
