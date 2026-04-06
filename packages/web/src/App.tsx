@@ -1317,8 +1317,11 @@ export function App() {
 
   // Save file content for active tab
   const handleSave = useCallback(
-    (content: string) => {
+    (rawContent: string) => {
       if (!activeTab) return;
+      const content = appSettings.trimTrailingWhitespace
+        ? rawContent.split("\n").map((l) => l.trimEnd()).join("\n")
+        : rawContent;
       setSaveStatus("saving");
       if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
       fetch("/api/vault/file", {
@@ -1346,7 +1349,7 @@ export function App() {
           setSaveStatus("idle");
         });
     },
-    [activeTab, updateTab],
+    [activeTab, updateTab, appSettings.trimTrailingWhitespace],
   );
 
   const insertFrontmatterTemplate = useCallback((tpl: typeof FRONTMATTER_TEMPLATES[number]) => {

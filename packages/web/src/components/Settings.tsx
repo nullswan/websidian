@@ -20,6 +20,7 @@ export interface AppSettings {
   headingNumbers: boolean;
   showWhitespace: boolean;
   cursorBlinkRate: number;
+  trimTrailingWhitespace: boolean;
   customCSS: string;
 }
 
@@ -42,6 +43,7 @@ const DEFAULTS: AppSettings = {
   headingNumbers: false,
   showWhitespace: false,
   cursorBlinkRate: 1200,
+  trimTrailingWhitespace: true,
   customCSS: "",
 };
 
@@ -390,6 +392,13 @@ export function Settings({ settings, onUpdate, onClose }: SettingsProps) {
                 description="Render spaces and tabs as visible dots and arrows"
               >
                 <Toggle checked={settings.showWhitespace} onChange={(v) => update("showWhitespace", v)} />
+              </SettingItem>
+
+              <SettingItem
+                title="Trim trailing whitespace"
+                description="Remove trailing spaces from lines when saving"
+              >
+                <Toggle checked={settings.trimTrailingWhitespace} onChange={(v) => update("trimTrailingWhitespace", v)} />
               </SettingItem>
 
               <SettingItem
