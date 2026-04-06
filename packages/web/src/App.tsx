@@ -408,15 +408,25 @@ function SidebarSection({ title, defaultOpen = true, badge, children }: {
           fontWeight: 600,
           textTransform: "uppercase",
           color: "var(--text-muted)",
-          letterSpacing: "0.05em",
+          letterSpacing: "0.08em",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           gap: 6,
           userSelect: "none",
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.color = "var(--text-secondary)";
+          const span = el.querySelector<HTMLElement>(".sidebar-section-title");
+          if (span) { span.style.backgroundImage = "linear-gradient(90deg, var(--text-secondary), var(--accent-color))"; }
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.color = "var(--text-muted)";
+          const span = el.querySelector<HTMLElement>(".sidebar-section-title");
+          if (span) { span.style.backgroundImage = "linear-gradient(90deg, var(--text-muted), var(--text-muted))"; }
+        }}
       >
         <svg
           width="8"
@@ -432,7 +442,18 @@ function SidebarSection({ title, defaultOpen = true, badge, children }: {
         >
           <path d="M2 0 L6 4 L2 8 Z" />
         </svg>
-        {title}
+        <span
+          className="sidebar-section-title"
+          style={{
+            background: "linear-gradient(90deg, var(--text-muted), var(--text-muted))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            transition: "background-image 0.3s ease",
+          }}
+        >
+          {title}
+        </span>
         {badge != null && badge > 0 && (
           <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--accent-color)", background: "rgba(127,109,242,0.12)", padding: "1px 5px", borderRadius: 8, fontWeight: 600 }}>{badge}</span>
         )}
