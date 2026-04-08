@@ -4,18 +4,12 @@ import { Editor } from "./components/Editor.js";
 import { Reader } from "./components/Reader.js";
 import { Properties } from "./components/Properties.js";
 import { Backlinks } from "./components/Backlinks.js";
-import { QuickSwitcher } from "./components/QuickSwitcher.js";
 import { SearchPanel } from "./components/SearchPanel.js";
 import { Outline } from "./components/Outline.js";
-import { CommandPalette } from "./components/CommandPalette.js";
-import { WorkspaceManager } from "./components/WorkspaceManager.js";
 import { ResizeHandle } from "./components/ResizeHandle.js";
 import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
-import { DiffView } from "./components/DiffView.js";
-import { QuickCapture } from "./components/QuickCapture.js";
-import { activateDemoMode, isDemoMode } from "./demoApi.js";
-import { WelcomeTour } from "./components/WelcomeTour.js";
+import { activateDemoMode } from "./demoApi.js";
 import { RelatedNotes } from "./components/RelatedNotes.js";
 import { recordWritingActivity } from "./components/WritingStreak.js";
 import { Snippets } from "./components/Snippets.js";
@@ -25,34 +19,26 @@ import { LocalGraph } from "./components/LocalGraph.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { Plugins } from "./components/Plugins.js";
 import { StatusBar } from "./components/StatusBar.js";
-import { Calendar } from "./components/Calendar.js";
-import { VersionHistory, saveSnapshot } from "./components/VersionHistory.js";
+import { saveSnapshot } from "./components/VersionHistory.js";
 import { NoteGrowth } from "./components/NoteGrowth.js";
-import { BrokenLinkReport } from "./components/BrokenLinkReport.js";
 import { SidebarSection } from "./components/SidebarSection.js";
 import { ScrollContainer } from "./components/ScrollContainer.js";
-import { FolderPicker } from "./components/FolderPicker.js";
-import { TemplatePicker } from "./components/TemplatePicker.js";
 import { WordFrequency } from "./components/WordFrequency.js";
 import { OutgoingLinks } from "./components/OutgoingLinks.js";
 import { RightSidebar } from "./components/RightSidebar.js";
 import { SharePage } from "./components/SharePage.js";
 import { Ribbon } from "./components/Ribbon.js";
-import { ShortcutsOverlay } from "./components/ShortcutsOverlay.js";
-import { TabContextMenu } from "./components/TabContextMenu.js";
 import { LeftSidebar } from "./components/LeftSidebar.js";
 import { TabBar } from "./components/TabBar.js";
+import { ModalOverlays } from "./components/ModalOverlays.js";
 import { saveDraft, getDraft, clearDraft } from "./lib/recovery.js";
 import { KanbanView } from "./components/KanbanView.js";
 import { Minimap } from "./components/Minimap.js";
-import { VaultStats } from "./components/VaultStats.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
-import { Settings } from "./components/Settings.js";
 import { useToast } from "./hooks/useToast.js";
 import { useAppSettings } from "./hooks/useAppSettings.js";
 import { createMarkdownRenderer } from "./lib/markdown.js";
 import { matchesCombo, getHotkey, loadHotkeyOverrides } from "./lib/hotkeys.js";
-import { getCommandPaletteCommands } from "./lib/commandPaletteCommands.js";
 import type { VaultEntry } from "./types.js";
 import { FM_RE, FRONTMATTER_TEMPLATES } from "./lib/frontmatter.js";
 import type { ViewMode, NoteMeta, BacklinkEntry, UnlinkedMention, Tab, Pane } from "./lib/appTypes.js";
@@ -2024,353 +2010,99 @@ ${rendered}
       />
 
       {/* Quick Switcher modal */}
-      {showSwitcher && (
-        <QuickSwitcher
-          onSelect={openTab}
-          onClose={() => setShowSwitcher(false)}
-          recentPaths={[...new Set(Object.values(tabsMap).map((t) => t.path))]}
-          onCreateNote={(title) => {
-            const path = title.endsWith(".md") ? title : `${title}.md`;
-            fetch("/api/vault/file", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ path, content: "" }),
-            }).then(() => {
-              refreshTree();
-              openTab(path);
-              showToast(`Created ${path}`);
-              setTimeout(() => {
-                setPanes((prev) =>
-                  prev.map((p) => {
-                    const tid = p.tabIds.find((id) => tabsMap[id]?.path === path);
-                    if (!tid) return p;
-                    return { ...p, tabIds: p.tabIds, activeTabId: tid };
-                  }),
-                );
-                setTabsMap((prev) => {
-                  const entry = Object.entries(prev).find(([, t]) => t.path === path);
-                  if (!entry) return prev;
-                  return { ...prev, [entry[0]]: { ...entry[1], mode: "edit" } };
-                });
-              }, 100);
-            });
-          }}
-        />
-      )}
+      <ModalOverlays
+        showSwitcher={showSwitcher}
+        showQuickCapture={showQuickCapture}
+        showCommandPalette={showCommandPalette}
+        showTemplatePicker={showTemplatePicker}
+        showFmTemplates={showFmTemplates}
+        showShortcuts={showShortcuts}
+        showSettings={showSettings}
+        showVaultStats={showVaultStats}
+        showBrokenLinks={showBrokenLinks}
+        showMergePicker={showMergePicker}
+        showVersionHistory={showVersionHistory}
+        showCalendar={showCalendar}
+        showWorkspaces={showWorkspaces}
+        showFolderPicker={showFolderPicker}
+        showGraph={showGraph}
+        diffSource={diffSource}
+        tabCtxMenu={tabCtxMenu}
+        toast={toast}
+        activeTab={activeTab}
+        activePane={activePane}
+        activePaneIdx={activePaneIdx}
+        panes={panes}
+        tabsMap={tabsMap}
+        tree={tree}
+        appSettings={appSettings}
+        starredNotes={starredNotes}
+        leftPanel={leftPanel}
+        leftWidth={leftWidth}
+        rightWidth={rightWidth}
+        splitRatio={splitRatio}
+        leftCollapsed={leftCollapsed}
+        rightCollapsed={rightCollapsed}
+        zenMode={zenMode}
+        syncScroll={syncScroll}
+        user={user}
+        calendarAnchorRef={calendarAnchorRef}
+        closedTabsStack={closedTabsStack}
+        foldAllRef={foldAllRef}
+        setShowSwitcher={setShowSwitcher}
+        setShowQuickCapture={setShowQuickCapture}
+        setShowCommandPalette={setShowCommandPalette}
+        setShowTemplatePicker={setShowTemplatePicker}
+        setShowFmTemplates={setShowFmTemplates}
+        setShowShortcuts={setShowShortcuts}
+        setShowSettings={setShowSettings}
+        setShowVaultStats={setShowVaultStats}
+        setShowBrokenLinks={setShowBrokenLinks}
+        setShowMergePicker={setShowMergePicker}
+        setShowVersionHistory={setShowVersionHistory}
+        setShowCalendar={setShowCalendar}
+        setShowWorkspaces={setShowWorkspaces}
+        setShowFolderPicker={setShowFolderPicker}
+        setShowGraph={setShowGraph}
+        setDiffSource={setDiffSource}
+        setTabCtxMenu={setTabCtxMenu}
+        setLeftPanel={setLeftPanel}
+        setLeftCollapsed={setLeftCollapsed}
+        setRightCollapsed={setRightCollapsed}
+        setAppSettings={setAppSettings}
+        setPanes={setPanes}
+        setTabsMap={setTabsMap}
+        setSyncScroll={setSyncScroll}
+        setUser={setUser}
+        setTree={setTree}
+        setActivePaneIdx={setActivePaneIdx}
+        setLeftWidth={setLeftWidth}
+        setRightWidth={setRightWidth}
+        setSplitRatio={setSplitRatio}
+        openTab={openTab}
+        closeTab={closeTab}
+        updateTab={updateTab}
+        handleSave={handleSave}
+        handleFileRenamed={handleFileRenamed}
+        refreshTree={refreshTree}
+        refreshHotkeyMap={refreshHotkeyMap}
+        showToast={showToast}
+        createNewNote={createNewNote}
+        openDailyNote={openDailyNote}
+        openDailyByDate={openDailyByDate}
+        openRandomNote={openRandomNote}
+        toggleMode={toggleMode}
+        toggleZenMode={toggleZenMode}
+        toggleStar={toggleStar}
+        exportAsHtml={exportAsHtml}
+        splitRight={splitRight}
+        closeSplit={closeSplit}
+        duplicateNote={duplicateNote}
+        mergeNoteInto={mergeNoteInto}
+        insertFrontmatterTemplate={insertFrontmatterTemplate}
+        nextTabId={nextTabId}
+      />
 
-      {/* Diff View modal */}
-      {diffSource && (
-        <DiffView diffSource={diffSource} tree={tree} onClose={() => setDiffSource(null)} />
-      )}
-
-      {/* Quick Capture modal */}
-      {showQuickCapture && (
-        <QuickCapture
-          onClose={() => setShowQuickCapture(false)}
-          onSave={(path, content) => {
-            fetch("/api/vault/file", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ path, content }),
-            }).then(() => {
-              refreshTree();
-              openTab(path);
-              showToast(`Captured to ${path}`);
-              setShowQuickCapture(false);
-            }).catch(() => showToast("Failed to save"));
-          }}
-        />
-      )}
-
-      {/* Command Palette modal */}
-      {showCommandPalette && <CommandPalette
-          commands={getCommandPaletteCommands({
-            activeTab, activePane, activePaneIdx, panes,
-            leftPanel, leftCollapsed, rightCollapsed, zenMode, showGraph, syncScroll,
-            appSettings, user,
-            closedTabsStack, foldAllRef,
-            setShowSwitcher, setShowGraph, setShowSettings, setShowTemplatePicker,
-            setShowFmTemplates, setShowWorkspaces, setShowQuickCapture,
-            setShowVersionHistory, setShowMergePicker, setShowVaultStats,
-            setShowBrokenLinks, setShowFolderPicker,
-            setLeftPanel, setLeftCollapsed, setRightCollapsed, setAppSettings,
-            setPanes, setTabsMap, setSyncScroll, setUser, setTree,
-            createNewNote, openDailyNote, toggleMode, closeTab, openTab,
-            updateTab, handleSave, toggleZenMode, openRandomNote, exportAsHtml,
-            splitRight, closeSplit, refreshTree, showToast,
-          })}
-          onClose={() => setShowCommandPalette(false)}
-        />}
-      {/* Tab context menu */}
-      {tabCtxMenu && (
-        <TabContextMenu
-          x={tabCtxMenu.x}
-          y={tabCtxMenu.y}
-          tabId={tabCtxMenu.tabId}
-          paneIdx={tabCtxMenu.paneIdx}
-          tabsMap={tabsMap}
-          panes={panes}
-          starredNotes={starredNotes}
-          onClose={() => setTabCtxMenu(null)}
-          onUpdateTab={updateTab}
-          onCloseTab={closeTab}
-          onOpenTab={openTab}
-          onSetPanes={setPanes}
-          onSetTabsMap={setTabsMap}
-          onSetLeftPanel={setLeftPanel}
-          onToggleStar={toggleStar}
-          onDuplicateNote={duplicateNote}
-          onSetDiffSource={setDiffSource}
-          onShowToast={showToast}
-          nextTabId={nextTabId}
-        />
-      )}
-
-      {/* Template Picker */}
-      {showTemplatePicker && (
-        <TemplatePicker
-          templatesFolder={appSettings.templatesFolder}
-          onSelect={async (templatePath) => {
-            setShowTemplatePicker(false);
-            if (!activeTab) return;
-            const res = await fetch(`/api/vault/file?path=${encodeURIComponent(templatePath)}`, { credentials: "include" });
-            const data = await res.json();
-            if (data.error || !data.content) return;
-            // Process template variables
-            const now = new Date();
-            const title = activeTab.path.replace(/\.md$/, "").split("/").pop() ?? "";
-            const content = data.content
-              .replace(/\{\{date\}\}/g, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`)
-              .replace(/\{\{time\}\}/g, `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`)
-              .replace(/\{\{title\}\}/g, title);
-            // Append to current note content
-            const updated = activeTab.content ? activeTab.content + "\n" + content : content;
-            const tabId = panes[activePaneIdx].activeTabId;
-            if (tabId) {
-              updateTab(tabId, { content: updated });
-              handleSave(updated);
-            }
-          }}
-          onClose={() => setShowTemplatePicker(false)}
-        />
-      )}
-
-      {showFmTemplates && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 120 }}
-          onClick={() => setShowFmTemplates(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg-secondary)", border: "1px solid var(--border-color)",
-              borderRadius: 8, padding: 12, minWidth: 260, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-            }}
-          >
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>Insert Frontmatter Template</div>
-            {FRONTMATTER_TEMPLATES.map((tpl) => (
-              <div
-                key={tpl.name}
-                onClick={() => { insertFrontmatterTemplate(tpl); setShowFmTemplates(false); }}
-                style={{
-                  padding: "6px 10px", borderRadius: 4, cursor: "pointer", fontSize: 13,
-                  color: "var(--text-primary)",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tertiary)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-              >
-                {tpl.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Keyboard Shortcuts overlay */}
-      {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
-      {/* Settings modal */}
-      {showSettings && (
-        <Settings
-          settings={appSettings}
-          onUpdate={setAppSettings}
-          onClose={() => { setShowSettings(false); refreshHotkeyMap(); }}
-        />
-      )}
-
-      {showVaultStats && (
-        <VaultStats
-          onClose={() => setShowVaultStats(false)}
-          onNavigate={openTab}
-        />
-      )}
-
-      {showBrokenLinks && (
-        <BrokenLinkReport
-          onClose={() => setShowBrokenLinks(false)}
-          onNavigate={openTab}
-          onCreateNote={(title) => {
-            const path = `${title}.md`;
-            fetch("/api/vault/file", {
-              method: "PUT",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ path, content: `# ${title}\n` }),
-            }).then(() => openTab(path)).catch(() => {});
-          }}
-        />
-      )}
-
-      {showMergePicker && activeTab && (
-        <QuickSwitcher
-          onSelect={(path) => {
-            setShowMergePicker(false);
-            mergeNoteInto(path);
-          }}
-          onClose={() => setShowMergePicker(false)}
-        />
-      )}
-
-      {showVersionHistory && activeTab && (
-        <VersionHistory
-          path={activeTab.path}
-          currentContent={activeTab.content}
-          onRestore={(content) => {
-            updateTab(activeTab.id, { content, dirty: true });
-            handleSave(content);
-          }}
-          onClose={() => setShowVersionHistory(false)}
-        />
-      )}
-
-      {showCalendar && (
-        <Calendar
-          anchorRect={calendarAnchorRef.current?.getBoundingClientRect() ?? null}
-          onSelectDate={(dateStr) => openDailyByDate(dateStr)}
-          onClose={() => setShowCalendar(false)}
-        />
-      )}
-
-      {showWorkspaces && (
-        <WorkspaceManager
-          onClose={() => setShowWorkspaces(false)}
-          getCurrentSnapshot={() => ({
-            tabs: Object.values(tabsMap).map((t) => ({ id: t.id, path: t.path, mode: t.mode })),
-            panes: panes.map((p) => ({ tabIds: p.tabIds, activeTabId: p.activeTabId })),
-            activePaneIdx,
-            leftPanel,
-            leftWidth,
-            rightWidth,
-            splitRatio,
-            leftCollapsed,
-            rightCollapsed,
-          })}
-          onLoad={(snapshot) => {
-            // Restore workspace from snapshot
-            const newTabsMap: Record<string, typeof tabsMap[string]> = {};
-            for (const t of snapshot.tabs) {
-              newTabsMap[t.id] = {
-                id: t.id,
-                path: t.path,
-                content: "",
-                mode: t.mode as ViewMode,
-                noteMeta: null,
-                backlinks: [],
-                unlinkedMentions: [],
-                scrollTop: 0,
-              };
-              // Fetch content
-              fetch(`/api/vault/file?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
-                .then((r) => r.json())
-                .then((d) => { if (!d.error) updateTab(t.id, { content: d.content, fileCreated: d.created, fileModified: d.modified, fileSize: d.size }); })
-                .catch(() => {});
-              if (t.path.endsWith(".md")) {
-                fetch(`/api/vault/note?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
-                  .then((r) => r.json())
-                  .then((d) => { if (!d.error) updateTab(t.id, { noteMeta: d }); })
-                  .catch(() => {});
-                fetch(`/api/vault/backlinks?path=${encodeURIComponent(t.path)}`, { credentials: "include" })
-                  .then((r) => r.json())
-                  .then((d) => { if (!d.error) updateTab(t.id, { backlinks: d.backlinks, unlinkedMentions: d.unlinkedMentions ?? [] }); })
-                  .catch(() => {});
-              }
-            }
-            setTabsMap(newTabsMap);
-            setPanes(snapshot.panes);
-            setActivePaneIdx(snapshot.activePaneIdx);
-            setLeftPanel(snapshot.leftPanel as typeof leftPanel);
-            setLeftWidth(snapshot.leftWidth);
-            setRightWidth(snapshot.rightWidth);
-            setSplitRatio(snapshot.splitRatio);
-            setLeftCollapsed(snapshot.leftCollapsed);
-            setRightCollapsed(snapshot.rightCollapsed);
-          }}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Folder picker for Move file */}
-      {showFolderPicker && activeTab && (() => {
-        const collectFolders = (entries: VaultEntry[], prefix = ""): string[] => {
-          const folders: string[] = [];
-          for (const e of entries) {
-            if (e.kind === "folder") {
-              folders.push(e.path);
-              folders.push(...collectFolders(e.children, e.path + "/"));
-            }
-          }
-          return folders;
-        };
-        const allFolders = ["(root)", ...collectFolders(tree)];
-        return (
-          <FolderPicker
-            folders={allFolders}
-            currentPath={activeTab.path}
-            onSelect={async (folder) => {
-              setShowFolderPicker(false);
-              const name = activeTab.path.split("/").pop()!;
-              const newPath = folder === "(root)" ? name : `${folder}/${name}`;
-              if (newPath === activeTab.path) return;
-              const res = await fetch("/api/vault/rename", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ from: activeTab.path, to: newPath }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                handleFileRenamed(activeTab.path, newPath, data.updatedFiles ?? []);
-                refreshTree();
-                showToast(`Moved to ${folder === "(root)" ? "vault root" : folder}`);
-              }
-            }}
-            onClose={() => setShowFolderPicker(false)}
-          />
-        );
-      })()}
-
-      {/* Toast notification */}
-      {toast && (
-        <div style={{
-          position: "fixed",
-          bottom: 32,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "var(--border-color)",
-          color: "var(--text-primary)",
-          padding: "8px 20px",
-          borderRadius: 6,
-          fontSize: 13,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
-          zIndex: 2000,
-          pointerEvents: "none",
-          animation: "toast-slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
-        }}>
-          {toast}
-        </div>
-      )}
-      {isDemoMode() && <WelcomeTour />}
     </div>
   );
 }
