@@ -12,6 +12,8 @@ import { WorkspaceManager } from "./components/WorkspaceManager.js";
 import { ResizeHandle } from "./components/ResizeHandle.js";
 import { Graph } from "./components/Graph.js";
 import { CanvasView } from "./components/CanvasView.js";
+import { DiffView } from "./components/DiffView.js";
+import { QuickCapture } from "./components/QuickCapture.js";
 import { activateDemoMode, isDemoMode, resetDemoVault } from "./demoApi.js";
 import { WelcomeTour } from "./components/WelcomeTour.js";
 import { RelatedNotes } from "./components/RelatedNotes.js";
@@ -33,6 +35,7 @@ import { FolderPicker } from "./components/FolderPicker.js";
 import { TemplatePicker } from "./components/TemplatePicker.js";
 import { WordFrequency } from "./components/WordFrequency.js";
 import { OutgoingLinks } from "./components/OutgoingLinks.js";
+import { RightSidebar } from "./components/RightSidebar.js";
 import { SharePage } from "./components/SharePage.js";
 import { Ribbon } from "./components/Ribbon.js";
 import { ShortcutsOverlay } from "./components/ShortcutsOverlay.js";
@@ -2821,294 +2824,25 @@ ${rendered}
       )}
 
       {/* Right Sidebar */}
-      <aside
-        style={{
-          width: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : rightWidth,
-          minWidth: isMobile || rightCollapsed || !activeTab || !isMarkdown ? 0 : 140,
-          borderLeft: isMobile || rightCollapsed || !activeTab || !isMarkdown ? "none" : "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-          color: "var(--text-primary)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          position: "relative",
-          transition: "width 0.2s ease, min-width 0.2s ease",
-        }}
-      >
-        {activeTab && isMarkdown && activeTab.content != null && (
-          <>
-            <ResizeHandle side="right" onResize={handleRightResize} />
-            <ErrorBoundary>
-            {(activeTab.noteMeta || activeTab.fileCreated) && (
-              <SidebarSection title="Properties">
-                <Properties
-                  frontmatter={activeTab.noteMeta?.frontmatter ?? {}}
-                  fileCreated={activeTab.fileCreated}
-                  fileModified={activeTab.fileModified}
-                  fileSize={activeTab.fileSize}
-                  content={activeTab.content}
-                  onUpdate={(key, value) => {
-                    if (!activeTab) return;
-                    const updated = updateFrontmatterField(activeTab.content, key, value);
-                    updateTab(activeTab.id, { content: updated });
-                    handleSave(updated);
-                  }}
-                  onDelete={(key) => {
-                    if (!activeTab) return;
-                    const updated = deleteFrontmatterField(activeTab.content, key);
-                    updateTab(activeTab.id, { content: updated });
-                    handleSave(updated);
-                  }}
-                  onAdd={(key, value) => {
-                    if (!activeTab) return;
-                    const updated = addFrontmatterField(activeTab.content, key, value);
-                    updateTab(activeTab.id, { content: updated });
-                    handleSave(updated);
-                  }}
-                />
-              </SidebarSection>
-            )}
-            <SidebarSection title="Note Growth">
-              <NoteGrowth path={activeTab.path} />
-            </SidebarSection>
-            <SidebarSection title="File Info">
-              <div style={{ padding: "4px 12px 8px", fontSize: 12, color: "var(--text-secondary)" }}>
-                {(() => {
-                  const text = activeTab.content.replace(/^---[\t ]*\r?\n[\s\S]*?\n---[\t ]*(?:\r?\n|$)/, "");
-                  const words = text.trim().split(/\s+/).filter(Boolean).length;
-                  const chars = text.length;
-                  const links = (activeTab.content.match(/\[\[[^\]]+\]\]/g) ?? []).length;
-                  const items: [string, string][] = [
-                    ["Words", words.toLocaleString()],
-                    ["Characters", chars.toLocaleString()],
-                    ["Links", String(links)],
-                    ["Backlinks", String(activeTab.backlinks.length)],
-                  ];
-                  if (activeTab.fileSize != null) {
-                    const sz = activeTab.fileSize;
-                    items.push(["Size", sz < 1024 ? `${sz} B` : sz < 1048576 ? `${(sz / 1024).toFixed(1)} KB` : `${(sz / 1048576).toFixed(1)} MB`]);
-                  }
-                  if (activeTab.fileCreated) items.push(["Created", new Date(activeTab.fileCreated).toLocaleDateString()]);
-                  if (activeTab.fileModified) items.push(["Modified", new Date(activeTab.fileModified).toLocaleDateString()]);
-
-                  // Flesch reading ease score
-                  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length || 1;
-                  const wordList = text.trim().split(/\s+/).filter(Boolean);
-                  const syllableCount = (w: string) => {
-                    const word = w.toLowerCase().replace(/[^a-z]/g, "");
-                    if (word.length <= 3) return 1;
-                    let count = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "")
-                      .replace(/^y/, "")
-                      .match(/[aeiouy]{1,2}/g)?.length ?? 1;
-                    return Math.max(1, count);
-                  };
-                  const totalSyllables = wordList.reduce((s, w) => s + syllableCount(w), 0);
-                  const flesch = words >= 10
-                    ? Math.round(206.835 - 1.015 * (words / sentences) - 84.6 * (totalSyllables / words))
-                    : null;
-                  const fleschLabel = flesch === null ? null
-                    : flesch >= 80 ? "Easy" : flesch >= 60 ? "Standard" : flesch >= 40 ? "Moderate" : "Complex";
-                  const fleschColor = flesch === null ? "var(--text-faint)"
-                    : flesch >= 80 ? "var(--color-green)" : flesch >= 60 ? "var(--color-yellow)" : flesch >= 40 ? "var(--color-orange)" : "var(--color-red)";
-
-                  return (
-                    <>
-                    <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "3px 12px" }}>
-                      {items.map(([label, val]) => (
-                        <React.Fragment key={label}>
-                          <span style={{ color: "var(--text-faint)" }}>{label}</span>
-                          <span style={{ color: "var(--text-primary)", textAlign: "right" }}>{val}</span>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                    {flesch !== null && (
-                      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }} title={`Flesch Reading Ease: ${flesch}/100`}>
-                        <span style={{ fontSize: 11, color: "var(--text-faint)" }}>Readability</span>
-                        <div style={{ flex: 1, height: 6, background: "var(--bg-tertiary)", borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ width: `${Math.max(0, Math.min(100, flesch))}%`, height: "100%", background: fleschColor, borderRadius: 3, transition: "width 0.3s" }} />
-                        </div>
-                        <span style={{ fontSize: 10, color: fleschColor, fontWeight: 600, minWidth: 50, textAlign: "right" }}>{fleschLabel}</span>
-                      </div>
-                    )}
-                    </>
-                  );
-                })()}
-              </div>
-            </SidebarSection>
-            <SidebarSection title="Backlinks" badge={activeTab.backlinks.length}>
-              <Backlinks
-                backlinks={activeTab.backlinks}
-                onNavigate={openTab}
-              />
-            </SidebarSection>
-            <SidebarSection title="Unlinked Mentions" badge={activeTab.unlinkedMentions.length}>
-              {activeTab.unlinkedMentions.length === 0 ? (
-                <div style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-faint)" }}>No unlinked mentions</div>
-              ) : (
-                <div style={{ padding: "4px 12px 8px" }}>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {(() => {
-                      const grouped = new Map<string, Array<{ line: number; lineContext: string }>>();
-                      for (const m of activeTab.unlinkedMentions) {
-                        if (!grouped.has(m.path)) grouped.set(m.path, []);
-                        grouped.get(m.path)!.push({ line: m.line, lineContext: m.lineContext });
-                      }
-                      return [...grouped.entries()].map(([path, mentions]) => (
-                        <li key={path} style={{ marginBottom: 8 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <a
-                              href="#"
-                              onClick={(e) => { e.preventDefault(); openTab(path); }}
-                              title={path}
-                              style={{ color: "var(--accent-color)", textDecoration: "none", fontSize: 13, flex: 1 }}
-                            >
-                              {path.replace(/\.md$/, "").split("/").pop()}
-                            </a>
-                            <button
-                              title="Link all mentions in this note"
-                              onClick={async () => {
-                                const basename = activeTab.path.replace(/\.md$/, "").split("/").pop() ?? "";
-                                const res = await fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" });
-                                const data = await res.json();
-                                if (data.error) return;
-                                const re = new RegExp(`(?<!\\[\\[)\\b(${basename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b(?!\\]\\])`, "gi");
-                                const newContent = data.content.replace(re, "[[" + basename + "]]");
-                                if (newContent !== data.content) {
-                                  await fetch("/api/vault/file", {
-                                    method: "PUT",
-                                    headers: { "Content-Type": "application/json" },
-                                    credentials: "include",
-                                    body: JSON.stringify({ path, content: newContent }),
-                                  });
-                                  // Refresh backlinks
-                                  fetch(`/api/vault/backlinks?path=${encodeURIComponent(activeTab.path)}`)
-                                    .then((r) => r.json())
-                                    .then((d) => { if (!d.error) updateTab(activeTab.id, { backlinks: d.backlinks, unlinkedMentions: d.unlinkedMentions ?? [] }); });
-                                  showToast(`Linked mentions in ${path.replace(/\.md$/, "").split("/").pop()}`);
-                                }
-                              }}
-                              style={{
-                                background: "transparent", border: "1px solid var(--border-color)", borderRadius: 3,
-                                color: "var(--accent-color)", fontSize: 10, padding: "1px 5px", cursor: "pointer",
-                                lineHeight: 1.4, flexShrink: 0,
-                              }}
-                            >
-                              Link
-                            </button>
-                          </div>
-                          {mentions.slice(0, 3).map((m, i) => (
-                            <div key={i} style={{
-                              fontSize: 11, color: "var(--text-secondary)", marginTop: 2,
-                              padding: "2px 0 2px 8px", borderLeft: "2px solid var(--border-color)",
-                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                              cursor: "pointer",
-                            }} onClick={() => openTab(path)}>
-                              {m.lineContext}
-                            </div>
-                          ))}
-                          {mentions.length > 3 && (
-                            <div style={{ fontSize: 10, color: "var(--text-faint)", paddingLeft: 8, marginTop: 2 }}>
-                              +{mentions.length - 3} more
-                            </div>
-                          )}
-                        </li>
-                      ));
-                    })()}
-                  </ul>
-                </div>
-              )}
-            </SidebarSection>
-            <SidebarSection title="Outgoing Links" badge={(() => {
-              const re = /\[\[([^\]|#]+)/g;
-              const links = new Set<string>();
-              let m;
-              while ((m = re.exec(activeTab.content)) !== null) links.add(m[1].trim());
-              return links.size;
-            })()}>
-              <ErrorBoundary><OutgoingLinks content={activeTab.content} onNavigate={handleNavigate} tree={tree} /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Local Graph">
-              <ErrorBoundary><LocalGraph
-                currentPath={activeTab.path}
-                outgoingLinks={(() => {
-                  const re = /\[\[([^\]|#]+)/g;
-                  const links: string[] = [];
-                  let m;
-                  while ((m = re.exec(activeTab.content)) !== null) {
-                    const target = m[1].trim();
-                    const resolved = target.includes("/") ? target : target;
-                    const path = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
-                    links.push(path);
-                  }
-                  return [...new Set(links)];
-                })()}
-                backlinkPaths={activeTab.backlinks.map((bl) => bl.path)}
-                onNavigate={(path) => openTab(path)}
-              /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Related Notes">
-              <ErrorBoundary><RelatedNotes currentPath={activeTab.path} onNavigate={openTab} /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Word Frequency">
-              <ErrorBoundary><WordFrequency content={activeTab.content} /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Outline">
-              <ErrorBoundary><Outline
-                content={activeTab.content}
-                showNumbers={appSettings.headingNumbers}
-                noteTitle={activeTab.path.replace(/\.md$/, "").split("/").pop() || ""}
-                onScrollToHeading={(heading, level) => scrollToHeadingRef.current?.(heading, level)}
-                onReorderSection={(fromLine, fromLevel, toLine) => {
-                  if (!activeTab) return;
-                  const lines = activeTab.content.split("\n");
-                  // Find section end: next heading at same or higher level, or EOF
-                  let sectionEnd = lines.length;
-                  for (let i = fromLine; i < lines.length; i++) { // fromLine is 1-based, lines[fromLine] is next line
-                    const m = /^(#{1,6})\s/.exec(lines[i]);
-                    if (m && m[1].length <= fromLevel) { sectionEnd = i; break; }
-                  }
-                  // Extract section (fromLine-1 is 0-based index)
-                  const section = lines.slice(fromLine - 1, sectionEnd);
-                  // Remove section from original
-                  const remaining = [...lines.slice(0, fromLine - 1), ...lines.slice(sectionEnd)];
-                  // Find new insert position (toLine adjusted for removed lines)
-                  let insertAt = toLine - 1;
-                  if (toLine > fromLine) insertAt -= section.length;
-                  insertAt = Math.max(0, Math.min(insertAt, remaining.length));
-                  // Insert
-                  remaining.splice(insertAt, 0, ...section);
-                  const newContent = remaining.join("\n");
-                  updateTab(activeTab.id, { content: newContent, dirty: true });
-                  // Save
-                  fetch(`/api/vault/note?path=${encodeURIComponent(activeTab.path)}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ content: newContent }),
-                  }).catch(() => {});
-                }}
-              /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Keywords">
-              <ErrorBoundary><Keywords
-                content={activeTab?.content ?? ""}
-                onSearch={(query) => {
-                  setLeftPanel("search");
-                  setLeftCollapsed(false);
-                  setSearchQuery(query);
-                }}
-              /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="Tags">
-              <ErrorBoundary><Tags onNavigate={openTab} /></ErrorBoundary>
-            </SidebarSection>
-            <SidebarSection title="CSS Snippets">
-              <ErrorBoundary><Snippets /></ErrorBoundary>
-            </SidebarSection>
-            </ErrorBoundary>
-          </>
-        )}
-      </aside>
+      <RightSidebar
+        activeTab={activeTab}
+        isMarkdown={!!isMarkdown}
+        rightWidth={rightWidth}
+        rightCollapsed={rightCollapsed}
+        isMobile={isMobile}
+        headingNumbers={appSettings.headingNumbers}
+        onRightResize={handleRightResize}
+        onOpenTab={openTab}
+        onNavigate={handleNavigate}
+        onSave={handleSave}
+        onUpdateTab={updateTab}
+        onShowToast={showToast}
+        onSetLeftPanel={setLeftPanel}
+        onSetLeftCollapsed={setLeftCollapsed}
+        onSetSearchQuery={setSearchQuery}
+        scrollToHeadingRef={scrollToHeadingRef}
+        tree={tree}
+      />
 
       {/* Quick Switcher modal */}
       {showSwitcher && (
@@ -3147,159 +2881,15 @@ ${rendered}
       )}
 
       {/* Diff View modal */}
-      {diffSource && (() => {
-        const DiffView = () => {
-          const [targetPath, setTargetPath] = useState("");
-          const [sourceContent, setSourceContent] = useState("");
-          const [targetContent, setTargetContent] = useState("");
-          const [loaded, setLoaded] = useState(false);
-          const [query, setQuery] = useState("");
-          const inputRef = useRef<HTMLInputElement>(null);
-
-          useEffect(() => { inputRef.current?.focus(); }, []);
-          useEffect(() => {
-            fetch(`/api/vault/file?path=${encodeURIComponent(diffSource)}`, { credentials: "include" })
-              .then((r) => r.json())
-              .then((d) => { if (!d.error) setSourceContent(d.content); });
-          }, []);
-
-          const allPaths = useMemo(() => {
-            const paths: string[] = [];
-            const walk = (entries: VaultEntry[]) => {
-              for (const e of entries) {
-                if (e.kind === "file" && e.path.endsWith(".md") && e.path !== diffSource) paths.push(e.path);
-                if (e.kind === "folder") walk(e.children);
-              }
-            };
-            walk(tree);
-            return paths;
-          }, []);
-
-          const filtered = useMemo(() => {
-            if (!query) return allPaths.slice(0, 15);
-            const q = query.toLowerCase();
-            return allPaths.filter((p) => p.toLowerCase().includes(q)).slice(0, 15);
-          }, [query, allPaths]);
-
-          const selectTarget = (path: string) => {
-            setTargetPath(path);
-            fetch(`/api/vault/file?path=${encodeURIComponent(path)}`, { credentials: "include" })
-              .then((r) => r.json())
-              .then((d) => { if (!d.error) { setTargetContent(d.content); setLoaded(true); } });
-          };
-
-          // Simple line diff
-          const diffLines = useMemo(() => {
-            if (!loaded) return [];
-            const a = sourceContent.split("\n");
-            const b = targetContent.split("\n");
-            const result: Array<{ type: "same" | "add" | "remove"; text: string }> = [];
-            const bSet = new Set(b);
-            const aSet = new Set(a);
-            const maxLen = Math.max(a.length, b.length);
-            let ai = 0, bi = 0;
-            while (ai < a.length || bi < b.length) {
-              if (ai < a.length && bi < b.length && a[ai] === b[bi]) {
-                result.push({ type: "same", text: a[ai] });
-                ai++; bi++;
-              } else if (ai < a.length && !bSet.has(a[ai])) {
-                result.push({ type: "remove", text: a[ai] });
-                ai++;
-              } else if (bi < b.length && !aSet.has(b[bi])) {
-                result.push({ type: "add", text: b[bi] });
-                bi++;
-              } else if (ai < a.length) {
-                result.push({ type: "remove", text: a[ai] });
-                ai++;
-              } else if (bi < b.length) {
-                result.push({ type: "add", text: b[bi] });
-                bi++;
-              }
-            }
-            return result;
-          }, [loaded, sourceContent, targetContent]);
-
-          const addCount = diffLines.filter((d) => d.type === "add").length;
-          const removeCount = diffLines.filter((d) => d.type === "remove").length;
-
-          return (
-            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center" }}
-              onClick={(e) => { if (e.target === e.currentTarget) setDiffSource(null); }}>
-              <div style={{ width: 800, maxWidth: "95vw", maxHeight: "85vh", background: "var(--bg-primary)", border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Compare</span>
-                  <span style={{ fontSize: 12, color: "var(--accent-color)" }}>{diffSource.replace(/\.md$/, "").split("/").pop()}</span>
-                  <span style={{ fontSize: 12, color: "var(--text-faint)" }}>vs</span>
-                  {loaded ? (
-                    <span style={{ fontSize: 12, color: "var(--accent-color)" }}>{targetPath.replace(/\.md$/, "").split("/").pop()}</span>
-                  ) : (
-                    <input
-                      ref={inputRef}
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search for note to compare..."
-                      onKeyDown={(e) => { if (e.key === "Escape") setDiffSource(null); if (e.key === "Enter" && filtered.length > 0) selectTarget(filtered[0]); }}
-                      style={{ flex: 1, padding: "4px 8px", background: "var(--bg-tertiary)", border: "1px solid var(--border-color)", borderRadius: 4, color: "var(--text-primary)", fontSize: 12, outline: "none" }}
-                    />
-                  )}
-                  {loaded && (
-                    <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-faint)" }}>
-                      <span style={{ color: "var(--color-green)" }}>+{addCount}</span> / <span style={{ color: "var(--color-red)" }}>-{removeCount}</span>
-                    </span>
-                  )}
-                  <button onClick={() => setDiffSource(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer", marginLeft: loaded ? 0 : "auto" }}>✕</button>
-                </div>
-                {!loaded ? (
-                  <div style={{ flex: 1, overflow: "auto", padding: 8 }}>
-                    {filtered.map((p) => (
-                      <div key={p} onClick={() => selectTarget(p)} style={{ padding: "6px 12px", cursor: "pointer", borderRadius: 4, fontSize: 13, color: "var(--text-primary)" }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(127,109,242,0.08)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                      >
-                        {p.replace(/\.md$/, "")}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ flex: 1, overflow: "auto", fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
-                    {diffLines.map((d, i) => (
-                      <div key={i} style={{
-                        padding: "0 16px",
-                        background: d.type === "add" ? "rgba(78, 201, 176, 0.1)" : d.type === "remove" ? "rgba(224, 82, 82, 0.1)" : "transparent",
-                        color: d.type === "add" ? "var(--color-green)" : d.type === "remove" ? "var(--color-red)" : "var(--text-secondary)",
-                        borderLeft: d.type === "add" ? "3px solid var(--color-green)" : d.type === "remove" ? "3px solid var(--color-red)" : "3px solid transparent",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}>
-                        <span style={{ display: "inline-block", width: 16, color: "var(--text-faint)", userSelect: "none" }}>
-                          {d.type === "add" ? "+" : d.type === "remove" ? "−" : " "}
-                        </span>
-                        {d.text || " "}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        };
-        return <DiffView />;
-      })()}
+      {diffSource && (
+        <DiffView diffSource={diffSource} tree={tree} onClose={() => setDiffSource(null)} />
+      )}
 
       {/* Quick Capture modal */}
-      {showQuickCapture && (() => {
-        const QuickCapture = () => {
-          const [captureText, setCaptureText] = useState("");
-          const inputRef = useRef<HTMLTextAreaElement>(null);
-          useEffect(() => { inputRef.current?.focus(); }, []);
-          const save = () => {
-            const text = captureText.trim();
-            if (!text) return;
-            const now = new Date();
-            const ts = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-            const title = text.split("\n")[0].slice(0, 50).replace(/[/\\?%*:|"<>]/g, "").trim() || ts;
-            const path = `Inbox/${title}.md`;
-            const content = text;
+      {showQuickCapture && (
+        <QuickCapture
+          onClose={() => setShowQuickCapture(false)}
+          onSave={(path, content) => {
             fetch("/api/vault/file", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
@@ -3311,38 +2901,9 @@ ${rendered}
               showToast(`Captured to ${path}`);
               setShowQuickCapture(false);
             }).catch(() => showToast("Failed to save"));
-          };
-          return (
-            <div
-              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "20vh" }}
-              onClick={(e) => { if (e.target === e.currentTarget) setShowQuickCapture(false); }}
-            >
-              <div style={{ width: 500, maxWidth: "90vw", background: "var(--bg-primary)", border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Quick Capture</span>
-                  <span style={{ fontSize: 10, color: "var(--text-faint)" }}>Saves to Inbox/</span>
-                </div>
-                <textarea
-                  ref={inputRef}
-                  value={captureText}
-                  onChange={(e) => setCaptureText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-                    if (e.key === "Escape") setShowQuickCapture(false);
-                  }}
-                  placeholder="Type your note... (Cmd+Enter to save)"
-                  style={{ width: "100%", minHeight: 120, padding: "12px 16px", border: "none", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", lineHeight: 1.6, boxSizing: "border-box" }}
-                />
-                <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                  <button onClick={() => setShowQuickCapture(false)} style={{ padding: "4px 12px", background: "none", border: "1px solid var(--border-color)", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>Cancel</button>
-                  <button onClick={save} disabled={!captureText.trim()} style={{ padding: "4px 12px", background: "var(--accent-color)", border: "none", borderRadius: 4, color: "#fff", cursor: "pointer", fontSize: 12, opacity: captureText.trim() ? 1 : 0.5 }}>Save</button>
-                </div>
-              </div>
-            </div>
-          );
-        };
-        return <QuickCapture />;
-      })()}
+          }}
+        />
+      )}
 
       {/* Command Palette modal */}
       {showCommandPalette && (() => {
